@@ -1,0 +1,659 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OmniVentas - Ventas</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary: #4361ee;
+            --primary-dark: #3a56d4;
+            --secondary: #3f37c9;
+            --success: #4cc9f0;
+            --warning: #ffd166;
+            --danger: #ef476f;
+            --dark: #212529;
+            --light: #f8f9fc;
+            --gray: #6c757d;
+            --sidebar-width: 250px;
+            --header-height: 70px;
+        }
+        
+        * { margin: 0; padding: 0; box-sizing: border-box; transition: all 0.3s ease; }
+        
+        body {
+            background-color: #f5f7fb;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            height: 100vh;
+            overflow-x: hidden;
+        }
+        
+        .header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: var(--header-height);
+            background: white;
+            box-shadow: 0 2px 20px rgba(0,0,0,0.08);
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            padding: 0 25px;
+        }
+        
+        .header-title {
+            font-weight: 700;
+            color: var(--dark);
+            margin-bottom: 0;
+            font-size: 1.8rem;
+            background: linear-gradient(45deg, var(--primary), var(--secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            letter-spacing: -0.5px;
+        }
+        
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-left: auto;
+        }
+        
+        .business-name { font-weight: 600; color: var(--dark); font-size: 0.95rem; }
+        
+        .sidebar {
+            position: fixed;
+            top: var(--header-height);
+            left: 0;
+            height: calc(100vh - var(--header-height));
+            width: var(--sidebar-width);
+            background: linear-gradient(180deg, var(--dark) 0%, #1a1e21 100%);
+            color: white;
+            overflow-y: auto;
+            transform: translateX(-100%);
+            z-index: 999;
+            opacity: 0;
+            visibility: hidden;
+            border-top-right-radius: 20px;
+            box-shadow: 5px 0 25px rgba(0,0,0,0.1);
+        }
+        
+        .sidebar-open .sidebar { transform: translateX(0); opacity: 1; visibility: visible; }
+        
+        .sidebar .nav-link {
+            color: rgba(255,255,255,0.8);
+            padding: 0.9rem 1.5rem;
+            border-radius: 0;
+            margin: 0.1rem 0;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            text-decoration: none;
+            transition: all 0.3s;
+        }
+        
+        .sidebar .nav-link:hover, .sidebar .nav-link.active {
+            color: white;
+            border-left: 4px solid var(--primary);
+            background: rgba(255,255,255,0.05);
+        }
+        
+        .sidebar .nav-link i { width: 28px; text-align: center; margin-right: 15px; font-size: 1.2rem; }
+        
+        .sidebar-logo {
+            padding: 25px 20px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.4rem;
+            font-weight: 700;
+        }
+        
+        .sidebar-logo i { margin-right: 10px; color: var(--primary); }
+        
+        .sidebar-footer {
+            padding: 20px;
+            border-top: 1px solid rgba(255,255,255,0.1);
+            margin-top: 20px;
+        }
+        
+        .sidebar-footer .btn { width: 100%; border-radius: 10px; padding: 10px; font-weight: 500; }
+        
+        .main-content {
+            margin-top: var(--header-height);
+            padding: 30px;
+            min-height: calc(100vh - var(--header-height));
+        }
+        
+        .section-title {
+            font-weight: 700;
+            color: var(--dark);
+            margin-bottom: 1.8rem;
+            position: relative;
+            padding-bottom: 0.8rem;
+            font-size: 1.8rem;
+        }
+        
+        .section-title::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 60px;
+            height: 4px;
+            background: var(--primary);
+            border-radius: 3px;
+            box-shadow: 0 2px 8px rgba(67, 97, 238, 0.3);
+        }
+        
+        .card {
+            border: none;
+            border-radius: 16px;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.05);
+            margin-bottom: 30px;
+            overflow: hidden;
+            transition: transform 0.4s, box-shadow 0.4s;
+        }
+        
+        .card:hover { transform: translateY(-5px); box-shadow: 0 12px 30px rgba(0,0,0,0.1); }
+        
+        .card-header {
+            background: white;
+            border-bottom: 1px solid #e3e6f0;
+            font-weight: 600;
+            padding: 1.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 1.1rem;
+        }
+        
+        .stat-card {
+            border-left: 5px solid var(--primary);
+            transition: transform 0.3s;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .stat-card:hover { transform: translateY(-5px); }
+        
+        .stat-value { font-size: 2.2rem; font-weight: 800; position: relative; z-index: 1; }
+        .stat-label { color: var(--gray); font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.8px; font-weight: 600; }
+        
+        .icon-circle {
+            width: 55px;
+            height: 55px;
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.6rem;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+        }
+        
+        .bg-primary-light { background-color: rgba(67, 97, 238, 0.15); color: var(--primary); }
+        .bg-success-light { background-color: rgba(76, 201, 240, 0.15); color: var(--success); }
+        .bg-info-light { background-color: rgba(23, 162, 184, 0.15); color: #17a2b8; }
+        .bg-warning-light { background-color: rgba(255, 193, 7, 0.15); color: var(--warning); }
+        .bg-danger-light { background-color: rgba(239, 71, 111, 0.15); color: var(--danger); }
+        
+        .table-container {
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.05);
+        }
+        
+        .table thead {
+            background: linear-gradient(90deg, var(--primary), var(--secondary));
+            color: white;
+        }
+        
+        .table th { padding: 1rem 1.5rem; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.5px; }
+        .table td { padding: 0.9rem 1.5rem; vertical-align: middle; }
+        .table-hover tbody tr:hover { background-color: rgba(67, 97, 238, 0.05); transform: translateX(5px); }
+        
+        .empty-state { text-align: center; padding: 40px 20px; color: #6c757d; }
+        .empty-state i { font-size: 3rem; margin-bottom: 15px; opacity: 0.5; }
+        .empty-state h5 { font-weight: 600; color: #2c3e50; }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .fade-in { animation: fadeIn 0.6s ease-out forwards; opacity: 0; }
+        .delay-1 { animation-delay: 0.1s; }
+        .delay-2 { animation-delay: 0.2s; }
+        .delay-3 { animation-delay: 0.3s; }
+        
+        .toggle-sidebar {
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--primary);
+            color: white;
+            border-radius: 10px;
+            margin-right: 15px;
+            cursor: pointer;
+            border: none;
+            box-shadow: 0 4px 10px rgba(67, 97, 238, 0.3);
+        }
+        
+        .toggle-sidebar:hover { background: var(--primary-dark); transform: rotate(90deg); }
+        
+        .btn-action { border-radius: 12px; padding: 10px 25px; font-weight: 600; transition: all 0.3s; }
+        .btn-action:hover { transform: translateY(-2px); }
+        
+        .back-link { color: var(--primary); text-decoration: none; font-weight: 500; }
+        .back-link:hover { text-decoration: underline; }
+        
+        @media (max-width: 992px) {
+            .header-title { font-size: 1.3rem; }
+            .stat-value { font-size: 1.8rem; }
+            .sidebar { width: 280px; }
+        }
+        
+        @media (max-width: 768px) {
+            .main-content { padding: 15px; }
+            .header { padding: 0 15px; }
+            .business-name { display: none; }
+            .stat-value { font-size: 1.5rem; }
+            .card-header { flex-direction: column; align-items: flex-start; gap: 10px; }
+        }
+    </style>
+</head>
+<body>
+    <!-- HEADER -->
+    <header class="header">
+        <button class="toggle-sidebar" onclick="toggleSidebar()">
+            <i class="fas fa-bars"></i>
+        </button>
+        <h1 class="header-title">OmniVentas</h1>
+        <div class="header-actions">
+            <span class="business-name"><i class="fas fa-store me-1"></i>{{ business_name }}</span>
+            <a href="/bot-diagnostic" class="btn btn-outline-primary btn-sm">
+                <i class="fas fa-robot me-1"></i>Diagnóstico
+            </a>
+            <a href="/logout" class="btn btn-outline-danger btn-sm">
+                <i class="fas fa-sign-out-alt me-1"></i>Salir
+            </a>
+        </div>
+    </header>
+    
+    <!-- SIDEBAR -->
+    <nav class="sidebar" id="sidebar">
+        <div class="sidebar-logo">
+            <i class="fas fa-chart-line"></i>
+            <span>Panel Admin</span>
+        </div>
+        <ul class="nav flex-column mt-3">
+            <li class="nav-item"><a class="nav-link" href="/dashboard"><i class="fas fa-tachometer-alt"></i><span>Dashboard</span></a></li>
+            <li class="nav-item"><a class="nav-link active" href="/ventas"><i class="fas fa-shopping-cart"></i><span>Ventas</span></a></li>
+            <li class="nav-item"><a class="nav-link" href="/inventario"><i class="fas fa-boxes"></i><span>Inventario</span></a></li>
+            <li class="nav-item"><a class="nav-link" href="/finanzas"><i class="fas fa-chart-pie"></i><span>Finanzas</span></a></li>
+            <li class="nav-item"><a class="nav-link" href="/analisis"><i class="fas fa-chart-line"></i><span>Análisis</span></a></li>
+            <li class="nav-item"><a class="nav-link" href="/clientes"><i class="fas fa-users"></i><span>Clientes</span></a></li>
+            <li class="nav-item mt-4 pt-2 border-top border-white-10">
+                <a class="nav-link" href="/configuracion"><i class="fas fa-cog"></i><span>Configuración</span></a>
+            </li>
+        </ul>
+        <div class="sidebar-footer">
+            <a href="/bot-diagnostic" class="btn btn-outline-light"><i class="fas fa-robot me-2"></i>Diagnóstico Bot</a>
+            <a href="/logout" class="btn btn-outline-danger mt-2"><i class="fas fa-sign-out-alt me-2"></i>Cerrar Sesión</a>
+        </div>
+    </nav>
+    
+    <!-- MAIN CONTENT -->
+    <main class="main-content">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h2 class="section-title"><i class="fas fa-shopping-cart me-2"></i>Gestión de Ventas</h2>
+            <a href="/dashboard" class="back-link"><i class="fas fa-arrow-left me-1"></i>Volver al Dashboard</a>
+        </div>
+        
+        <!-- Filtros -->
+        <div class="card mb-4">
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-md-3">
+                        <label class="form-label fw-semibold">Fecha Desde</label>
+                        <input type="date" class="form-control" id="fecha-inicio">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label fw-semibold">Fecha Hasta</label>
+                        <input type="date" class="form-control" id="fecha-fin">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label fw-semibold">Producto</label>
+                        <input type="text" class="form-control" id="filtro-producto" placeholder="Buscar producto...">
+                    </div>
+                    <div class="col-md-3 d-flex align-items-end gap-2">
+                        <button class="btn btn-primary w-100" id="btn-filtrar">
+                            <i class="fas fa-search me-2"></i>Filtrar
+                        </button>
+                        <button class="btn btn-outline-secondary" id="btn-limpiar" title="Limpiar filtros">
+                            <i class="fas fa-undo"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Resumen -->
+        <div class="row mb-4">
+            <div class="col-md-3">
+                <div class="card stat-card h-100 fade-in">
+                    <div class="card-body">
+                        <div class="stat-label">Total Ventas</div>
+                        <div class="stat-value text-primary" id="total-ventas">0</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card stat-card h-100 fade-in delay-1">
+                    <div class="card-body">
+                        <div class="stat-label">Ingresos</div>
+                        <div class="stat-value text-success" id="total-ingresos">$0.00</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card stat-card h-100 fade-in delay-2">
+                    <div class="card-body">
+                        <div class="stat-label">Ganancia</div>
+                        <div class="stat-value text-info" id="total-ganancia">$0.00</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card stat-card h-100 fade-in delay-3">
+                    <div class="card-body">
+                        <div class="stat-label">Ticket Promedio</div>
+                        <div class="stat-value text-warning" id="ticket-promedio">$0.00</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tabla -->
+        <div class="card">
+            <div class="card-header">
+                <h6 class="m-0"><i class="fas fa-list me-2"></i>Historial de Ventas</h6>
+                <div>
+                    <button class="btn btn-sm btn-success me-2" id="btn-exportar">
+                        <i class="fas fa-file-excel me-1"></i>Exportar
+                    </button>
+                    <button class="btn btn-sm btn-primary" id="btn-registrar-venta">
+                        <i class="fas fa-plus me-1"></i>Registrar Venta
+                    </button>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="table-container">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Fecha</th>
+                                <th>Producto</th>
+                                <th>Cantidad</th>
+                                <th>Precio Unit.</th>
+                                <th>Total</th>
+                                <th>Ganancia</th>
+                            </tr>
+                        </thead>
+                        <tbody id="ventas-body"></tbody>
+                    </table>
+                    <div id="ventas-empty" class="empty-state" style="display: none;">
+                        <i class="fas fa-receipt"></i>
+                        <h5>No hay ventas registradas</h5>
+                        <p class="text-muted">Las ventas aparecerán aquí cuando registres tus primeras ventas</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- MODAL REGISTRAR VENTA -->
+    <div class="modal fade" id="modalVenta" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title"><i class="fas fa-plus me-2"></i>Registrar Nueva Venta</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="form-venta">
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">Producto</label>
+                            <select class="form-select" id="venta-producto" required>
+                                <option value="">Seleccionar producto...</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">Cantidad</label>
+                            <input type="number" class="form-control" id="venta-cantidad" min="1" value="1" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">Precio Unitario</label>
+                            <input type="number" step="0.01" class="form-control" id="venta-precio" required>
+                        </div>
+                        <div class="alert alert-info">
+                            <strong>Stock disponible:</strong> <span id="venta-stock-disponible">0</span> unidades
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-primary" id="btn-guardar-venta">
+                        <i class="fas fa-save me-2"></i>Registrar Venta
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        function toggleSidebar() {
+            document.body.classList.toggle('sidebar-open');
+        }
+
+        // ============== CARGAR VENTAS ==============
+        function cargarVentas() {
+            const inicio = document.getElementById('fecha-inicio').value;
+            const fin = document.getElementById('fecha-fin').value;
+            const producto = document.getElementById('filtro-producto').value;
+
+            let url = '/api/ventas?';
+            if (inicio) url += `fecha_inicio=${inicio}&`;
+            if (fin) url += `fecha_fin=${fin}&`;
+            if (producto) url += `producto=${encodeURIComponent(producto)}&`;
+
+            fetch(url)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.error) {
+                        console.error('Error:', data.error);
+                        return;
+                    }
+                    actualizarVentas(data);
+                })
+                .catch(error => console.error('Error:', error));
+        }
+
+        function actualizarVentas(data) {
+            document.getElementById('total-ventas').textContent = data.total_ventas || 0;
+            document.getElementById('total-ingresos').textContent = `$${(data.ingresos || 0).toFixed(2)}`;
+            document.getElementById('total-ganancia').textContent = `$${(data.ganancia || 0).toFixed(2)}`;
+            document.getElementById('ticket-promedio').textContent = `$${(data.ticket_promedio || 0).toFixed(2)}`;
+
+            const body = document.getElementById('ventas-body');
+            const empty = document.getElementById('ventas-empty');
+            body.innerHTML = '';
+
+            if (data.ventas && data.ventas.length > 0) {
+                empty.style.display = 'none';
+                data.ventas.forEach(v => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td>${v.fecha}</td>
+                        <td><strong>${v.producto}</strong></td>
+                        <td>${v.cantidad}</td>
+                        <td>$${v.precio_unitario.toFixed(2)}</td>
+                        <td>$${v.total.toFixed(2)}</td>
+                        <td class="${v.ganancia >= 0 ? 'text-success' : 'text-danger'}">$${v.ganancia.toFixed(2)}</td>
+                    `;
+                    body.appendChild(row);
+                });
+            } else {
+                empty.style.display = 'block';
+            }
+        }
+
+        // ============== FILTROS ==============
+        document.getElementById('btn-filtrar').addEventListener('click', cargarVentas);
+        document.getElementById('btn-limpiar').addEventListener('click', function() {
+            document.getElementById('fecha-inicio').value = '';
+            document.getElementById('fecha-fin').value = '';
+            document.getElementById('filtro-producto').value = '';
+            cargarVentas();
+        });
+
+        // ============== EXPORTAR ==============
+        document.getElementById('btn-exportar').addEventListener('click', function() {
+            const rows = document.querySelectorAll('#ventas-body tr');
+            if (rows.length === 0) {
+                alert('No hay datos para exportar');
+                return;
+            }
+            
+            let csv = 'Fecha,Producto,Cantidad,Precio Unitario,Total,Ganancia\n';
+            rows.forEach(row => {
+                const cols = row.querySelectorAll('td');
+                csv += `${cols[0].textContent},${cols[1].textContent},${cols[2].textContent},${cols[3].textContent},${cols[4].textContent},${cols[5].textContent}\n`;
+            });
+            
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `ventas_${new Date().toISOString().split('T')[0]}.csv`;
+            a.click();
+            window.URL.revokeObjectURL(url);
+        });
+
+        // ============== MODAL REGISTRAR VENTA ==============
+        const modalVenta = new bootstrap.Modal(document.getElementById('modalVenta'));
+        let productosCache = [];
+
+        function cargarProductosParaVenta() {
+            fetch('/api/inventario')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.error) {
+                        console.error('Error:', data.error);
+                        return;
+                    }
+                    productosCache = data.productos || [];
+                    const select = document.getElementById('venta-producto');
+                    select.innerHTML = '<option value="">Seleccionar producto...</option>';
+                    productosCache.forEach(p => {
+                        const option = document.createElement('option');
+                        option.value = p.id;
+                        option.textContent = `${p.nombre} (Stock: ${p.stock} - $${p.precio_venta})`;
+                        option.dataset.stock = p.stock;
+                        option.dataset.precio = p.precio_venta;
+                        select.appendChild(option);
+                    });
+                })
+                .catch(error => console.error('Error:', error));
+        }
+
+        document.getElementById('venta-producto').addEventListener('change', function() {
+            const selected = this.options[this.selectedIndex];
+            if (selected && selected.dataset.stock) {
+                document.getElementById('venta-stock-disponible').textContent = selected.dataset.stock;
+                document.getElementById('venta-precio').value = selected.dataset.precio || '';
+            } else {
+                document.getElementById('venta-stock-disponible').textContent = '0';
+            }
+        });
+
+        document.getElementById('btn-registrar-venta').addEventListener('click', function() {
+            cargarProductosParaVenta();
+            document.getElementById('venta-cantidad').value = 1;
+            document.getElementById('venta-precio').value = '';
+            document.getElementById('venta-stock-disponible').textContent = '0';
+            modalVenta.show();
+        });
+
+        document.getElementById('btn-guardar-venta').addEventListener('click', function() {
+            const productoId = document.getElementById('venta-producto').value;
+            const cantidad = parseInt(document.getElementById('venta-cantidad').value);
+            const precio = parseFloat(document.getElementById('venta-precio').value);
+
+            if (!productoId) {
+                alert('Selecciona un producto');
+                return;
+            }
+            if (!cantidad || cantidad < 1) {
+                alert('Ingresa una cantidad válida');
+                return;
+            }
+            if (!precio || precio <= 0) {
+                alert('Ingresa un precio válido');
+                return;
+            }
+
+            const producto = productosCache.find(p => p.id == productoId);
+            if (!producto) {
+                alert('Producto no encontrado');
+                return;
+            }
+
+            if (cantidad > producto.stock) {
+                alert(`Stock insuficiente. Disponible: ${producto.stock}`);
+                return;
+            }
+
+            fetch('/api/registrar-venta', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    producto_id: productoId,
+                    cantidad: cantidad,
+                    precio_unitario: precio
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('✅ Venta registrada exitosamente!');
+                    modalVenta.hide();
+                    cargarVentas();
+                } else {
+                    alert('❌ Error: ' + data.message);
+                }
+            })
+            .catch(error => {
+                alert('❌ Error de conexión: ' + error.message);
+            });
+        });
+
+        // ============== INICIALIZACIÓN ==============
+        document.addEventListener('DOMContentLoaded', function() {
+            const hoy = new Date().toISOString().split('T')[0];
+            const mes = new Date();
+            mes.setMonth(mes.getMonth() - 1);
+            document.getElementById('fecha-inicio').value = mes.toISOString().split('T')[0];
+            document.getElementById('fecha-fin').value = hoy;
+            cargarVentas();
+        });
+    </script>
+</body>
+</html>

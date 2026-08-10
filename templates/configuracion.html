@@ -1,0 +1,672 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OmniVentas - Configuración</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary: #4361ee;
+            --primary-dark: #3a56d4;
+            --secondary: #3f37c9;
+            --success: #4cc9f0;
+            --warning: #ffd166;
+            --danger: #ef476f;
+            --dark: #212529;
+            --light: #f8f9fc;
+            --gray: #6c757d;
+            --sidebar-width: 250px;
+            --header-height: 70px;
+        }
+        
+        * { margin: 0; padding: 0; box-sizing: border-box; transition: all 0.3s ease; }
+        
+        body {
+            background-color: #f5f7fb;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            height: 100vh;
+            overflow-x: hidden;
+        }
+        
+        .header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: var(--header-height);
+            background: white;
+            box-shadow: 0 2px 20px rgba(0,0,0,0.08);
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            padding: 0 25px;
+        }
+        
+        .header-title {
+            font-weight: 700;
+            color: var(--dark);
+            margin-bottom: 0;
+            font-size: 1.8rem;
+            background: linear-gradient(45deg, var(--primary), var(--secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            letter-spacing: -0.5px;
+        }
+        
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-left: auto;
+        }
+        
+        .business-name { font-weight: 600; color: var(--dark); font-size: 0.95rem; }
+        
+        .sidebar {
+            position: fixed;
+            top: var(--header-height);
+            left: 0;
+            height: calc(100vh - var(--header-height));
+            width: var(--sidebar-width);
+            background: linear-gradient(180deg, var(--dark) 0%, #1a1e21 100%);
+            color: white;
+            overflow-y: auto;
+            transform: translateX(-100%);
+            z-index: 999;
+            opacity: 0;
+            visibility: hidden;
+            border-top-right-radius: 20px;
+            box-shadow: 5px 0 25px rgba(0,0,0,0.1);
+        }
+        
+        .sidebar-open .sidebar { transform: translateX(0); opacity: 1; visibility: visible; }
+        
+        .sidebar .nav-link {
+            color: rgba(255,255,255,0.8);
+            padding: 0.9rem 1.5rem;
+            border-radius: 0;
+            margin: 0.1rem 0;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            text-decoration: none;
+            transition: all 0.3s;
+        }
+        
+        .sidebar .nav-link:hover, .sidebar .nav-link.active {
+            color: white;
+            border-left: 4px solid var(--primary);
+            background: rgba(255,255,255,0.05);
+        }
+        
+        .sidebar .nav-link i { width: 28px; text-align: center; margin-right: 15px; font-size: 1.2rem; }
+        
+        .sidebar-logo {
+            padding: 25px 20px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.4rem;
+            font-weight: 700;
+        }
+        
+        .sidebar-logo i { margin-right: 10px; color: var(--primary); }
+        
+        .sidebar-footer {
+            padding: 20px;
+            border-top: 1px solid rgba(255,255,255,0.1);
+            margin-top: 20px;
+        }
+        
+        .sidebar-footer .btn { width: 100%; border-radius: 10px; padding: 10px; font-weight: 500; }
+        
+        .main-content {
+            margin-top: var(--header-height);
+            padding: 30px;
+            min-height: calc(100vh - var(--header-height));
+        }
+        
+        .section-title {
+            font-weight: 700;
+            color: var(--dark);
+            margin-bottom: 1.8rem;
+            position: relative;
+            padding-bottom: 0.8rem;
+            font-size: 1.8rem;
+        }
+        
+        .section-title::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 60px;
+            height: 4px;
+            background: var(--primary);
+            border-radius: 3px;
+            box-shadow: 0 2px 8px rgba(67, 97, 238, 0.3);
+        }
+        
+        .card {
+            border: none;
+            border-radius: 16px;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.05);
+            margin-bottom: 30px;
+            overflow: hidden;
+            transition: transform 0.4s, box-shadow 0.4s;
+        }
+        
+        .card:hover { transform: translateY(-5px); box-shadow: 0 12px 30px rgba(0,0,0,0.1); }
+        
+        .card-header {
+            background: white;
+            border-bottom: 1px solid #e3e6f0;
+            font-weight: 600;
+            padding: 1.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 1.1rem;
+        }
+        
+        .form-control {
+            border-radius: 10px;
+            border: 2px solid #e9ecef;
+            padding: 12px 16px;
+            transition: all 0.3s;
+        }
+        
+        .form-control:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 0.2rem rgba(67, 97, 238, 0.25);
+        }
+        
+        .form-label { font-weight: 600; color: #2c3e50; }
+        
+        .btn-action { border-radius: 12px; padding: 10px 25px; font-weight: 600; transition: all 0.3s; }
+        .btn-action:hover { transform: translateY(-2px); }
+        
+        .toggle-sidebar {
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--primary);
+            color: white;
+            border-radius: 10px;
+            margin-right: 15px;
+            cursor: pointer;
+            border: none;
+            box-shadow: 0 4px 10px rgba(67, 97, 238, 0.3);
+        }
+        
+        .toggle-sidebar:hover { background: var(--primary-dark); transform: rotate(90deg); }
+        
+        .back-link { color: var(--primary); text-decoration: none; font-weight: 500; }
+        .back-link:hover { text-decoration: underline; }
+        
+        .bot-status {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 16px;
+            background: #f8f9fa;
+            border-radius: 10px;
+        }
+        
+        .bot-status .dot { width: 12px; height: 12px; border-radius: 50%; display: inline-block; }
+        .bot-status .dot.online { background: #28a745; }
+        .bot-status .dot.offline { background: #dc3545; }
+        
+        .danger-zone {
+            border: 2px solid #dc3545;
+            background: #fff5f5;
+        }
+        
+        .danger-zone .card-header {
+            background: #dc3545;
+            color: white;
+            border-bottom: none;
+        }
+        
+        @media (max-width: 992px) {
+            .header-title { font-size: 1.3rem; }
+            .sidebar { width: 280px; }
+        }
+        
+        @media (max-width: 768px) {
+            .main-content { padding: 15px; }
+            .header { padding: 0 15px; }
+            .business-name { display: none; }
+            .card-header { flex-direction: column; align-items: flex-start; gap: 10px; }
+        }
+    </style>
+</head>
+<body>
+    <!-- HEADER -->
+    <header class="header">
+        <button class="toggle-sidebar" onclick="toggleSidebar()">
+            <i class="fas fa-bars"></i>
+        </button>
+        <h1 class="header-title">OmniVentas</h1>
+        <div class="header-actions">
+            <span class="business-name"><i class="fas fa-store me-1"></i>{{ business_name }}</span>
+            <a href="/bot-diagnostic" class="btn btn-outline-primary btn-sm">
+                <i class="fas fa-robot me-1"></i>Diagnóstico
+            </a>
+            <a href="/logout" class="btn btn-outline-danger btn-sm">
+                <i class="fas fa-sign-out-alt me-1"></i>Salir
+            </a>
+        </div>
+    </header>
+    
+    <!-- SIDEBAR -->
+    <nav class="sidebar" id="sidebar">
+        <div class="sidebar-logo">
+            <i class="fas fa-chart-line"></i>
+            <span>Panel Admin</span>
+        </div>
+        <ul class="nav flex-column mt-3">
+            <li class="nav-item"><a class="nav-link" href="/dashboard"><i class="fas fa-tachometer-alt"></i><span>Dashboard</span></a></li>
+            <li class="nav-item"><a class="nav-link" href="/ventas"><i class="fas fa-shopping-cart"></i><span>Ventas</span></a></li>
+            <li class="nav-item"><a class="nav-link" href="/inventario"><i class="fas fa-boxes"></i><span>Inventario</span></a></li>
+            <li class="nav-item"><a class="nav-link" href="/finanzas"><i class="fas fa-chart-pie"></i><span>Finanzas</span></a></li>
+            <li class="nav-item"><a class="nav-link" href="/analisis"><i class="fas fa-chart-line"></i><span>Análisis</span></a></li>
+            <li class="nav-item"><a class="nav-link" href="/clientes"><i class="fas fa-users"></i><span>Clientes</span></a></li>
+            <li class="nav-item mt-4 pt-2 border-top border-white-10">
+                <a class="nav-link active" href="/configuracion"><i class="fas fa-cog"></i><span>Configuración</span></a>
+            </li>
+        </ul>
+        <div class="sidebar-footer">
+            <a href="/bot-diagnostic" class="btn btn-outline-light"><i class="fas fa-robot me-2"></i>Diagnóstico Bot</a>
+            <a href="/logout" class="btn btn-outline-danger mt-2"><i class="fas fa-sign-out-alt me-2"></i>Cerrar Sesión</a>
+        </div>
+    </nav>
+    
+    <!-- MAIN CONTENT -->
+    <main class="main-content">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h2 class="section-title"><i class="fas fa-cog me-2"></i>Configuración</h2>
+            <a href="/dashboard" class="back-link"><i class="fas fa-arrow-left me-1"></i>Volver al Dashboard</a>
+        </div>
+        
+        <!-- Datos del Negocio -->
+        <div class="card">
+            <div class="card-header">
+                <h6 class="m-0"><i class="fas fa-store me-2"></i>Datos del Negocio</h6>
+                <span class="badge bg-success">Configurado</span>
+            </div>
+            <div class="card-body">
+                <form id="config-form">
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Nombre del Negocio</label>
+                            <input type="text" class="form-control" id="config-nombre" value="{{ business_name }}">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Email</label>
+                            <input type="email" class="form-control" id="config-email" placeholder="email@negocio.com">
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Teléfono</label>
+                            <input type="text" class="form-control" id="config-telefono" placeholder="+1234567890">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Dirección</label>
+                            <input type="text" class="form-control" id="config-direccion" placeholder="Calle, ciudad, país">
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-action">
+                        <i class="fas fa-save me-2"></i>Guardar Cambios
+                    </button>
+                    <button type="reset" class="btn btn-outline-secondary btn-action">
+                        <i class="fas fa-undo me-2"></i>Restablecer
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Configuración del Bot -->
+        <div class="card">
+            <div class="card-header">
+                <h6 class="m-0"><i class="fas fa-robot me-2"></i>Configuración del Bot</h6>
+                <span class="badge bg-success" id="bot-status-badge">Conectado</span>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="bot-status mb-3">
+                            <span class="dot online" id="bot-status-dot"></span>
+                            <span>Estado: <strong id="bot-status-text">Conectado</strong></span>
+                        </div>
+                        <p class="text-muted">Gestiona la configuración de tu bot de Telegram</p>
+                        <div class="d-flex gap-2 flex-wrap">
+                            <a href="/bot-diagnostic" class="btn btn-outline-primary btn-action">
+                                <i class="fas fa-robot me-2"></i>Diagnóstico del Bot
+                            </a>
+                            <button class="btn btn-outline-secondary btn-action" id="btn-reconectar">
+                                <i class="fas fa-sync me-2"></i>Reconectar Webhook
+                            </button>
+                            <button class="btn btn-outline-danger btn-action" id="btn-desconectar-bot">
+                                <i class="fas fa-unlink me-2"></i>Desconectar Bot
+                            </button>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle me-2"></i>
+                            <strong>Comandos disponibles:</strong><br>
+                            <code>/start</code> - Iniciar el bot<br>
+                            <code>/menu</code> - Ver menú principal<br>
+                            <code>/ventas</code> - Registrar ventas<br>
+                            <code>/inventario</code> - Consultar inventario<br>
+                            <code>/estadisticas</code> - Ver estadísticas
+                        </div>
+                        <div class="mt-2">
+                            <label class="form-label fw-semibold">Token del Bot</label>
+                            <div class="input-group">
+                                <input type="password" class="form-control" id="bot-token-display" value="••••••••••••••••" disabled>
+                                <button class="btn btn-outline-secondary" type="button" id="toggle-token-display">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                            </div>
+                            <small class="text-muted">El token está configurado y encriptado</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Seguridad -->
+        <div class="card">
+            <div class="card-header">
+                <h6 class="m-0"><i class="fas fa-shield-alt me-2"></i>Seguridad</h6>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <label class="form-label">Cambiar Contraseña</label>
+                        <div class="input-group mb-2">
+                            <input type="password" class="form-control" placeholder="Nueva contraseña" id="new-password" minlength="6">
+                            <button class="btn btn-outline-secondary" type="button" id="toggle-password">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                        </div>
+                        <div class="input-group mb-3">
+                            <input type="password" class="form-control" placeholder="Confirmar contraseña" id="confirm-password">
+                        </div>
+                        <button class="btn btn-warning btn-action" id="btn-cambiar-pass">
+                            <i class="fas fa-key me-2"></i>Cambiar Contraseña
+                        </button>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="alert alert-warning">
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            <strong>Consejo de seguridad:</strong> Usa una contraseña única y segura (mínimo 8 caracteres, incluye números y símbolos). No la compartas con nadie.
+                        </div>
+                        <div class="alert alert-info">
+                            <i class="fas fa-clock me-2"></i>
+                            <strong>Último cambio:</strong> <span id="last-password-change">Hace 3 días</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Zona de Peligro -->
+        <div class="card danger-zone">
+            <div class="card-header">
+                <h6 class="m-0"><i class="fas fa-exclamation-triangle me-2"></i>Zona de Peligro</h6>
+            </div>
+            <div class="card-body">
+                <p class="text-danger">Estas acciones son irreversibles. Ten mucho cuidado.</p>
+                <div class="d-flex gap-2 flex-wrap">
+                    <button class="btn btn-outline-danger btn-action" id="btn-eliminar-datos">
+                        <i class="fas fa-database me-2"></i>Eliminar Todos los Datos
+                    </button>
+                    <button class="btn btn-danger btn-action" id="btn-eliminar-cuenta">
+                        <i class="fas fa-trash me-2"></i>Eliminar Cuenta
+                    </button>
+                </div>
+                <div class="mt-3 p-2 bg-danger bg-opacity-10 rounded">
+                    <small class="text-danger">
+                        <i class="fas fa-info-circle me-1"></i>
+                        Eliminar todos los datos borrará productos, ventas, clientes y configuraciones. 
+                        Eliminar la cuenta borrará también el negocio completo.
+                    </small>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        function toggleSidebar() {
+            document.body.classList.toggle('sidebar-open');
+        }
+
+        // ============== MOSTRAR/OCULTAR CONTRASEÑA ==============
+        document.getElementById('toggle-password')?.addEventListener('click', function() {
+            const input = document.getElementById('new-password');
+            const icon = this.querySelector('i');
+            if (input.type === 'password') {
+                input.type = 'text';
+                icon.classList.remove('fa-eye');
+                icon.classList.add('fa-eye-slash');
+            } else {
+                input.type = 'password';
+                icon.classList.remove('fa-eye-slash');
+                icon.classList.add('fa-eye');
+            }
+        });
+
+        document.getElementById('toggle-token-display')?.addEventListener('click', function() {
+            const input = document.getElementById('bot-token-display');
+            const icon = this.querySelector('i');
+            if (input.type === 'password') {
+                input.type = 'text';
+                input.value = '{{ business_id }}';
+                icon.classList.remove('fa-eye');
+                icon.classList.add('fa-eye-slash');
+            } else {
+                input.type = 'password';
+                input.value = '••••••••••••••••';
+                icon.classList.remove('fa-eye-slash');
+                icon.classList.add('fa-eye');
+            }
+        });
+
+        // ============== GUARDAR CONFIGURACIÓN ==============
+        document.getElementById('config-form')?.addEventListener('submit', function(e) {
+            e.preventDefault();
+            const nombre = document.getElementById('config-nombre').value.trim();
+            const email = document.getElementById('config-email').value.trim();
+            const telefono = document.getElementById('config-telefono').value.trim();
+            const direccion = document.getElementById('config-direccion').value.trim();
+
+            if (!nombre) {
+                alert('❌ El nombre del negocio es obligatorio');
+                return;
+            }
+
+            fetch('/api/configuracion', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    nombre: nombre,
+                    email: email,
+                    telefono: telefono,
+                    direccion: direccion
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('✅ Configuración guardada correctamente!');
+                    location.reload();
+                } else {
+                    alert('❌ Error: ' + data.message);
+                }
+            })
+            .catch(error => {
+                alert('❌ Error de conexión: ' + error.message);
+            });
+        });
+
+        // ============== CAMBIAR CONTRASEÑA ==============
+        document.getElementById('btn-cambiar-pass')?.addEventListener('click', function() {
+            const pass = document.getElementById('new-password').value;
+            const confirm = document.getElementById('confirm-password').value;
+
+            if (!pass || pass.length < 6) {
+                alert('❌ La contraseña debe tener al menos 6 caracteres');
+                return;
+            }
+            if (pass !== confirm) {
+                alert('❌ Las contraseñas no coinciden');
+                return;
+            }
+
+            fetch('/api/cambiar-password', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ password: pass })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('✅ Contraseña cambiada correctamente!');
+                    document.getElementById('new-password').value = '';
+                    document.getElementById('confirm-password').value = '';
+                    document.getElementById('last-password-change').textContent = 'Ahora mismo';
+                } else {
+                    alert('❌ Error: ' + data.message);
+                }
+            })
+            .catch(error => {
+                alert('❌ Error de conexión: ' + error.message);
+            });
+        });
+
+        // ============== RECONECTAR WEBHOOK ==============
+        document.getElementById('btn-reconectar')?.addEventListener('click', function() {
+            const businessId = '{{ business_id }}';
+            if (!businessId) {
+                alert('❌ No se pudo obtener el ID del negocio');
+                return;
+            }
+            
+            this.disabled = true;
+            this.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Reconectando...';
+            
+            fetch(`/api/webhook-refresh/${businessId}`, {
+                method: 'POST'
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('✅ Webhook reconectado correctamente!');
+                } else {
+                    alert('❌ Error: ' + data.message);
+                }
+            })
+            .catch(error => {
+                alert('❌ Error de conexión: ' + error.message);
+            })
+            .finally(() => {
+                this.disabled = false;
+                this.innerHTML = '<i class="fas fa-sync me-2"></i>Reconectar Webhook';
+            });
+        });
+
+        // ============== DESCONECTAR BOT ==============
+        document.getElementById('btn-desconectar-bot')?.addEventListener('click', function() {
+            if (!confirm('⚠️ ¿Estás seguro de desconectar el bot? Los comandos de Telegram dejarán de funcionar.')) {
+                return;
+            }
+
+            const businessId = '{{ business_id }}';
+            fetch(`/api/bot-diagnostic/reset-token`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ business_id: businessId })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('✅ Bot desconectado correctamente');
+                    document.getElementById('bot-status-text').textContent = 'Desconectado';
+                    document.getElementById('bot-status-dot').className = 'dot offline';
+                    document.getElementById('bot-status-badge').className = 'badge bg-danger';
+                    document.getElementById('bot-status-badge').textContent = 'Desconectado';
+                } else {
+                    alert('❌ Error: ' + data.message);
+                }
+            })
+            .catch(error => {
+                alert('❌ Error de conexión: ' + error.message);
+            });
+        });
+
+        // ============== ELIMINAR DATOS ==============
+        document.getElementById('btn-eliminar-datos')?.addEventListener('click', function() {
+            if (!confirm('⚠️ ¿Estás seguro de eliminar TODOS los datos? Esta acción no se puede deshacer.')) {
+                return;
+            }
+            if (!confirm('⚠️ Confirmación final: ¿Eliminar todos los datos del negocio? Esto incluye productos, ventas, clientes y configuraciones.')) {
+                return;
+            }
+
+            fetch('/api/eliminar-datos', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('✅ Todos los datos han sido eliminados correctamente');
+                    location.reload();
+                } else {
+                    alert('❌ Error: ' + data.message);
+                }
+            })
+            .catch(error => {
+                alert('❌ Error de conexión: ' + error.message);
+            });
+        });
+
+        // ============== ELIMINAR CUENTA ==============
+        document.getElementById('btn-eliminar-cuenta')?.addEventListener('click', function() {
+            if (!confirm('⚠️ ¿Estás seguro de eliminar tu cuenta? Esta acción no se puede deshacer.')) {
+                return;
+            }
+            if (!confirm('⚠️ Confirmación final: ¿Eliminar tu cuenta y todos los datos asociados?')) {
+                return;
+            }
+
+            fetch('/api/eliminar-cuenta', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('✅ Cuenta eliminada correctamente');
+                    window.location.href = '/login';
+                } else {
+                    alert('❌ Error: ' + data.message);
+                }
+            })
+            .catch(error => {
+                alert('❌ Error de conexión: ' + error.message);
+            });
+        });
+    </script>
+</body>
+</html>

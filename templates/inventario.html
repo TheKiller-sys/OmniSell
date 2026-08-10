@@ -1,0 +1,625 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OmniVentas - Inventario</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary: #4361ee;
+            --primary-dark: #3a56d4;
+            --secondary: #3f37c9;
+            --success: #4cc9f0;
+            --warning: #ffd166;
+            --danger: #ef476f;
+            --dark: #212529;
+            --light: #f8f9fc;
+            --gray: #6c757d;
+            --sidebar-width: 250px;
+            --header-height: 70px;
+        }
+        
+        * { margin: 0; padding: 0; box-sizing: border-box; transition: all 0.3s ease; }
+        
+        body {
+            background-color: #f5f7fb;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            height: 100vh;
+            overflow-x: hidden;
+        }
+        
+        .header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: var(--header-height);
+            background: white;
+            box-shadow: 0 2px 20px rgba(0,0,0,0.08);
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            padding: 0 25px;
+        }
+        
+        .header-title {
+            font-weight: 700;
+            color: var(--dark);
+            margin-bottom: 0;
+            font-size: 1.8rem;
+            background: linear-gradient(45deg, var(--primary), var(--secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            letter-spacing: -0.5px;
+        }
+        
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-left: auto;
+        }
+        
+        .business-name { font-weight: 600; color: var(--dark); font-size: 0.95rem; }
+        
+        .sidebar {
+            position: fixed;
+            top: var(--header-height);
+            left: 0;
+            height: calc(100vh - var(--header-height));
+            width: var(--sidebar-width);
+            background: linear-gradient(180deg, var(--dark) 0%, #1a1e21 100%);
+            color: white;
+            overflow-y: auto;
+            transform: translateX(-100%);
+            z-index: 999;
+            opacity: 0;
+            visibility: hidden;
+            border-top-right-radius: 20px;
+            box-shadow: 5px 0 25px rgba(0,0,0,0.1);
+        }
+        
+        .sidebar-open .sidebar { transform: translateX(0); opacity: 1; visibility: visible; }
+        
+        .sidebar .nav-link {
+            color: rgba(255,255,255,0.8);
+            padding: 0.9rem 1.5rem;
+            border-radius: 0;
+            margin: 0.1rem 0;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            text-decoration: none;
+            transition: all 0.3s;
+        }
+        
+        .sidebar .nav-link:hover, .sidebar .nav-link.active {
+            color: white;
+            border-left: 4px solid var(--primary);
+            background: rgba(255,255,255,0.05);
+        }
+        
+        .sidebar .nav-link i { width: 28px; text-align: center; margin-right: 15px; font-size: 1.2rem; }
+        
+        .sidebar-logo {
+            padding: 25px 20px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.4rem;
+            font-weight: 700;
+        }
+        
+        .sidebar-logo i { margin-right: 10px; color: var(--primary); }
+        
+        .sidebar-footer {
+            padding: 20px;
+            border-top: 1px solid rgba(255,255,255,0.1);
+            margin-top: 20px;
+        }
+        
+        .sidebar-footer .btn { width: 100%; border-radius: 10px; padding: 10px; font-weight: 500; }
+        
+        .main-content {
+            margin-top: var(--header-height);
+            padding: 30px;
+            min-height: calc(100vh - var(--header-height));
+        }
+        
+        .section-title {
+            font-weight: 700;
+            color: var(--dark);
+            margin-bottom: 1.8rem;
+            position: relative;
+            padding-bottom: 0.8rem;
+            font-size: 1.8rem;
+        }
+        
+        .section-title::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 60px;
+            height: 4px;
+            background: var(--primary);
+            border-radius: 3px;
+            box-shadow: 0 2px 8px rgba(67, 97, 238, 0.3);
+        }
+        
+        .card {
+            border: none;
+            border-radius: 16px;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.05);
+            margin-bottom: 30px;
+            overflow: hidden;
+            transition: transform 0.4s, box-shadow 0.4s;
+        }
+        
+        .card:hover { transform: translateY(-5px); box-shadow: 0 12px 30px rgba(0,0,0,0.1); }
+        
+        .card-header {
+            background: white;
+            border-bottom: 1px solid #e3e6f0;
+            font-weight: 600;
+            padding: 1.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 1.1rem;
+        }
+        
+        .stat-card {
+            border-left: 5px solid var(--primary);
+            transition: transform 0.3s;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .stat-card:hover { transform: translateY(-5px); }
+        
+        .stat-value { font-size: 2.2rem; font-weight: 800; position: relative; z-index: 1; }
+        .stat-label { color: var(--gray); font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.8px; font-weight: 600; }
+        
+        .icon-circle {
+            width: 55px;
+            height: 55px;
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.6rem;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+        }
+        
+        .bg-primary-light { background-color: rgba(67, 97, 238, 0.15); color: var(--primary); }
+        .bg-success-light { background-color: rgba(76, 201, 240, 0.15); color: var(--success); }
+        .bg-warning-light { background-color: rgba(255, 193, 7, 0.15); color: var(--warning); }
+        .bg-danger-light { background-color: rgba(239, 71, 111, 0.15); color: var(--danger); }
+        
+        .table-container {
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.05);
+        }
+        
+        .table thead {
+            background: linear-gradient(90deg, var(--primary), var(--secondary));
+            color: white;
+        }
+        
+        .table th { padding: 1rem 1.5rem; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.5px; }
+        .table td { padding: 0.9rem 1.5rem; vertical-align: middle; }
+        .table-hover tbody tr:hover { background-color: rgba(67, 97, 238, 0.05); transform: translateX(5px); }
+        
+        .status-badge {
+            padding: 0.4rem 1rem;
+            border-radius: 20px;
+            font-weight: 600;
+            display: inline-block;
+            font-size: 0.8rem;
+        }
+        
+        .status-optimal { background: rgba(40, 167, 69, 0.15); color: #28a745; }
+        .status-warning { background: rgba(255, 193, 7, 0.15); color: #ffc107; }
+        .status-critical { background: rgba(220, 53, 69, 0.15); color: #dc3545; }
+        
+        .empty-state { text-align: center; padding: 40px 20px; color: #6c757d; }
+        .empty-state i { font-size: 3rem; margin-bottom: 15px; opacity: 0.5; }
+        .empty-state h5 { font-weight: 600; color: #2c3e50; }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .fade-in { animation: fadeIn 0.6s ease-out forwards; opacity: 0; }
+        .delay-1 { animation-delay: 0.1s; }
+        .delay-2 { animation-delay: 0.2s; }
+        .delay-3 { animation-delay: 0.3s; }
+        
+        .toggle-sidebar {
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--primary);
+            color: white;
+            border-radius: 10px;
+            margin-right: 15px;
+            cursor: pointer;
+            border: none;
+            box-shadow: 0 4px 10px rgba(67, 97, 238, 0.3);
+        }
+        
+        .toggle-sidebar:hover { background: var(--primary-dark); transform: rotate(90deg); }
+        
+        .btn-action { border-radius: 12px; padding: 10px 25px; font-weight: 600; transition: all 0.3s; }
+        .btn-action:hover { transform: translateY(-2px); }
+        
+        .back-link { color: var(--primary); text-decoration: none; font-weight: 500; }
+        .back-link:hover { text-decoration: underline; }
+        
+        .modal-content { border-radius: 16px; }
+        .modal-header { border-radius: 16px 16px 0 0; }
+        
+        @media (max-width: 992px) {
+            .header-title { font-size: 1.3rem; }
+            .stat-value { font-size: 1.8rem; }
+            .sidebar { width: 280px; }
+        }
+        
+        @media (max-width: 768px) {
+            .main-content { padding: 15px; }
+            .header { padding: 0 15px; }
+            .business-name { display: none; }
+            .stat-value { font-size: 1.5rem; }
+            .card-header { flex-direction: column; align-items: flex-start; gap: 10px; }
+        }
+    </style>
+</head>
+<body>
+    <!-- HEADER -->
+    <header class="header">
+        <button class="toggle-sidebar" onclick="toggleSidebar()">
+            <i class="fas fa-bars"></i>
+        </button>
+        <h1 class="header-title">OmniVentas</h1>
+        <div class="header-actions">
+            <span class="business-name"><i class="fas fa-store me-1"></i>{{ business_name }}</span>
+            <a href="/bot-diagnostic" class="btn btn-outline-primary btn-sm">
+                <i class="fas fa-robot me-1"></i>Diagnóstico
+            </a>
+            <a href="/logout" class="btn btn-outline-danger btn-sm">
+                <i class="fas fa-sign-out-alt me-1"></i>Salir
+            </a>
+        </div>
+    </header>
+    
+    <!-- SIDEBAR -->
+    <nav class="sidebar" id="sidebar">
+        <div class="sidebar-logo">
+            <i class="fas fa-chart-line"></i>
+            <span>Panel Admin</span>
+        </div>
+        <ul class="nav flex-column mt-3">
+            <li class="nav-item"><a class="nav-link" href="/dashboard"><i class="fas fa-tachometer-alt"></i><span>Dashboard</span></a></li>
+            <li class="nav-item"><a class="nav-link" href="/ventas"><i class="fas fa-shopping-cart"></i><span>Ventas</span></a></li>
+            <li class="nav-item"><a class="nav-link active" href="/inventario"><i class="fas fa-boxes"></i><span>Inventario</span></a></li>
+            <li class="nav-item"><a class="nav-link" href="/finanzas"><i class="fas fa-chart-pie"></i><span>Finanzas</span></a></li>
+            <li class="nav-item"><a class="nav-link" href="/analisis"><i class="fas fa-chart-line"></i><span>Análisis</span></a></li>
+            <li class="nav-item"><a class="nav-link" href="/clientes"><i class="fas fa-users"></i><span>Clientes</span></a></li>
+            <li class="nav-item mt-4 pt-2 border-top border-white-10">
+                <a class="nav-link" href="/configuracion"><i class="fas fa-cog"></i><span>Configuración</span></a>
+            </li>
+        </ul>
+        <div class="sidebar-footer">
+            <a href="/bot-diagnostic" class="btn btn-outline-light"><i class="fas fa-robot me-2"></i>Diagnóstico Bot</a>
+            <a href="/logout" class="btn btn-outline-danger mt-2"><i class="fas fa-sign-out-alt me-2"></i>Cerrar Sesión</a>
+        </div>
+    </nav>
+    
+    <!-- MAIN CONTENT -->
+    <main class="main-content">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h2 class="section-title"><i class="fas fa-boxes me-2"></i>Gestión de Inventario</h2>
+            <a href="/dashboard" class="back-link"><i class="fas fa-arrow-left me-1"></i>Volver al Dashboard</a>
+        </div>
+        
+        <!-- Stats -->
+        <div class="row mb-4">
+            <div class="col-md-3">
+                <div class="card stat-card h-100 fade-in">
+                    <div class="card-body">
+                        <div class="stat-label">Total Productos</div>
+                        <div class="stat-value text-primary" id="inv-total">0</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card stat-card h-100 fade-in delay-1">
+                    <div class="card-body">
+                        <div class="stat-label">Valor del Inventario</div>
+                        <div class="stat-value text-success" id="inv-valor">$0.00</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card stat-card h-100 fade-in delay-2">
+                    <div class="card-body">
+                        <div class="stat-label">Stock Bajo (≤3)</div>
+                        <div class="stat-value text-warning" id="inv-bajo">0</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card stat-card h-100 fade-in delay-3">
+                    <div class="card-body">
+                        <div class="stat-label">Sin Stock</div>
+                        <div class="stat-value text-danger" id="inv-sin-stock">0</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tabla -->
+        <div class="card">
+            <div class="card-header">
+                <h6 class="m-0"><i class="fas fa-list me-2"></i>Productos</h6>
+                <div>
+                    <button class="btn btn-sm btn-primary me-2" id="btn-agregar">
+                        <i class="fas fa-plus me-1"></i>Agregar Producto
+                    </button>
+                    <button class="btn btn-sm btn-secondary" id="btn-actualizar">
+                        <i class="fas fa-sync me-1"></i>Actualizar
+                    </button>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="table-container">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Producto</th>
+                                <th>Sección</th>
+                                <th>Stock</th>
+                                <th>P. Venta</th>
+                                <th>P. Compra</th>
+                                <th>Margen</th>
+                                <th>Estado</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody id="inventario-body"></tbody>
+                    </table>
+                    <div id="inventario-empty" class="empty-state" style="display: none;">
+                        <i class="fas fa-box-open"></i>
+                        <h5>No hay productos en el inventario</h5>
+                        <p class="text-muted">Comienza agregando tus primeros productos</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- MODAL AGREGAR/EDITAR PRODUCTO -->
+    <div class="modal fade" id="modalProducto" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title" id="modalProductoTitulo"><i class="fas fa-plus me-2"></i>Agregar Producto</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="form-producto">
+                        <input type="hidden" id="producto-id">
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">Nombre del Producto *</label>
+                            <input type="text" class="form-control" id="producto-nombre" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">Sección/Categoría *</label>
+                            <input type="text" class="form-control" id="producto-seccion" required>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label fw-semibold">Precio de Venta *</label>
+                                <input type="number" step="0.01" class="form-control" id="producto-precio-venta" required>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label fw-semibold">Precio de Compra *</label>
+                                <input type="number" step="0.01" class="form-control" id="producto-precio-compra" required>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label fw-semibold">Stock *</label>
+                                <input type="number" class="form-control" id="producto-stock" required>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">Costo de Transporte</label>
+                            <input type="number" step="0.01" class="form-control" id="producto-transporte" value="0">
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-primary" id="btn-guardar-producto">
+                        <i class="fas fa-save me-2"></i>Guardar Producto
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        function toggleSidebar() {
+            document.body.classList.toggle('sidebar-open');
+        }
+
+        let productoEditandoId = null;
+        const modalProducto = new bootstrap.Modal(document.getElementById('modalProducto'));
+
+        // ============== CARGAR INVENTARIO ==============
+        function cargarInventario() {
+            fetch('/api/inventario')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.error) {
+                        console.error('Error:', data.error);
+                        return;
+                    }
+                    actualizarInventario(data);
+                })
+                .catch(error => console.error('Error:', error));
+        }
+
+        function actualizarInventario(data) {
+            document.getElementById('inv-total').textContent = data.total || 0;
+            document.getElementById('inv-valor').textContent = `$${(data.valor_total || 0).toFixed(2)}`;
+            document.getElementById('inv-bajo').textContent = data.stock_bajo || 0;
+            document.getElementById('inv-sin-stock').textContent = data.sin_stock || 0;
+
+            const body = document.getElementById('inventario-body');
+            const empty = document.getElementById('inventario-empty');
+            body.innerHTML = '';
+
+            if (data.productos && data.productos.length > 0) {
+                empty.style.display = 'none';
+                data.productos.forEach(p => {
+                    const status = p.stock > 20 ? 'Óptimo' : p.stock > 3 ? 'Atención' : 'Crítico';
+                    const statusClass = p.stock > 20 ? 'status-optimal' : p.stock > 3 ? 'status-warning' : 'status-critical';
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td><strong>${p.nombre}</strong></td>
+                        <td>${p.seccion}</td>
+                        <td><span class="fw-bold ${p.stock <= 3 ? 'text-danger' : ''}">${p.stock}</span></td>
+                        <td>$${p.precio_venta.toFixed(2)}</td>
+                        <td>$${p.precio_compra.toFixed(2)}</td>
+                        <td>${p.margen}%</td>
+                        <td><span class="status-badge ${statusClass}">${status}</span></td>
+                        <td>
+                            <button class="btn btn-sm btn-outline-primary" onclick="editarProducto(${p.id})"><i class="fas fa-edit"></i></button>
+                            <button class="btn btn-sm btn-outline-danger" onclick="eliminarProducto(${p.id})"><i class="fas fa-trash"></i></button>
+                        </td>
+                    `;
+                    body.appendChild(row);
+                });
+            } else {
+                empty.style.display = 'block';
+            }
+        }
+
+        // ============== AGREGAR PRODUCTO ==============
+        document.getElementById('btn-agregar').addEventListener('click', function() {
+            productoEditandoId = null;
+            document.getElementById('modalProductoTitulo').textContent = 'Agregar Producto';
+            document.getElementById('form-producto').reset();
+            document.getElementById('producto-id').value = '';
+            modalProducto.show();
+        });
+
+        // ============== EDITAR PRODUCTO ==============
+        function editarProducto(id) {
+            fetch(`/api/inventario`)
+                .then(response => response.json())
+                .then(data => {
+                    const producto = data.productos.find(p => p.id == id);
+                    if (!producto) {
+                        alert('Producto no encontrado');
+                        return;
+                    }
+                    productoEditandoId = id;
+                    document.getElementById('modalProductoTitulo').textContent = 'Editar Producto';
+                    document.getElementById('producto-id').value = id;
+                    document.getElementById('producto-nombre').value = producto.nombre;
+                    document.getElementById('producto-seccion').value = producto.seccion;
+                    document.getElementById('producto-precio-venta').value = producto.precio_venta;
+                    document.getElementById('producto-precio-compra').value = producto.precio_compra;
+                    document.getElementById('producto-stock').value = producto.stock;
+                    modalProducto.show();
+                })
+                .catch(error => console.error('Error:', error));
+        }
+
+        // ============== GUARDAR PRODUCTO ==============
+        document.getElementById('btn-guardar-producto').addEventListener('click', function() {
+            const nombre = document.getElementById('producto-nombre').value.trim();
+            const seccion = document.getElementById('producto-seccion').value.trim();
+            const precio_venta = parseFloat(document.getElementById('producto-precio-venta').value);
+            const precio_compra = parseFloat(document.getElementById('producto-precio-compra').value);
+            const stock = parseInt(document.getElementById('producto-stock').value);
+            const costo_transporte = parseFloat(document.getElementById('producto-transporte').value) || 0;
+
+            if (!nombre || !seccion || isNaN(precio_venta) || isNaN(precio_compra) || isNaN(stock)) {
+                alert('Por favor completa todos los campos obligatorios');
+                return;
+            }
+
+            const data = {
+                nombre: nombre,
+                seccion: seccion,
+                precio_venta: precio_venta,
+                precio_compra: precio_compra,
+                stock: stock,
+                costo_transporte: costo_transporte
+            };
+
+            const url = productoEditandoId ? `/api/producto/${productoEditandoId}` : '/api/producto';
+            const method = productoEditandoId ? 'PUT' : 'POST';
+
+            fetch(url, {
+                method: method,
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert(productoEditandoId ? '✅ Producto actualizado correctamente!' : '✅ Producto agregado correctamente!');
+                    modalProducto.hide();
+                    cargarInventario();
+                } else {
+                    alert('❌ Error: ' + data.message);
+                }
+            })
+            .catch(error => {
+                alert('❌ Error de conexión: ' + error.message);
+            });
+        });
+
+        // ============== ELIMINAR PRODUCTO ==============
+        function eliminarProducto(id) {
+            if (!confirm('¿Estás seguro de eliminar este producto? Esta acción no se puede deshacer.')) {
+                return;
+            }
+
+            fetch(`/api/producto/${id}`, {
+                method: 'DELETE'
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('✅ Producto eliminado correctamente');
+                    cargarInventario();
+                } else {
+                    alert('❌ Error: ' + data.message);
+                }
+            })
+            .catch(error => {
+                alert('❌ Error de conexión: ' + error.message);
+            });
+        }
+
+        // ============== ACTUALIZAR ==============
+        document.getElementById('btn-actualizar').addEventListener('click', cargarInventario);
+
+        // ============== INICIALIZACIÓN ==============
+        document.addEventListener('DOMContentLoaded', cargarInventario);
+    </script>
+</body>
+</html>

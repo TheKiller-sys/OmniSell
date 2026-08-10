@@ -1,0 +1,40 @@
+# requirements.txt - Optimizado para Python 3.14 en Windows
+
+# Web Framework
+Flask==2.3.3
+Werkzeug==2.3.7
+Flask-Login==0.6.2
+Flask-SocketIO==5.3.6
+
+# Database
+psycopg2-binary>=2.9.9
+pandas>=2.2.0
+numpy==1.26.4
+
+# Telegram Bot
+python-telegram-bot==20.7
+requests==2.31.0
+
+# Charts & Visualization (versiones con wheels disponibles)
+matplotlib==3.8.2
+seaborn==0.13.2
+scipy==1.11.4
+
+# Security
+bcrypt==4.1.2
+cryptography==42.0.5
+
+# Utilities
+python-dotenv==1.0.0
+python-slugify==8.0.1
+python-engineio==4.9.0
+python-socketio==5.11.1
+eventlet==0.30.2
+gunicorn==20.1.0
+
+# Timezone
+pytz==2024.1
+
+# Monitoring
+blinker==1.7.0
+sentry-sdk==1.40.6

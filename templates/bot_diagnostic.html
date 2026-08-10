@@ -1,0 +1,647 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Diagnóstico del Bot - OmniVentas</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1000px;
+        }
+        .card {
+            border-radius: 16px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+            margin-bottom: 20px;
+            border: none;
+            overflow: hidden;
+        }
+        .card-header {
+            font-weight: 600;
+            padding: 1rem 1.5rem;
+        }
+        .status-card {
+            transition: all 0.3s;
+        }
+        .status-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 15px 35px rgba(0,0,0,0.2);
+        }
+        .status-indicator {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 8px;
+            flex-shrink: 0;
+        }
+        .status-online {
+            background-color: #28a745;
+            box-shadow: 0 0 10px rgba(40, 167, 69, 0.4);
+        }
+        .status-offline {
+            background-color: #dc3545;
+            box-shadow: 0 0 10px rgba(220, 53, 69, 0.4);
+        }
+        .status-unknown {
+            background-color: #ffc107;
+            box-shadow: 0 0 10px rgba(255, 193, 7, 0.4);
+        }
+        .status-checking {
+            background-color: #17a2b8;
+            animation: pulse 1s infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.4; }
+        }
+        .step-number {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: #4361ee;
+            color: white;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 12px;
+            font-weight: 700;
+            font-size: 0.9rem;
+            flex-shrink: 0;
+        }
+        .step-item {
+            display: flex;
+            align-items: flex-start;
+            padding: 10px 0;
+            border-bottom: 1px solid #f1f3f5;
+        }
+        .step-item:last-child {
+            border-bottom: none;
+        }
+        .step-content {
+            flex: 1;
+        }
+        .step-content h6 {
+            margin-bottom: 2px;
+            font-weight: 600;
+        }
+        .step-content .text-muted {
+            font-size: 0.85rem;
+        }
+        .log-output {
+            background: #1a1e24;
+            color: #e4e9f0;
+            border-radius: 10px;
+            padding: 15px;
+            max-height: 350px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 0.85rem;
+            line-height: 1.6;
+        }
+        .log-output::-webkit-scrollbar {
+            width: 6px;
+        }
+        .log-output::-webkit-scrollbar-track {
+            background: rgba(255,255,255,0.05);
+        }
+        .log-output::-webkit-scrollbar-thumb {
+            background: #4361ee;
+            border-radius: 3px;
+        }
+        .log-error {
+            color: #fc8181;
+        }
+        .log-success {
+            color: #68d391;
+        }
+        .log-info {
+            color: #63b3ed;
+        }
+        .log-warning {
+            color: #f6ad55;
+        }
+        .btn-action {
+            border-radius: 10px;
+            padding: 8px 18px;
+            font-weight: 500;
+            transition: all 0.3s;
+        }
+        .btn-action:hover {
+            transform: translateY(-2px);
+        }
+        .btn-action:disabled {
+            transform: none;
+        }
+        .status-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        .status-row .label {
+            font-weight: 500;
+            color: #6c757d;
+            min-width: 120px;
+        }
+        .back-link {
+            color: white;
+            text-decoration: none;
+            font-weight: 500;
+            transition: all 0.3s;
+        }
+        .back-link:hover {
+            color: #e9ecef;
+            text-decoration: underline;
+        }
+        .webhook-info {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 12px 16px;
+            font-family: monospace;
+            font-size: 0.9rem;
+            word-break: break-all;
+        }
+        .badge-status {
+            font-size: 0.8rem;
+            padding: 4px 12px;
+        }
+        @media (max-width: 768px) {
+            .status-row {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            .status-row .label {
+                min-width: auto;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <a href="/dashboard" class="back-link">
+                    <i class="fas fa-arrow-left me-2"></i>Volver al Panel
+                </a>
+                <h1 class="text-white mt-2 mb-0">
+                    <i class="fas fa-robot me-2"></i>Diagnóstico del Bot
+                </h1>
+                <p class="text-white-50 mb-0">{{ business_name }} ({{ business_id }})</p>
+            </div>
+            <button class="btn btn-light btn-action" id="refresh-btn">
+                <i class="fas fa-sync-alt me-2"></i>Refrescar
+            </button>
+        </div>
+
+        <!-- Estado del Bot -->
+        <div class="card status-card">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0"><i class="fas fa-info-circle me-2"></i>Estado del Bot</h5>
+            </div>
+            <div class="card-body">
+                <div class="row g-4">
+                    <div class="col-md-6">
+                        <div class="status-row">
+                            <span class="label"><i class="fas fa-key me-1"></i>Token:</span>
+                            <span id="token-status"><span class="status-indicator status-unknown"></span>Verificando...</span>
+                        </div>
+                        <div class="status-row">
+                            <span class="label"><i class="fas fa-user me-1"></i>Bot:</span>
+                            <span id="bot-username">-</span>
+                        </div>
+                        <div class="status-row">
+                            <span class="label"><i class="fas fa-id-badge me-1"></i>Admin ID:</span>
+                            <span id="admin-id">-</span>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="status-row">
+                            <span class="label"><i class="fas fa-plug me-1"></i>Conexión:</span>
+                            <span id="connection-status"><span class="status-indicator status-unknown"></span>Verificando...</span>
+                        </div>
+                        <div class="status-row">
+                            <span class="label"><i class="fas fa-cloud me-1"></i>Webhook:</span>
+                            <span id="webhook-status">-</span>
+                        </div>
+                        <div class="status-row">
+                            <span class="label"><i class="fas fa-clock me-1"></i>Última verificación:</span>
+                            <span id="last-check">-</span>
+                        </div>
+                    </div>
+                </div>
+                <div id="webhook-url-container" class="mt-3" style="display: none;">
+                    <label class="fw-semibold"><i class="fas fa-link me-1"></i>URL del Webhook:</label>
+                    <div class="webhook-info" id="webhook-url">-</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Diagnóstico paso a paso -->
+        <div class="card">
+            <div class="card-header bg-info text-white">
+                <h5 class="mb-0"><i class="fas fa-stethoscope me-2"></i>Diagnóstico Paso a Paso</h5>
+            </div>
+            <div class="card-body">
+                <div class="step-item">
+                    <span class="step-number">1</span>
+                    <div class="step-content">
+                        <h6>Verificar token en base de datos</h6>
+                        <p class="text-muted mb-0" id="step1-result">⏳ Ejecutando verificación...</p>
+                    </div>
+                </div>
+                <div class="step-item">
+                    <span class="step-number">2</span>
+                    <div class="step-content">
+                        <h6>Validar token con API de Telegram</h6>
+                        <p class="text-muted mb-0" id="step2-result">⏳ Esperando resultado del paso 1...</p>
+                    </div>
+                </div>
+                <div class="step-item">
+                    <span class="step-number">3</span>
+                    <div class="step-content">
+                        <h6>Verificar configuración del webhook</h6>
+                        <p class="text-muted mb-0" id="step3-result">⏳ Esperando resultado del paso 2...</p>
+                    </div>
+                </div>
+                <div class="step-item">
+                    <span class="step-number">4</span>
+                    <div class="step-content">
+                        <h6>Probar envío de mensaje al administrador</h6>
+                        <p class="text-muted mb-0" id="step4-result">⏳ Esperando resultado del paso 3...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Acciones correctivas -->
+        <div class="card">
+            <div class="card-header bg-warning text-dark">
+                <h5 class="mb-0"><i class="fas fa-tools me-2"></i>Acciones Correctivas</h5>
+            </div>
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-md-6 col-lg-3">
+                        <button id="retry-bot" class="btn btn-primary btn-action w-100">
+                            <i class="fas fa-redo me-2"></i>Reiniciar Bot
+                        </button>
+                        <div class="form-text text-center">Reinicia el proceso del bot</div>
+                    </div>
+                    <div class="col-md-6 col-lg-3">
+                        <button id="test-message" class="btn btn-info btn-action w-100">
+                            <i class="fas fa-envelope me-2"></i>Probar Mensaje
+                        </button>
+                        <div class="form-text text-center">Envía mensaje de prueba al admin</div>
+                    </div>
+                    <div class="col-md-6 col-lg-3">
+                        <button id="update-webhook" class="btn btn-success btn-action w-100">
+                            <i class="fas fa-cloud-upload-alt me-2"></i>Actualizar Webhook
+                        </button>
+                        <div class="form-text text-center">Forzar actualización del webhook</div>
+                    </div>
+                    <div class="col-md-6 col-lg-3">
+                        <button id="reset-token" class="btn btn-danger btn-action w-100">
+                            <i class="fas fa-key me-2"></i>Regenerar Token
+                        </button>
+                        <div class="form-text text-center">Elimina y reconfigura el token</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Logs -->
+        <div class="card">
+            <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="fas fa-terminal me-2"></i>Logs de Diagnóstico</h5>
+                <button class="btn btn-sm btn-outline-light" id="clear-logs">
+                    <i class="fas fa-eraser me-1"></i>Limpiar
+                </button>
+            </div>
+            <div class="card-body">
+                <div class="log-output" id="diagnostic-logs">
+                    <div class="log-info">🔄 Iniciando diagnóstico del bot de Telegram...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const businessId = '{{ business_id }}';
+            let botToken = '';
+            
+            // Elementos de la UI
+            const tokenStatus = document.getElementById('token-status');
+            const botUsername = document.getElementById('bot-username');
+            const adminId = document.getElementById('admin-id');
+            const connectionStatus = document.getElementById('connection-status');
+            const webhookStatus = document.getElementById('webhook-status');
+            const lastCheck = document.getElementById('last-check');
+            const webhookUrlContainer = document.getElementById('webhook-url-container');
+            const webhookUrl = document.getElementById('webhook-url');
+            const diagnosticLogs = document.getElementById('diagnostic-logs');
+            
+            // Resultados de los pasos
+            const step1Result = document.getElementById('step1-result');
+            const step2Result = document.getElementById('step2-result');
+            const step3Result = document.getElementById('step3-result');
+            const step4Result = document.getElementById('step4-result');
+            
+            // Botones de acción
+            const retryBotBtn = document.getElementById('retry-bot');
+            const testMessageBtn = document.getElementById('test-message');
+            const updateWebhookBtn = document.getElementById('update-webhook');
+            const resetTokenBtn = document.getElementById('reset-token');
+            const refreshBtn = document.getElementById('refresh-btn');
+            const clearLogsBtn = document.getElementById('clear-logs');
+            
+            // Función para agregar logs
+            function addLog(message, type = 'info') {
+                const logEntry = document.createElement('div');
+                const timestamp = new Date().toLocaleTimeString();
+                logEntry.className = `log-${type}`;
+                logEntry.innerHTML = `[${timestamp}] ${message}`;
+                diagnosticLogs.appendChild(logEntry);
+                diagnosticLogs.scrollTop = diagnosticLogs.scrollHeight;
+            }
+            
+            function updateStep(element, success, message) {
+                const icon = success ? '✅' : '❌';
+                const color = success ? 'text-success' : 'text-danger';
+                element.innerHTML = `<span class="${color}">${icon} ${message}</span>`;
+            }
+            
+            // Iniciar diagnóstico
+            startDiagnostic();
+            
+            async function startDiagnostic() {
+                addLog('Iniciando diagnóstico del bot...', 'info');
+                clearLogsBtn.disabled = true;
+                
+                try {
+                    // Paso 1: Verificar token en base de datos
+                    addLog('Paso 1: Verificando token en base de datos', 'info');
+                    step1Result.innerHTML = '⏳ Verificando...';
+                    
+                    const tokenResponse = await fetch(`/api/bot-diagnostic/token?business_id=${businessId}`);
+                    const tokenData = await tokenResponse.json();
+                    
+                    if (tokenData.success && tokenData.token) {
+                        botToken = tokenData.token;
+                        const maskedToken = botToken.substring(0, 10) + '...' + botToken.substring(botToken.length - 5);
+                        tokenStatus.innerHTML = `<span class="status-indicator status-online"></span>${maskedToken}`;
+                        step1Result.innerHTML = `✅ Token encontrado en base de datos`;
+                        addLog('Token encontrado en base de datos', 'success');
+                        
+                        // Actualizar información del admin
+                        if (tokenData.admin_id) {
+                            adminId.textContent = tokenData.admin_id;
+                        }
+                        
+                        // Paso 2: Validar token con API de Telegram
+                        addLog('Paso 2: Validando token con API de Telegram', 'info');
+                        step2Result.innerHTML = '⏳ Validando con Telegram...';
+                        
+                        const validationResponse = await fetch('/api/bot-diagnostic/validate-token', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ token: botToken })
+                        });
+                        
+                        const validationData = await validationResponse.json();
+                        
+                        if (validationData.success) {
+                            step2Result.innerHTML = `✅ Token válido - Bot: @${validationData.username}`;
+                            botUsername.textContent = `@${validationData.username}`;
+                            addLog(`Token válido. Bot: @${validationData.username}`, 'success');
+                            
+                            // Paso 3: Verificar webhook
+                            addLog('Paso 3: Verificando configuración de webhook', 'info');
+                            step3Result.innerHTML = '⏳ Verificando webhook...';
+                            
+                            const webhookResponse = await fetch('/api/bot-diagnostic/webhook', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ token: botToken, business_id: businessId })
+                            });
+                            
+                            const webhookData = await webhookResponse.json();
+                            
+                            if (webhookData.success) {
+                                step3Result.innerHTML = `✅ ${webhookData.message}`;
+                                webhookStatus.textContent = 'Configurado ✅';
+                                connectionStatus.innerHTML = `<span class="status-indicator status-online"></span>Conectado`;
+                                
+                                if (webhookData.webhook_url) {
+                                    webhookUrlContainer.style.display = 'block';
+                                    webhookUrl.textContent = webhookData.webhook_url;
+                                }
+                                
+                                addLog(webhookData.message, 'success');
+                                
+                                // Paso 4: Probar mensaje
+                                addLog('Paso 4: Probando envío de mensaje', 'info');
+                                step4Result.innerHTML = '⏳ Enviando mensaje de prueba...';
+                                
+                                const adminIdValue = adminId.textContent;
+                                if (adminIdValue && adminIdValue !== '-') {
+                                    const testMessageResponse = await fetch('/api/bot-diagnostic/test-message', {
+                                        method: 'POST',
+                                        headers: { 'Content-Type': 'application/json' },
+                                        body: JSON.stringify({ 
+                                            token: botToken, 
+                                            business_id: businessId,
+                                            admin_id: adminIdValue
+                                        })
+                                    });
+                                    
+                                    const testMessageData = await testMessageResponse.json();
+                                    
+                                    if (testMessageData.success) {
+                                        step4Result.innerHTML = '✅ Mensaje de prueba enviado correctamente';
+                                        addLog('Mensaje de prueba enviado al administrador', 'success');
+                                    } else {
+                                        step4Result.innerHTML = `❌ Error: ${testMessageData.message}`;
+                                        addLog(`Error enviando mensaje: ${testMessageData.message}`, 'error');
+                                    }
+                                } else {
+                                    step4Result.innerHTML = '⚠️ No se encontró admin_id para enviar mensaje de prueba';
+                                    addLog('No se encontró admin_id para enviar mensaje de prueba', 'warning');
+                                }
+                            } else {
+                                step3Result.innerHTML = `⚠️ ${webhookData.message}`;
+                                connectionStatus.innerHTML = `<span class="status-indicator status-offline"></span>Error de conexión`;
+                                webhookStatus.textContent = 'No configurado';
+                                addLog(`Error con webhook: ${webhookData.message}`, 'error');
+                            }
+                        } else {
+                            step2Result.innerHTML = `❌ Error: ${validationData.message}`;
+                            tokenStatus.innerHTML = `<span class="status-indicator status-offline"></span>Token inválido`;
+                            addLog(`Token inválido: ${validationData.message}`, 'error');
+                        }
+                    } else {
+                        step1Result.innerHTML = `❌ ${tokenData.message || 'No se encontró token en la base de datos'}`;
+                        tokenStatus.innerHTML = `<span class="status-indicator status-offline"></span>No configurado`;
+                        addLog('No se encontró token en la base de datos', 'error');
+                    }
+                } catch (error) {
+                    addLog(`Error en el diagnóstico: ${error.message}`, 'error');
+                    step1Result.innerHTML = '❌ Error en el diagnóstico';
+                }
+                
+                lastCheck.textContent = new Date().toLocaleString();
+                clearLogsBtn.disabled = false;
+            }
+            
+            // Configurar event listeners para los botones
+            retryBotBtn.addEventListener('click', async function() {
+                addLog('Reiniciando bot...', 'info');
+                this.disabled = true;
+                this.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Reiniciando...';
+                
+                try {
+                    const response = await fetch('/api/bot-diagnostic/restart-bot', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ business_id: businessId })
+                    });
+                    
+                    const result = await response.json();
+                    if (result.success) {
+                        addLog('Bot reiniciado correctamente', 'success');
+                        alert('✅ Bot reiniciado correctamente');
+                        startDiagnostic();
+                    } else {
+                        addLog(`Error reiniciando bot: ${result.message}`, 'error');
+                        alert('❌ Error al reiniciar el bot: ' + result.message);
+                    }
+                } catch (error) {
+                    addLog(`Error: ${error.message}`, 'error');
+                    alert('❌ Error de conexión');
+                }
+                
+                this.disabled = false;
+                this.innerHTML = '<i class="fas fa-redo me-2"></i>Reiniciar Bot';
+            });
+            
+            testMessageBtn.addEventListener('click', async function() {
+                addLog('Enviando mensaje de prueba...', 'info');
+                this.disabled = true;
+                this.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Enviando...';
+                
+                try {
+                    const response = await fetch('/api/bot-diagnostic/test-message', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ 
+                            token: botToken, 
+                            business_id: businessId,
+                            admin_id: adminId.textContent
+                        })
+                    });
+                    
+                    const result = await response.json();
+                    if (result.success) {
+                        addLog('Mensaje de prueba enviado correctamente', 'success');
+                        alert('✅ Mensaje de prueba enviado. Verifica tu Telegram.');
+                    } else {
+                        addLog(`Error enviando mensaje: ${result.message}`, 'error');
+                        alert('❌ Error al enviar mensaje: ' + result.message);
+                    }
+                } catch (error) {
+                    addLog(`Error: ${error.message}`, 'error');
+                    alert('❌ Error de conexión');
+                }
+                
+                this.disabled = false;
+                this.innerHTML = '<i class="fas fa-envelope me-2"></i>Probar Mensaje';
+            });
+            
+            updateWebhookBtn.addEventListener('click', async function() {
+                addLog('Actualizando webhook...', 'info');
+                this.disabled = true;
+                this.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Actualizando...';
+                
+                try {
+                    const response = await fetch('/api/bot-diagnostic/update-webhook', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ 
+                            token: botToken, 
+                            business_id: businessId
+                        })
+                    });
+                    
+                    const result = await response.json();
+                    if (result.success) {
+                        addLog('Webhook actualizado correctamente', 'success');
+                        alert('✅ Webhook actualizado correctamente');
+                        startDiagnostic();
+                    } else {
+                        addLog(`Error actualizando webhook: ${result.message}`, 'error');
+                        alert('❌ Error actualizando webhook: ' + result.message);
+                    }
+                } catch (error) {
+                    addLog(`Error: ${error.message}`, 'error');
+                    alert('❌ Error de conexión');
+                }
+                
+                this.disabled = false;
+                this.innerHTML = '<i class="fas fa-cloud-upload-alt me-2"></i>Actualizar Webhook';
+            });
+            
+            resetTokenBtn.addEventListener('click', async function() {
+                if (!confirm('⚠️ ¿Estás seguro de que quieres regenerar el token? Deberás volver a configurar el bot desde el panel de configuración.')) {
+                    return;
+                }
+                
+                addLog('Regenerando token...', 'warning');
+                this.disabled = true;
+                this.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Regenerando...';
+                
+                try {
+                    const response = await fetch('/api/bot-diagnostic/reset-token', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ business_id: businessId })
+                    });
+                    
+                    const result = await response.json();
+                    if (result.success) {
+                        addLog('Token regenerado correctamente', 'success');
+                        alert('✅ Token regenerado. Serás redirigido a la página de configuración.');
+                        window.location.href = '/initial_setup';
+                    } else {
+                        addLog(`Error regenerando token: ${result.message}`, 'error');
+                        alert('❌ Error regenerando token: ' + result.message);
+                    }
+                } catch (error) {
+                    addLog(`Error: ${error.message}`, 'error');
+                    alert('❌ Error de conexión');
+                }
+                
+                this.disabled = false;
+                this.innerHTML = '<i class="fas fa-key me-2"></i>Regenerar Token';
+            });
+            
+            refreshBtn.addEventListener('click', function() {
+                addLog('Refrescando diagnóstico...', 'info');
+                startDiagnostic();
+            });
+            
+            clearLogsBtn.addEventListener('click', function() {
+                diagnosticLogs.innerHTML = '';
+                addLog('Logs limpiados', 'info');
+            });
+        });
+    </script>
+</body>
+</html>

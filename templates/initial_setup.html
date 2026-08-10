@@ -1,0 +1,750 @@
+<!-- templates/initial_setup.html - Configuración Inicial con pasos separados y botón Skip -->
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Configuración Inicial - OmniVentas</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body {
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            min-height: 100vh;
+            padding: 30px 20px;
+        }
+        .setup-container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        .setup-card {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.1);
+            padding: 35px;
+            margin-bottom: 25px;
+            transition: all 0.3s;
+            display: none;
+        }
+        .setup-card.active {
+            display: block;
+        }
+        .setup-card.completed {
+            border-left: 5px solid #28a745;
+        }
+        .step-indicator {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            position: relative;
+        }
+        .step-indicator::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: #e9ecef;
+            transform: translateY(-50%);
+            z-index: 0;
+        }
+        .step-dot {
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            background: #e9ecef;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 1.1rem;
+            color: #6c757d;
+            position: relative;
+            z-index: 1;
+            transition: all 0.3s;
+            cursor: pointer;
+        }
+        .step-dot.active {
+            background: linear-gradient(135deg, #4361ee, #3a0ca3);
+            color: white;
+            box-shadow: 0 5px 15px rgba(67, 97, 238, 0.3);
+        }
+        .step-dot.completed {
+            background: #28a745;
+            color: white;
+            cursor: default;
+        }
+        .step-dot:hover:not(.completed) {
+            transform: scale(1.1);
+        }
+        .step-label {
+            font-size: 0.75rem;
+            text-align: center;
+            margin-top: 5px;
+            color: #6c757d;
+        }
+        .step-dot-wrapper {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            position: relative;
+            z-index: 1;
+        }
+        .product-form {
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 15px;
+            transition: all 0.3s;
+            border-left: 4px solid #4361ee;
+        }
+        .product-form:hover {
+            background: #f1f3f5;
+        }
+        .btn-telegram {
+            background: #0088cc;
+            color: white;
+            border: none;
+            border-radius: 12px;
+            padding: 10px 20px;
+            transition: all 0.3s;
+        }
+        .btn-telegram:hover {
+            background: #0077b3;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 136, 204, 0.3);
+        }
+        .token-input {
+            font-family: monospace;
+            letter-spacing: 1px;
+        }
+        .status-badge {
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-weight: 600;
+            font-size: 0.85rem;
+        }
+        .status-badge.success {
+            background: #d4edda;
+            color: #155724;
+        }
+        .status-badge.error {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        .status-badge.info {
+            background: #d1ecf1;
+            color: #0c5460;
+        }
+        .status-badge.warning {
+            background: #fff3cd;
+            color: #856404;
+        }
+        .progress-custom {
+            height: 8px;
+            border-radius: 4px;
+            background: #e9ecef;
+            overflow: hidden;
+            margin: 20px 0;
+        }
+        .progress-custom .progress-bar {
+            background: linear-gradient(90deg, #4361ee, #3a0ca3);
+            transition: width 0.6s ease;
+        }
+        .btn-action {
+            border-radius: 12px;
+            padding: 10px 25px;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+        .btn-action:hover {
+            transform: translateY(-2px);
+        }
+        .section-title {
+            font-weight: 700;
+            color: #2c3e50;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+        }
+        .section-title i {
+            margin-right: 12px;
+            color: #4361ee;
+        }
+        .step-buttons {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid #e9ecef;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        .step-buttons .left-buttons {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        .step-buttons .right-buttons {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        .hidden {
+            display: none !important;
+        }
+        .skip-btn {
+            color: #6c757d;
+        }
+        .skip-btn:hover {
+            color: #dc3545;
+        }
+    </style>
+</head>
+<body>
+    <div class="setup-container">
+        <!-- Header -->
+        <div class="text-center mb-4">
+            <h1 class="display-5 fw-bold" style="color: #2c3e50;">
+                <i class="fas fa-rocket text-primary me-2"></i>Configura tu Negocio
+            </h1>
+            <p class="text-muted">Completa estos pasos para comenzar a usar OmniVentas</p>
+            <p class="text-muted small">Business: <strong>{{ business_name }}</strong> ({{ business_id }})</p>
+        </div>
+
+        <!-- Step Indicator -->
+        <div class="step-indicator" id="stepIndicator">
+            <div class="step-dot-wrapper">
+                <div class="step-dot completed" data-step="1">✓</div>
+                <div class="step-label">Cuenta</div>
+            </div>
+            <div class="step-dot-wrapper">
+                <div class="step-dot active" data-step="2">2</div>
+                <div class="step-label">Bot</div>
+            </div>
+            <div class="step-dot-wrapper">
+                <div class="step-dot" data-step="3">3</div>
+                <div class="step-label">Productos</div>
+            </div>
+            <div class="step-dot-wrapper">
+                <div class="step-dot" data-step="4">4</div>
+                <div class="step-label">Listo</div>
+            </div>
+        </div>
+
+        <!-- Progress -->
+        <div class="progress-custom">
+            <div class="progress-bar" id="progressBar" style="width: 33%"></div>
+        </div>
+
+        <!-- Paso 2: Conectar Bot de Telegram -->
+        <div class="setup-card active" id="step2">
+            <h4 class="section-title">
+                <i class="fab fa-telegram"></i>Conectar tu Bot de Telegram
+            </h4>
+            
+            <div class="alert alert-info">
+                <i class="fas fa-info-circle me-2"></i>
+                <strong>Importante:</strong> Necesitas crear un bot en Telegram para gestionar tu negocio.
+            </div>
+            
+            <ol class="mb-4">
+                <li class="mb-2">Abre Telegram y busca <strong>@BotFather</strong></li>
+                <li class="mb-2">Envía el comando <code>/newbot</code> y sigue las instrucciones</li>
+                <li class="mb-2">Cuando termines, copia el token generado</li>
+                <li>Pega el token en el campo siguiente</li>
+            </ol>
+            
+            <input type="hidden" id="business-id" value="{{ business_id }}">
+            
+            <div class="mb-3">
+                <label class="form-label fw-bold">
+                    <i class="fas fa-key me-1"></i>Token del Bot de Telegram
+                </label>
+                <div class="input-group">
+                    <input type="password" id="bot-token" class="form-control form-control-lg token-input" 
+                           placeholder="123456789:ABCdefGhIJKlmNoPQRsTUVwxyZ" required>
+                    <button class="btn btn-outline-secondary" type="button" id="toggle-token-visibility">
+                        <i class="fas fa-eye"></i>
+                    </button>
+                </div>
+                <div class="form-text">El token es confidencial, no lo compartas con nadie.</div>
+            </div>
+            
+            <div class="d-flex flex-wrap gap-2 mb-3">
+                <button id="test-bot" class="btn btn-outline-primary btn-action">
+                    <i class="fas fa-vial me-2"></i>Probar Conexión
+                </button>
+                <button id="connect-bot" class="btn btn-primary btn-action">
+                    <i class="fas fa-plug me-2"></i>Conectar Bot
+                </button>
+            </div>
+            
+            <div id="bot-status" class="mt-3" style="display: none;"></div>
+            
+            <div class="step-buttons">
+                <div class="left-buttons">
+                    <a href="/signup" class="btn btn-outline-secondary btn-action">
+                        <i class="fas fa-arrow-left me-2"></i>Volver
+                    </a>
+                </div>
+                <div class="right-buttons">
+                    <button id="next-to-products" class="btn btn-primary btn-action" disabled>
+                        Continuar a Productos <i class="fas fa-arrow-right ms-2"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Paso 3: Configurar Productos Iniciales -->
+        <div class="setup-card" id="step3">
+            <h4 class="section-title">
+                <i class="fas fa-boxes"></i>Añadir Primeros Productos
+            </h4>
+            
+            <div class="alert alert-warning">
+                <i class="fas fa-lightbulb me-2"></i>
+                <strong>Sugerencia:</strong> Agrega al menos 3-5 productos para empezar a vender.
+            </div>
+            
+            <div id="product-form-container">
+                <!-- Producto 1 -->
+                <div class="product-form">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h5 class="mb-0"><i class="fas fa-tag text-primary me-2"></i>Producto #1</h5>
+                    </div>
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Nombre del Producto *</label>
+                            <input type="text" name="product_name[]" class="form-control" placeholder="Ej: Camiseta" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Categoría/Sección *</label>
+                            <input type="text" name="product_category[]" class="form-control" placeholder="Ej: Ropa" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold">Precio de Venta ($) *</label>
+                            <input type="number" step="0.01" name="product_price[]" class="form-control" placeholder="0.00" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold">Precio de Compra ($) *</label>
+                            <input type="number" step="0.01" name="product_cost[]" class="form-control" placeholder="0.00" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold">Stock Inicial *</label>
+                            <input type="number" name="product_stock[]" class="form-control" placeholder="0" required>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="d-flex flex-wrap gap-2 mb-3">
+                <button id="add-another" class="btn btn-outline-secondary btn-action">
+                    <i class="fas fa-plus me-2"></i>Añadir Otro Producto
+                </button>
+                <button id="save-products" class="btn btn-success btn-action">
+                    <i class="fas fa-save me-2"></i>Guardar Productos
+                </button>
+            </div>
+            
+            <div id="product-status" class="mt-3" style="display: none;"></div>
+            
+            <div class="step-buttons">
+                <div class="left-buttons">
+                    <button id="back-to-bot" class="btn btn-outline-secondary btn-action">
+                        <i class="fas fa-arrow-left me-2"></i>Volver al Bot
+                    </button>
+                </div>
+                <div class="right-buttons">
+                    <button id="skip-products" class="btn btn-outline-secondary btn-action skip-btn">
+                        <i class="fas fa-forward me-2"></i>Omitir (Skip)
+                    </button>
+                    <button id="finish-setup" class="btn btn-primary btn-action" disabled>
+                        <i class="fas fa-check-circle me-2"></i>Finalizar
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        let productCount = 1;
+        let botConnected = false;
+        let productsSaved = false;
+        let productsSkipped = false;
+
+        // === NAVEGACIÓN ENTRE PASOS ===
+        function goToStep(step) {
+            // Ocultar todos los pasos
+            document.querySelectorAll('.setup-card').forEach(card => card.classList.remove('active'));
+            
+            // Mostrar el paso correspondiente
+            const targetCard = document.getElementById('step' + step);
+            if (targetCard) {
+                targetCard.classList.add('active');
+            }
+            
+            // Actualizar dots
+            document.querySelectorAll('.step-dot').forEach(dot => {
+                const dotStep = parseInt(dot.dataset.step);
+                if (dotStep === step) {
+                    dot.classList.add('active');
+                    dot.classList.remove('completed');
+                } else if (dotStep < step) {
+                    dot.classList.remove('active');
+                    dot.classList.add('completed');
+                } else {
+                    dot.classList.remove('active', 'completed');
+                }
+            });
+            
+            // Actualizar barra de progreso
+            const progress = ((step - 1) / 3) * 100;
+            document.getElementById('progressBar').style.width = Math.min(progress + 33, 100) + '%';
+        }
+
+        // === FUNCIONES DE UI ===
+        function showStatus(elementId, message, type) {
+            const statusDiv = document.getElementById(elementId);
+            statusDiv.style.display = 'block';
+            const icon = type === 'success' ? 'fa-check-circle' : 
+                        type === 'danger' ? 'fa-times-circle' : 
+                        type === 'warning' ? 'fa-exclamation-triangle' : 'fa-info-circle';
+            statusDiv.innerHTML = `
+                <div class="alert alert-${type} d-flex align-items-center">
+                    <i class="fas ${icon} me-2 fa-lg"></i>
+                    <span>${message}</span>
+                </div>
+            `;
+        }
+
+        function showBotStatus(message, type) {
+            showStatus('bot-status', message, type);
+        }
+
+        function showProductStatus(message, type) {
+            showStatus('product-status', message, type);
+        }
+
+        // === EVENTOS DE NAVEGACIÓN ===
+        document.getElementById('next-to-products').addEventListener('click', function() {
+            if (botConnected) {
+                goToStep(3);
+            }
+        });
+
+        document.getElementById('back-to-bot').addEventListener('click', function() {
+            goToStep(2);
+        });
+
+        // === BOTÓN OMITIR (SKIP) ===
+        document.getElementById('skip-products').addEventListener('click', function() {
+            if (confirm('¿Estás seguro de que quieres omitir la configuración de productos? Puedes agregarlos más tarde desde el panel de administración.')) {
+                productsSkipped = true;
+                showProductStatus('✅ Has omitido la configuración de productos. Puedes agregarlos más tarde desde el panel.', 'success');
+                document.getElementById('finish-setup').disabled = false;
+                document.getElementById('finish-setup').classList.remove('btn-primary');
+                document.getElementById('finish-setup').classList.add('btn-success');
+                document.querySelector('.step-dot[data-step="3"]').classList.add('completed');
+                
+                // Ocultar el botón de skip después de usarlo
+                document.getElementById('skip-products').style.display = 'none';
+            }
+        });
+
+        // También permitir clic en los dots para navegar
+        document.querySelectorAll('.step-dot').forEach(dot => {
+            dot.addEventListener('click', function() {
+                const step = parseInt(this.dataset.step);
+                if (step === 2 || (step === 3 && botConnected) || (step === 4 && botConnected && (productsSaved || productsSkipped))) {
+                    goToStep(step);
+                }
+            });
+        });
+
+        // === MOSTRAR/OCULTAR TOKEN ===
+        document.getElementById('toggle-token-visibility').addEventListener('click', function() {
+            const input = document.getElementById('bot-token');
+            const icon = this.querySelector('i');
+            if (input.type === 'password') {
+                input.type = 'text';
+                icon.classList.remove('fa-eye');
+                icon.classList.add('fa-eye-slash');
+            } else {
+                input.type = 'password';
+                icon.classList.remove('fa-eye-slash');
+                icon.classList.add('fa-eye');
+            }
+        });
+
+        // === AÑADIR OTRO PRODUCTO ===
+        document.getElementById('add-another').addEventListener('click', function() {
+            productCount++;
+            const formContainer = document.getElementById('product-form-container');
+            const newForm = document.createElement('div');
+            newForm.className = 'product-form';
+            newForm.innerHTML = `
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5 class="mb-0"><i class="fas fa-tag text-primary me-2"></i>Producto #${productCount}</h5>
+                    <button type="button" class="btn btn-sm btn-danger remove-product">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold">Nombre del Producto *</label>
+                        <input type="text" name="product_name[]" class="form-control" placeholder="Ej: Camiseta" required>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold">Categoría/Sección *</label>
+                        <input type="text" name="product_category[]" class="form-control" placeholder="Ej: Ropa" required>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label fw-semibold">Precio de Venta ($) *</label>
+                        <input type="number" step="0.01" name="product_price[]" class="form-control" placeholder="0.00" required>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label fw-semibold">Precio de Compra ($) *</label>
+                        <input type="number" step="0.01" name="product_cost[]" class="form-control" placeholder="0.00" required>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label fw-semibold">Stock Inicial *</label>
+                        <input type="number" name="product_stock[]" class="form-control" placeholder="0" required>
+                    </div>
+                </div>
+            `;
+            formContainer.appendChild(newForm);
+
+            newForm.querySelector('.remove-product').addEventListener('click', function() {
+                if (productCount > 1) {
+                    newForm.remove();
+                    productCount--;
+                }
+            });
+        });
+
+        // === PROBAR CONEXIÓN DEL BOT ===
+        document.getElementById('test-bot').addEventListener('click', function() {
+            const token = document.getElementById('bot-token').value.trim();
+            
+            if (!token) {
+                showBotStatus('Por favor ingresa el token del bot', 'warning');
+                return;
+            }
+
+            showBotStatus('Probando conexión...', 'info');
+            this.disabled = true;
+            
+            fetch('/api/test-bot', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ token: token })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showBotStatus(`✅ Conexión exitosa! Bot: @${data.username}`, 'success');
+                } else {
+                    showBotStatus(`❌ Error: ${data.message}`, 'danger');
+                }
+            })
+            .catch(error => {
+                showBotStatus('❌ Error de conexión al servidor', 'danger');
+            })
+            .finally(() => {
+                this.disabled = false;
+            });
+        });
+
+        // === CONECTAR BOT ===
+        document.getElementById('connect-bot').addEventListener('click', function() {
+            const token = document.getElementById('bot-token').value.trim();
+            const businessId = document.getElementById('business-id').value;
+            
+            if (!token) {
+                showBotStatus('Por favor ingresa el token del bot', 'warning');
+                return;
+            }
+
+            showBotStatus('Conectando bot...', 'info');
+            this.disabled = true;
+            
+            fetch('/api/connect-bot', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ 
+                    token: token,
+                    business_id: businessId 
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    botConnected = true;
+                    showBotStatus(`✅ ${data.message}`, 'success');
+                    document.getElementById('next-to-products').disabled = false;
+                    document.getElementById('next-to-products').classList.remove('btn-primary');
+                    document.getElementById('next-to-products').classList.add('btn-success');
+                    document.querySelector('.step-dot[data-step="2"]').classList.add('completed');
+                } else {
+                    // Si el webhook falla pero el bot se conectó (como en tu caso)
+                    // Verificamos si el token es válido y el webhook está configurado
+                    fetch(`/api/bot/webhook-status/${businessId}`)
+                        .then(res => res.json())
+                        .then(statusData => {
+                            if (statusData.status === 'success' && statusData.webhook_info && statusData.webhook_info.url) {
+                                botConnected = true;
+                                showBotStatus('✅ Bot conectado correctamente (webhook configurado)', 'success');
+                                document.getElementById('next-to-products').disabled = false;
+                                document.getElementById('next-to-products').classList.remove('btn-primary');
+                                document.getElementById('next-to-products').classList.add('btn-success');
+                                document.querySelector('.step-dot[data-step="2"]').classList.add('completed');
+                            } else {
+                                showBotStatus(`⚠️ ${data.message}`, 'warning');
+                            }
+                        });
+                }
+            })
+            .catch(error => {
+                showBotStatus('❌ Error de conexión al servidor', 'danger');
+            })
+            .finally(() => {
+                this.disabled = false;
+            });
+        });
+
+        // === GUARDAR PRODUCTOS ===
+        document.getElementById('save-products').addEventListener('click', function() {
+            const products = [];
+            const forms = document.querySelectorAll('.product-form');
+            const businessId = document.getElementById('business-id').value;
+            
+            let valid = true;
+            let emptyFields = [];
+            
+            forms.forEach((form, index) => {
+                const inputs = form.querySelectorAll('input[required]');
+                const productData = {};
+                let productValid = true;
+                
+                inputs.forEach(input => {
+                    if (!input.value.trim()) {
+                        input.classList.add('is-invalid');
+                        productValid = false;
+                        valid = false;
+                        emptyFields.push(`Producto #${index + 1}: ${input.previousElementSibling.textContent.trim().replace('*', '')}`);
+                    } else {
+                        input.classList.remove('is-invalid');
+                        input.classList.add('is-valid');
+                    }
+                });
+
+                if (productValid) {
+                    productData.name = form.querySelector('input[name="product_name[]"]').value.trim();
+                    productData.category = form.querySelector('input[name="product_category[]"]').value.trim();
+                    productData.price = parseFloat(form.querySelector('input[name="product_price[]"]').value);
+                    productData.cost = parseFloat(form.querySelector('input[name="product_cost[]"]').value);
+                    productData.stock = parseInt(form.querySelector('input[name="product_stock[]"]').value);
+                    products.push(productData);
+                }
+            });
+
+            if (!valid) {
+                showProductStatus(`❌ Por favor completa todos los campos obligatorios:\n${emptyFields.join('\n')}`, 'danger');
+                return;
+            }
+
+            if (products.length === 0) {
+                showProductStatus('❌ Debes agregar al menos un producto', 'danger');
+                return;
+            }
+
+            showProductStatus('Guardando productos...', 'info');
+            this.disabled = true;
+            
+            fetch('/api/save-products', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ 
+                    products: products,
+                    business_id: businessId 
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    productsSaved = true;
+                    showProductStatus(`✅ ${products.length} productos guardados correctamente!`, 'success');
+                    document.getElementById('finish-setup').disabled = false;
+                    document.getElementById('finish-setup').classList.remove('btn-primary');
+                    document.getElementById('finish-setup').classList.add('btn-success');
+                    document.querySelector('.step-dot[data-step="3"]').classList.add('completed');
+                    // Ocultar el botón de skip si ya se guardaron productos
+                    document.getElementById('skip-products').style.display = 'none';
+                } else {
+                    showProductStatus(`❌ Error: ${data.message}`, 'danger');
+                }
+            })
+            .catch(error => {
+                showProductStatus('❌ Error de conexión al servidor', 'danger');
+            })
+            .finally(() => {
+                this.disabled = false;
+            });
+        });
+
+        // === FINALIZAR CONFIGURACIÓN ===
+        document.getElementById('finish-setup').addEventListener('click', function() {
+            const businessId = document.getElementById('business-id').value;
+            
+            this.disabled = true;
+            this.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Finalizando...';
+            
+            fetch('/api/finish-setup', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ business_id: businessId })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    window.location.href = data.redirect;
+                } else {
+                    alert('Error: ' + data.message);
+                    this.disabled = false;
+                    this.innerHTML = '<i class="fas fa-check-circle me-2"></i>Finalizar Configuración';
+                }
+            })
+            .catch(error => {
+                alert('Error de conexión: ' + error.message);
+                this.disabled = false;
+                this.innerHTML = '<i class="fas fa-check-circle me-2"></i>Finalizar Configuración';
+            });
+        });
+
+        // === VERIFICAR ESTADO DEL WEBHOOK AL CARGAR ===
+        document.addEventListener('DOMContentLoaded', function() {
+            const businessId = document.getElementById('business-id').value;
+            
+            // Verificar si el bot ya está configurado
+            fetch(`/api/bot/webhook-status/${businessId}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success' && data.webhook_info && data.webhook_info.url) {
+                        botConnected = true;
+                        showBotStatus('✅ Bot ya configurado anteriormente', 'success');
+                        document.getElementById('next-to-products').disabled = false;
+                        document.getElementById('next-to-products').classList.remove('btn-primary');
+                        document.getElementById('next-to-products').classList.add('btn-success');
+                        document.querySelector('.step-dot[data-step="2"]').classList.add('completed');
+                    }
+                })
+                .catch(() => {});
+        });
+    </script>
+</body>
+</html>

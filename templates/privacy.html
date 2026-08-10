@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Política de Privacidad - OmniVentas</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body {
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            min-height: 100vh;
+            padding: 30px 20px;
+        }
+        .container {
+            max-width: 800px;
+        }
+        .card {
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.1);
+            border: none;
+        }
+        .card-header {
+            border-radius: 20px 20px 0 0 !important;
+            background: linear-gradient(135deg, #4361ee, #3a0ca3);
+            color: white;
+            padding: 25px;
+            border: none;
+        }
+        .section-title {
+            font-weight: 700;
+            color: #2c3e50;
+            margin-top: 25px;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #e9ecef;
+        }
+        .section-title i {
+            color: #4361ee;
+            margin-right: 10px;
+        }
+        .back-link {
+            color: #4361ee;
+            text-decoration: none;
+            font-weight: 500;
+            transition: all 0.3s;
+        }
+        .back-link:hover {
+            color: #3a0ca3;
+            text-decoration: underline;
+        }
+        .privacy-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            background: #d1ecf1;
+            color: #0c5460;
+            margin: 2px;
+        }
+        .highlight-box {
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 15px 20px;
+            border-left: 4px solid #4361ee;
+            margin: 15px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="card">
+            <div class="card-header text-center">
+                <h4 class="mb-0"><i class="fas fa-shield-alt me-2"></i>Política de Privacidad</h4>
+                <p class="mb-0 mt-2 opacity-75">OmniVentas - Protección de Datos Personales</p>
+            </div>
+            <div class="card-body p-4 p-md-5">
+                <div class="mb-4">
+                    <a href="/signup" class="back-link">
+                        <i class="fas fa-arrow-left me-2"></i>Volver al registro
+                    </a>
+                    <span class="last-updated ms-3">Última actualización: Enero 2024</span>
+                </div>
+
+                <div class="text-center mb-4">
+                    <span class="privacy-badge"><i class="fas fa-shield-alt me-1"></i>Protegido</span>
+                    <span class="privacy-badge"><i class="fas fa-lock me-1"></i>Encriptado</span>
+                    <span class="privacy-badge"><i class="fas fa-user-secret me-1"></i>Confidencial</span>
+                </div>
+
+                <p class="lead">En OmniVentas, nos tomamos muy en serio la privacidad de tus datos. Esta política explica cómo recopilamos, usamos y protegemos tu información.</p>
+
+                <h5 class="section-title"><i class="fas fa-database"></i>1. Datos que Recopilamos</h5>
+                <ul>
+                    <li><strong>Información de registro:</strong> Nombre de negocio, correo electrónico, usuario y contraseña.</li>
+                    <li><strong>Datos del negocio:</strong> Productos, ventas, inventario, clientes.</li>
+                    <li><strong>Información de Telegram:</strong> ID de Telegram, tokens de bot.</li>
+                    <li><strong>Datos de uso:</strong> Fechas de acceso, acciones realizadas en el sistema.</li>
+                </ul>
+
+                <h5 class="section-title"><i class="fas fa-sync-alt"></i>2. Cómo Usamos tus Datos</h5>
+                <ul>
+                    <li>Para operar y mantener el servicio de OmniVentas.</li>
+                    <li>Para gestionar tu negocio y proporcionar estadísticas.</li>
+                    <li>Para comunicarnos contigo sobre actualizaciones y novedades.</li>
+                    <li>Para mejorar la experiencia de usuario y el sistema.</li>
+                </ul>
+
+                <div class="highlight-box">
+                    <i class="fas fa-info-circle text-primary me-2"></i>
+                    <strong>Importante:</strong> Nunca vendemos ni compartimos tus datos personales con terceros sin tu consentimiento explícito.
+                </div>
+
+                <h5 class="section-title"><i class="fas fa-robot"></i>3. Datos del Bot de Telegram</h5>
+                <ul>
+                    <li>Los mensajes enviados al bot son procesados y almacenados temporalmente.</li>
+                    <li>No almacenamos mensajes de texto, solo comandos relevantes para la gestión.</li>
+                    <li>El token del bot se almacena encriptado en nuestra base de datos.</li>
+                    <li>Puedes desactivar el bot en cualquier momento desde el panel de administración.</li>
+                </ul>
+
+                <h5 class="section-title"><i class="fas fa-lock"></i>4. Seguridad de los Datos</h5>
+                <ul>
+                    <li>Utilizamos encriptación SSL/TLS para todas las comunicaciones.</li>
+                    <li>Las contraseñas se almacenan utilizando bcrypt (hash + salt).</li>
+                    <li>Los tokens sensibles se almacenan encriptados.</li>
+                    <li>Realizamos copias de seguridad diarias de los datos.</li>
+                </ul>
+
+                <h5 class="section-title"><i class="fas fa-user-cog"></i>5. Tus Derechos</h5>
+                <ul>
+                    <li><strong>Acceso:</strong> Puedes ver todos tus datos almacenados.</li>
+                    <li><strong>Rectificación:</strong> Puedes corregir datos incorrectos.</li>
+                    <li><strong>Eliminación:</strong> Puedes solicitar la eliminación de tus datos.</li>
+                    <li><strong>Portabilidad:</strong> Puedes exportar tus datos en formato CSV.</li>
+                </ul>
+
+                <h5 class="section-title"><i class="fas fa-cookie-bite"></i>6. Cookies</h5>
+                <p>Utilizamos cookies para mantener tu sesión activa y mejorar la experiencia de usuario. Puedes desactivar las cookies en la configuración de tu navegador.</p>
+
+                <h5 class="section-title"><i class="fas fa-globe-americas"></i>7. Transferencia de Datos</h5>
+                <p>OmniVentas utiliza servidores en la nube que pueden estar ubicados en diferentes países. Al usar el servicio, aceptas esta transferencia internacional de datos.</p>
+
+                <h5 class="section-title"><i class="fas fa-envelope"></i>8. Contacto</h5>
+                <p>Para cualquier consulta sobre tu privacidad, contáctanos en: <a href="mailto:privacidad@omniventas.com">privacidad@omniventas.com</a></p>
+
+                <hr class="my-4">
+
+                <div class="text-center">
+                    <p class="text-muted small">Esta política de privacidad se actualiza periódicamente. Te notificaremos sobre cambios importantes.</p>
+                    <a href="/signup" class="btn btn-primary">
+                        <i class="fas fa-arrow-left me-2"></i>Volver al Registro
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
