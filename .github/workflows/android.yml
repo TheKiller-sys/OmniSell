@@ -25,14 +25,18 @@ jobs:
         uses: android-actions/setup-android@v3
 
       # ============================================
-      # CREAR PROYECTO ANDROID COMPLETO
+      # CREAR PROYECTO ANDROID COMPLETO CON TODOS LOS RECURSOS
       # ============================================
-      - name: Create full Android project
+      - name: Create full Android project with all resources
         run: |
-          echo "📱 Creando proyecto Android completo..."
+          echo "📱 Creando proyecto Android completo con todos los recursos..."
           
           # Crear estructura de directorios
           mkdir -p android-app/app/src/main/java/com/omniventas/app
+          mkdir -p android-app/app/src/main/java/com/omniventas/app/api
+          mkdir -p android-app/app/src/main/java/com/omniventas/app/models
+          mkdir -p android-app/app/src/main/java/com/omniventas/app/ui
+          mkdir -p android-app/app/src/main/java/com/omniventas/app/utils
           mkdir -p android-app/app/src/main/res/layout
           mkdir -p android-app/app/src/main/res/values
           mkdir -p android-app/app/src/main/res/drawable
@@ -48,7 +52,7 @@ jobs:
           cd android-app
           
           # ============================================
-          # 1. GRADLE WRAPPER
+          # GRADLE WRAPPER
           # ============================================
           printf '%s\n' \
             "distributionBase=GRADLE_USER_HOME" \
@@ -70,7 +74,7 @@ jobs:
           chmod +x gradlew
           
           # ============================================
-          # 2. GRADLE PROPERTIES
+          # GRADLE PROPERTIES
           # ============================================
           printf '%s\n' \
             "android.useAndroidX=true" \
@@ -81,7 +85,7 @@ jobs:
             > gradle.properties
           
           # ============================================
-          # 3. SETTINGS.GRADLE
+          # SETTINGS.GRADLE
           # ============================================
           printf '%s\n' \
             "pluginManagement {" \
@@ -103,7 +107,7 @@ jobs:
             > settings.gradle
           
           # ============================================
-          # 4. BUILD.GRADLE (proyecto)
+          # BUILD.GRADLE (proyecto)
           # ============================================
           printf '%s\n' \
             "plugins {" \
@@ -112,7 +116,7 @@ jobs:
             > build.gradle
           
           # ============================================
-          # 5. BUILD.GRADLE (app) - CON TODAS LAS DEPENDENCIAS
+          # BUILD.GRADLE (app) - CON TODAS LAS DEPENDENCIAS
           # ============================================
           printf '%s\n' \
             "plugins {" \
@@ -171,7 +175,7 @@ jobs:
             > app/build.gradle
           
           # ============================================
-          # 6. PROGUARD
+          # PROGUARD
           # ============================================
           printf '%s\n' \
             "# Add project specific ProGuard rules here." \
@@ -179,11 +183,12 @@ jobs:
             > app/proguard-rules.pro
           
           # ============================================
-          # 7. MANIFEST
+          # ANDROID MANIFEST
           # ============================================
           printf '%s\n' \
             "<?xml version=\"1.0\" encoding=\"utf-8\"?>" \
-            "<manifest xmlns:android=\"http://schemas.android.com/apk/res/android\">" \
+            "<manifest xmlns:android=\"http://schemas.android.com/apk/res/android\"" \
+            "    xmlns:tools=\"http://schemas.android.com/tools\">" \
             "" \
             "    <uses-permission android:name=\"android.permission.INTERNET\" />" \
             "    <uses-permission android:name=\"android.permission.ACCESS_NETWORK_STATE\" />" \
@@ -195,16 +200,23 @@ jobs:
             "        android:roundIcon=\"@mipmap/ic_launcher_round\"" \
             "        android:supportsRtl=\"true\"" \
             "        android:theme=\"@style/Theme.OmniVentas\"" \
-            "        android:usesCleartextTraffic=\"true\">" \
+            "        android:usesCleartextTraffic=\"true\"" \
+            "        tools:targetApi=\"31\">" \
             "" \
             "        <activity" \
-            "            android:name=\".MainActivity\"" \
-            "            android:exported=\"true\">" \
+            "            android:name=\".LoginActivity\"" \
+            "            android:exported=\"true\"" \
+            "            android:screenOrientation=\"portrait\">" \
             "            <intent-filter>" \
             "                <action android:name=\"android.intent.action.MAIN\" />" \
             "                <category android:name=\"android.intent.category.LAUNCHER\" />" \
             "            </intent-filter>" \
             "        </activity>" \
+            "" \
+            "        <activity" \
+            "            android:name=\".MainActivity\"" \
+            "            android:exported=\"false\"" \
+            "            android:screenOrientation=\"portrait\" />" \
             "" \
             "    </application>" \
             "" \
@@ -212,60 +224,27 @@ jobs:
             > app/src/main/AndroidManifest.xml
           
           # ============================================
-          # 8. MAIN ACTIVITY
-          # ============================================
-          printf '%s\n' \
-            "package com.omniventas.app;" \
-            "" \
-            "import android.os.Bundle;" \
-            "import android.widget.TextView;" \
-            "import androidx.appcompat.app.AppCompatActivity;" \
-            "" \
-            "public class MainActivity extends AppCompatActivity {" \
-            "    @Override" \
-            "    protected void onCreate(Bundle savedInstanceState) {" \
-            "        super.onCreate(savedInstanceState);" \
-            "        setContentView(R.layout.activity_main);" \
-            "        TextView textView = findViewById(R.id.textView);" \
-            "        textView.setText(\"OmniVentas funcionando!\");" \
-            "    }" \
-            "}" \
-            > app/src/main/java/com/omniventas/app/MainActivity.java
-          
-          # ============================================
-          # 9. LAYOUT
+          # COLORS.XML - ¡TODOS LOS COLORES DE OMNI VENTAS!
           # ============================================
           printf '%s\n' \
             "<?xml version=\"1.0\" encoding=\"utf-8\"?>" \
-            "<LinearLayout xmlns:android=\"http://schemas.android.com/apk/res/android\"" \
-            "    android:layout_width=\"match_parent\"" \
-            "    android:layout_height=\"match_parent\"" \
-            "    android:orientation=\"vertical\"" \
-            "    android:gravity=\"center\"" \
-            "    android:padding=\"24dp\">" \
-            "" \
-            "    <TextView" \
-            "        android:id=\"@+id/textView\"" \
-            "        android:layout_width=\"wrap_content\"" \
-            "        android:layout_height=\"wrap_content\"" \
-            "        android:text=\"OmniVentas\"" \
-            "        android:textSize=\"32sp\"" \
-            "        android:textStyle=\"bold\"" \
-            "        android:textColor=\"#4361EE\" />" \
-            "" \
-            "    <TextView" \
-            "        android:layout_width=\"wrap_content\"" \
-            "        android:layout_height=\"wrap_content\"" \
-            "        android:text=\"Sistema de Gestión\"" \
-            "        android:textSize=\"16sp\"" \
-            "        android:textColor=\"#6C757D\"" \
-            "        android:layout_marginTop=\"8dp\" />" \
-            "" \
-            "</LinearLayout>" \
-            > app/src/main/res/layout/activity_main.xml
+            "<resources>" \
+            "    <color name=\"primary\">#4361EE</color>" \
+            "    <color name=\"primary_dark\">#3A56D4</color>" \
+            "    <color name=\"secondary\">#3F37C9</color>" \
+            "    <color name=\"success\">#4CC9F0</color>" \
+            "    <color name=\"warning\">#FFD166</color>" \
+            "    <color name=\"danger\">#EF476F</color>" \
+            "    <color name=\"dark\">#212529</color>" \
+            "    <color name=\"light_gray\">#F5F7FB</color>" \
+            "    <color name=\"gray\">#6C757D</color>" \
+            "    <color name=\"white\">#FFFFFF</color>" \
+            "    <color name=\"bottom_nav_tint\">@color/primary</color>" \
+            "</resources>" \
+            > app/src/main/res/values/colors.xml
           
           # ============================================
-          # 10. RECURSOS (strings, colors, themes)
+          # STRINGS.XML
           # ============================================
           printf '%s\n' \
             "<?xml version=\"1.0\" encoding=\"utf-8\"?>" \
@@ -274,134 +253,413 @@ jobs:
             "</resources>" \
             > app/src/main/res/values/strings.xml
           
-          printf '%s\n' \
-            "<?xml version=\"1.0\" encoding=\"utf-8\"?>" \
-            "<resources>" \
-            "    <color name=\"purple_200\">#FFBB86FC</color>" \
-            "    <color name=\"purple_500\">#FF6200EE</color>" \
-            "    <color name=\"purple_700\">#FF3700B3</color>" \
-            "    <color name=\"teal_200\">#FF03DAC5</color>" \
-            "    <color name=\"teal_700\">#FF018786</color>" \
-            "    <color name=\"black\">#FF000000</color>" \
-            "    <color name=\"white\">#FFFFFFFF</color>" \
-            "</resources>" \
-            > app/src/main/res/values/colors.xml
-          
+          # ============================================
+          # THEMES.XML
+          # ============================================
           printf '%s\n' \
             "<?xml version=\"1.0\" encoding=\"utf-8\"?>" \
             "<resources>" \
             "    <style name=\"Theme.OmniVentas\" parent=\"Theme.MaterialComponents.DayNight.NoActionBar\">" \
-            "        <item name=\"colorPrimary\">@color/purple_500</item>" \
-            "        <item name=\"colorPrimaryVariant\">@color/purple_700</item>" \
+            "        <item name=\"colorPrimary\">@color/primary</item>" \
+            "        <item name=\"colorPrimaryVariant\">@color/primary_dark</item>" \
             "        <item name=\"colorOnPrimary\">@color/white</item>" \
-            "        <item name=\"colorSecondary\">@color/teal_200</item>" \
-            "        <item name=\"colorOnSecondary\">@color/black</item>" \
-            "        <item name=\"android:statusBarColor\">?attr/colorPrimaryVariant</item>" \
+            "        <item name=\"colorSecondary\">@color/secondary</item>" \
+            "        <item name=\"colorOnSecondary\">@color/white</item>" \
+            "        <item name=\"android:statusBarColor\">@color/primary</item>" \
             "    </style>" \
             "</resources>" \
             > app/src/main/res/values/themes.xml
           
           # ============================================
-          # 11. ICONOS (launcher)
+          # EDIT_TEXT_BACKGROUND.XML
           # ============================================
-          # Crear icono vectorial
           printf '%s\n' \
-            '<?xml version="1.0" encoding="utf-8"?>' \
-            '<vector xmlns:android="http://schemas.android.com/apk/res/android"' \
-            '    android:width="108dp"' \
-            '    android:height="108dp"' \
-            '    android:viewportWidth="108"' \
-            '    android:viewportHeight="108">' \
-            '    <path' \
-            '        android:fillColor="#4361EE"' \
-            '        android:pathData="M54,27C40.5,27 30,37.5 30,51C30,64.5 40.5,75 54,75C67.5,75 78,64.5 78,51C78,37.5 67.5,27 54,27ZM54,69C44.1,69 36,60.9 36,51C36,41.1 44.1,33 54,33C63.9,33 72,41.1 72,51C72,60.9 63.9,69 54,69ZM54,39C47.4,39 42,44.4 42,51C42,57.6 47.4,63 54,63C60.6,63 66,57.6 66,51C66,44.4 60.6,39 54,39Z"/>' \
-            '    <path' \
-            '        android:fillColor="#FFFFFF"' \
-            '        android:pathData="M54,45C50.7,45 48,47.7 48,51C48,54.3 50.7,57 54,57C57.3,57 60,54.3 60,51C60,47.7 57.3,45 54,45Z"/>' \
-            '</vector>' \
-            > app/src/main/res/drawable/ic_launcher_foreground.xml
+            "<?xml version=\"1.0\" encoding=\"utf-8\"?>" \
+            "<shape xmlns:android=\"http://schemas.android.com/apk/res/android\">" \
+            "    <solid android:color=\"@color/white\" />" \
+            "    <stroke android:width=\"1dp\" android:color=\"@color/gray\" />" \
+            "    <corners android:radius=\"8dp\" />" \
+            "</shape>" \
+            > app/src/main/res/drawable/edit_text_background.xml
           
-          # Crear adaptive icons
+          # ============================================
+          # SPINNER_BACKGROUND.XML
+          # ============================================
           printf '%s\n' \
-            '<?xml version="1.0" encoding="utf-8"?>' \
-            '<adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">' \
-            '    <background android:drawable="@color/white"/>' \
-            '    <foreground android:drawable="@drawable/ic_launcher_foreground"/>' \
-            '</adaptive-icon>' \
-            > app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml
+            "<?xml version=\"1.0\" encoding=\"utf-8\"?>" \
+            "<shape xmlns:android=\"http://schemas.android.com/apk/res/android\">" \
+            "    <solid android:color=\"@color/white\" />" \
+            "    <stroke android:width=\"1dp\" android:color=\"@color/gray\" />" \
+            "    <corners android:radius=\"8dp\" />" \
+            "</shape>" \
+            > app/src/main/res/drawable/spinner_background.xml
           
-          cp app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml \
-             app/src/main/res/mipmap-anydpi-v26/ic_launcher_round.xml
+          # ============================================
+          # IC_LOGO.XML
+          # ============================================
+          printf '%s\n' \
+            "<?xml version=\"1.0\" encoding=\"utf-8\"?>" \
+            "<vector xmlns:android=\"http://schemas.android.com/apk/res/android\"" \
+            "    android:width=\"24dp\"" \
+            "    android:height=\"24dp\"" \
+            "    android:viewportWidth=\"24\"" \
+            "    android:viewportHeight=\"24\">" \
+            "    <path" \
+            "        android:fillColor=\"@color/primary\"" \
+            "        android:pathData=\"M12,2C6.48,2 2,6.48 2,12s4.48,10 10,10 10,-4.48 10,-10S17.52,2 12,2zm-2,15l-5,-5 1.41,-1.41L10,14.17l7.59,-7.59L19,8l-9,9z\"/>" \
+            "</vector>" \
+            > app/src/main/res/drawable/ic_logo.xml
           
-          # Crear iconos PNG (1x1 pixel transparente)
-          for dir in mipmap-mdpi mipmap-hdpi mipmap-xhdpi mipmap-xxhdpi mipmap-xxxhdpi; do
-            echo -n "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==" | base64 -d > app/src/main/res/$dir/ic_launcher.png
-            echo -n "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==" | base64 -d > app/src/main/res/$dir/ic_launcher_round.png
-          done
+          # ============================================
+          # ICONOS DEL MENÚ
+          # ============================================
+          # ic_dashboard
+          printf '%s\n' \
+            "<?xml version=\"1.0\" encoding=\"utf-8\"?>" \
+            "<vector xmlns:android=\"http://schemas.android.com/apk/res/android\"" \
+            "    android:width=\"24dp\"" \
+            "    android:height=\"24dp\"" \
+            "    android:viewportWidth=\"24\"" \
+            "    android:viewportHeight=\"24\">" \
+            "    <path" \
+            "        android:fillColor=\"#000000\"" \
+            "        android:pathData=\"M3,13h8L11,3L3,3v10zM3,21h8v-6L3,15v6zM13,21h8L21,11h-8v10zM13,3v6h8L21,3h-8z\"/>" \
+            "</vector>" \
+            > app/src/main/res/drawable/ic_dashboard.xml
           
-          echo "✅ Proyecto Android completo creado!"
-          echo "📁 Archivos creados:"
-          find . -type f -name "*.gradle" -o -name "*.xml" -o -name "*.java" -o -name "*.properties" | head -20
-
-      - name: Build Debug APK
-        run: |
-          cd android-app
-          ./gradlew assembleDebug --no-daemon
-
-      - name: Upload Debug APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: app-debug
-          path: android-app/app/build/outputs/apk/debug/*.apk
-
-      - name: Build Release APK
-        run: |
-          cd android-app
-          ./gradlew assembleRelease --no-daemon
-
-      - name: Upload Release APK (unsigned)
-        uses: actions/upload-artifact@v4
-        with:
-          name: app-release-unsigned
-          path: android-app/app/build/outputs/apk/release/*.apk
-
-      # ============================================
-      # FIRMAR APK (opcional)
-      # ============================================
-      - name: Check signing secrets
-        id: check_secrets
-        run: |
-          if [ -n "${{ secrets.KEYSTORE_BASE64 }}" ] && \
-             [ -n "${{ secrets.KEYSTORE_PASSWORD }}" ] && \
-             [ -n "${{ secrets.KEY_ALIAS }}" ] && \
-             [ -n "${{ secrets.KEY_PASSWORD }}" ]; then
-            echo "has_secrets=true" >> $GITHUB_OUTPUT
-            echo "✅ Secrets de firma encontrados"
-          else
-            echo "has_secrets=false" >> $GITHUB_OUTPUT
-            echo "⚠️ Secrets de firma NO configurados"
-          fi
-
-      - name: Sign Release APK
-        if: github.ref == 'refs/heads/main' && steps.check_secrets.outputs.has_secrets == 'true'
-        run: |
-          echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > keystore.jks
-          cd android-app
-          ./gradlew assembleRelease \
-            -Pandroid.injected.signing.store.file=$(pwd)/../keystore.jks \
-            -Pandroid.injected.signing.store.password=${{ secrets.KEYSTORE_PASSWORD }} \
-            -Pandroid.injected.signing.key.alias=${{ secrets.KEY_ALIAS }} \
-            -Pandroid.injected.signing.key.password=${{ secrets.KEY_PASSWORD }}
-
-      - name: Upload Signed APK
-        if: github.ref == 'refs/heads/main' && steps.check_secrets.outputs.has_secrets == 'true'
-        uses: actions/upload-artifact@v4
-        with:
-          name: app-release-signed
-          path: android-app/app/build/outputs/apk/release/*.apk
-
-      - name: Notify success
-        if: success()
-        run: |
-          echo "✅ APK compilados exitosamente!"
-          echo "📱 Descarga los APKs desde los artifacts"
+          # ic_ventas
+          printf '%s\n' \
+            "<?xml version=\"1.0\" encoding=\"utf-8\"?>" \
+            "<vector xmlns:android=\"http://schemas.android.com/apk/res/android\"" \
+            "    android:width=\"24dp\"" \
+            "    android:height=\"24dp\"" \
+            "    android:viewportWidth=\"24\"" \
+            "    android:viewportHeight=\"24\">" \
+            "    <path" \
+            "        android:fillColor=\"#000000\"" \
+            "        android:pathData=\"M7,18c-1.1,0 -2,0.9 -2,2s0.9,2 2,2 2,-0.9 2,-2 -0.9,-2 -2,-2zM1,2v2h2l3.6,7.59 -1.35,2.45C5.16,14.9 5.78,16 7,16h12v-2L7,14l1.1,-2h7.45c0.75,0 1.41,-0.41 1.75,-1.03l3.58,-6.49A1.996,1.996 0,0 0,20.01 4L5.21,4l-0.94,-2L1,2zM17,18c-1.1,0 -2,0.9 -2,2s0.9,2 2,2 2,-0.9 2,-2 -0.9,-2 -2,-2z\"/>" \
+            "</vector>" \
+            > app/src/main/res/drawable/ic_ventas.xml
+          
+          # ic_inventario
+          printf '%s\n' \
+            "<?xml version=\"1.0\" encoding=\"utf-8\"?>" \
+            "<vector xmlns:android=\"http://schemas.android.com/apk/res/android\"" \
+            "    android:width=\"24dp\"" \
+            "    android:height=\"24dp\"" \
+            "    android:viewportWidth=\"24\"" \
+            "    android:viewportHeight=\"24\">" \
+            "    <path" \
+            "        android:fillColor=\"#000000\"" \
+            "        android:pathData=\"M20,6h-4V4c0,-1.1 -0.9,-2 -2,-2h-4C8.9,2 8,2.9 8,4v2H4c-1.1,0 -2,0.9 -2,2v12c0,1.1 0.9,2 2,2h16c1.1,0 2,-0.9 2,-2V8c0,-1.1 -0.9,-2 -2,-2zM10,4h4v2h-4V4zM4,20V8h4v10h8V8h4v12H4z\"/>" \
+            "</vector>" \
+            > app/src/main/res/drawable/ic_inventario.xml
+          
+          # ic_logout
+          printf '%s\n' \
+            "<?xml version=\"1.0\" encoding=\"utf-8\"?>" \
+            "<vector xmlns:android=\"http://schemas.android.com/apk/res/android\"" \
+            "    android:width=\"24dp\"" \
+            "    android:height=\"24dp\"" \
+            "    android:viewportWidth=\"24\"" \
+            "    android:viewportHeight=\"24\">" \
+            "    <path" \
+            "        android:fillColor=\"#000000\"" \
+            "        android:pathData=\"M17,7l-1.41,1.41L18.17,11H8v2h10.17l-2.58,2.58L17,17l5,-5zM4,5h8V3H4c-1.1,0 -2,0.9 -2,2v14c0,1.1 0.9,2 2,2h8v-2H4V5z\"/>" \
+            "</vector>" \
+            > app/src/main/res/drawable/ic_logout.xml
+          
+          # ============================================
+          # BOTTOM NAV MENU
+          # ============================================
+          mkdir -p app/src/main/res/menu
+          printf '%s\n' \
+            "<?xml version=\"1.0\" encoding=\"utf-8\"?>" \
+            "<menu xmlns:android=\"http://schemas.android.com/apk/res/android\">" \
+            "    <item" \
+            "        android:id=\"@+id/nav_dashboard\"" \
+            "        android:icon=\"@drawable/ic_dashboard\"" \
+            "        android:title=\"Dashboard\" />" \
+            "    <item" \
+            "        android:id=\"@+id/nav_ventas\"" \
+            "        android:icon=\"@drawable/ic_ventas\"" \
+            "        android:title=\"Ventas\" />" \
+            "    <item" \
+            "        android:id=\"@+id/nav_inventario\"" \
+            "        android:icon=\"@drawable/ic_inventario\"" \
+            "        android:title=\"Inventario\" />" \
+            "    <item" \
+            "        android:id=\"@+id/nav_logout\"" \
+            "        android:icon=\"@drawable/ic_logout\"" \
+            "        android:title=\"Salir\" />" \
+            "</menu>" \
+            > app/src/main/res/menu/bottom_nav_menu.xml
+          
+          # ============================================
+          # ACTIVITY_LOGIN.XML
+          # ============================================
+          printf '%s\n' \
+            "<?xml version=\"1.0\" encoding=\"utf-8\"?>" \
+            "<LinearLayout xmlns:android=\"http://schemas.android.com/apk/res/android\"" \
+            "    xmlns:app=\"http://schemas.android.com/apk/res-auto\"" \
+            "    android:layout_width=\"match_parent\"" \
+            "    android:layout_height=\"match_parent\"" \
+            "    android:orientation=\"vertical\"" \
+            "    android:padding=\"24dp\"" \
+            "    android:gravity=\"center\"" \
+            "    android:background=\"@color/white\">" \
+            "" \
+            "    <ImageView" \
+            "        android:layout_width=\"80dp\"" \
+            "        android:layout_height=\"80dp\"" \
+            "        android:src=\"@drawable/ic_logo\"" \
+            "        android:layout_marginBottom=\"16dp\" />" \
+            "" \
+            "    <TextView" \
+            "        android:layout_width=\"wrap_content\"" \
+            "        android:layout_height=\"wrap_content\"" \
+            "        android:text=\"OmniVentas\"" \
+            "        android:textSize=\"28sp\"" \
+            "        android:textStyle=\"bold\"" \
+            "        android:textColor=\"@color/primary\"" \
+            "        android:layout_marginBottom=\"8dp\" />" \
+            "" \
+            "    <TextView" \
+            "        android:layout_width=\"wrap_content\"" \
+            "        android:layout_height=\"wrap_content\"" \
+            "        android:text=\"Sistema de Gestión para Vendedores\"" \
+            "        android:textSize=\"14sp\"" \
+            "        android:textColor=\"@color/gray\"" \
+            "        android:layout_marginBottom=\"32dp\" />" \
+            "" \
+            "    <EditText" \
+            "        android:id=\"@+id/et_business_id\"" \
+            "        android:layout_width=\"match_parent\"" \
+            "        android:layout_height=\"wrap_content\"" \
+            "        android:hint=\"ID del Negocio\"" \
+            "        android:inputType=\"text\"" \
+            "        android:padding=\"14dp\"" \
+            "        android:background=\"@drawable/edit_text_background\"" \
+            "        android:layout_marginBottom=\"12dp\" />" \
+            "" \
+            "    <EditText" \
+            "        android:id=\"@+id/et_username\"" \
+            "        android:layout_width=\"match_parent\"" \
+            "        android:layout_height=\"wrap_content\"" \
+            "        android:hint=\"Usuario\"" \
+            "        android:inputType=\"text\"" \
+            "        android:padding=\"14dp\"" \
+            "        android:background=\"@drawable/edit_text_background\"" \
+            "        android:layout_marginBottom=\"12dp\" />" \
+            "" \
+            "    <EditText" \
+            "        android:id=\"@+id/et_password\"" \
+            "        android:layout_width=\"match_parent\"" \
+            "        android:layout_height=\"wrap_content\"" \
+            "        android:hint=\"Contraseña\"" \
+            "        android:inputType=\"textPassword\"" \
+            "        android:padding=\"14dp\"" \
+            "        android:background=\"@drawable/edit_text_background\"" \
+            "        android:layout_marginBottom=\"24dp\" />" \
+            "" \
+            "    <Button" \
+            "        android:id=\"@+id/btn_login\"" \
+            "        android:layout_width=\"match_parent\"" \
+            "        android:layout_height=\"wrap_content\"" \
+            "        android:text=\"Iniciar Sesión\"" \
+            "        android:textSize=\"16sp\"" \
+            "        android:padding=\"14dp\"" \
+            "        android:backgroundTint=\"@color/primary\"" \
+            "        app:cornerRadius=\"12dp\" />" \
+            "" \
+            "</LinearLayout>" \
+            > app/src/main/res/layout/activity_login.xml
+          
+          # ============================================
+          # ACTIVITY_MAIN.XML
+          # ============================================
+          printf '%s\n' \
+            "<?xml version=\"1.0\" encoding=\"utf-8\"?>" \
+            "<LinearLayout xmlns:android=\"http://schemas.android.com/apk/res/android\"" \
+            "    xmlns:app=\"http://schemas.android.com/apk/res-auto\"" \
+            "    android:layout_width=\"match_parent\"" \
+            "    android:layout_height=\"match_parent\"" \
+            "    android:orientation=\"vertical\">" \
+            "" \
+            "    <FrameLayout" \
+            "        android:id=\"@+id/fragment_container\"" \
+            "        android:layout_width=\"match_parent\"" \
+            "        android:layout_height=\"0dp\"" \
+            "        android:layout_weight=\"1\" />" \
+            "" \
+            "    <com.google.android.material.bottomnavigation.BottomNavigationView" \
+            "        android:id=\"@+id/bottom_navigation\"" \
+            "        android:layout_width=\"match_parent\"" \
+            "        android:layout_height=\"wrap_content\"" \
+            "        android:background=\"@color/white\"" \
+            "        app:menu=\"@menu/bottom_nav_menu\"" \
+            "        app:itemIconTint=\"@color/bottom_nav_tint\"" \
+            "        app:itemTextColor=\"@color/bottom_nav_tint\" />" \
+            "" \
+            "</LinearLayout>" \
+            > app/src/main/res/layout/activity_main.xml
+          
+          # ============================================
+          # FRAGMENT_DASHBOARD.XML
+          # ============================================
+          printf '%s\n' \
+            "<?xml version=\"1.0\" encoding=\"utf-8\"?>" \
+            "<LinearLayout xmlns:android=\"http://schemas.android.com/apk/res/android\"" \
+            "    xmlns:app=\"http://schemas.android.com/apk/res-auto\"" \
+            "    android:layout_width=\"match_parent\"" \
+            "    android:layout_height=\"match_parent\"" \
+            "    android:orientation=\"vertical\"" \
+            "    android:padding=\"16dp\"" \
+            "    android:background=\"@color/light_gray\">" \
+            "" \
+            "    <androidx.swiperefreshlayout.widget.SwipeRefreshLayout" \
+            "        android:id=\"@+id/swipe_refresh\"" \
+            "        android:layout_width=\"match_parent\"" \
+            "        android:layout_height=\"match_parent\">" \
+            "" \
+            "        <ScrollView" \
+            "            android:layout_width=\"match_parent\"" \
+            "            android:layout_height=\"match_parent\">" \
+            "" \
+            "            <LinearLayout" \
+            "                android:layout_width=\"match_parent\"" \
+            "                android:layout_height=\"wrap_content\"" \
+            "                android:orientation=\"vertical\">" \
+            "" \
+            "                <TextView" \
+            "                    android:layout_width=\"match_parent\"" \
+            "                    android:layout_height=\"wrap_content\"" \
+            "                    android:text=\"📊 Dashboard\"" \
+            "                    android:textSize=\"24sp\"" \
+            "                    android:textStyle=\"bold\"" \
+            "                    android:textColor=\"@color/dark\"" \
+            "                    android:layout_marginBottom=\"16dp\" />" \
+            "" \
+            "                <LinearLayout" \
+            "                    android:layout_width=\"match_parent\"" \
+            "                    android:layout_height=\"wrap_content\"" \
+            "                    android:orientation=\"horizontal\"" \
+            "                    android:weightSum=\"2\"" \
+            "                    android:layout_marginBottom=\"12dp\">" \
+            "" \
+            "                    <androidx.cardview.widget.CardView" \
+            "                        android:layout_width=\"0dp\"" \
+            "                        android:layout_height=\"wrap_content\"" \
+            "                        android:layout_weight=\"1\"" \
+            "                        android:layout_marginEnd=\"6dp\"" \
+            "                        app:cardCornerRadius=\"12dp\"" \
+            "                        app:cardElevation=\"4dp\">" \
+            "" \
+            "                        <LinearLayout" \
+            "                            android:layout_width=\"match_parent\"" \
+            "                            android:layout_height=\"wrap_content\"" \
+            "                            android:orientation=\"vertical\"" \
+            "                            android:padding=\"16dp\">" \
+            "" \
+            "                            <TextView" \
+            "                                android:layout_width=\"wrap_content\"" \
+            "                                android:layout_height=\"wrap_content\"" \
+            "                                android:text=\"Ventas Hoy\"" \
+            "                                android:textSize=\"12sp\"" \
+            "                                android:textColor=\"@color/gray\" />" \
+            "" \
+            "                            <TextView" \
+            "                                android:id=\"@+id/tv_ventas_hoy\"" \
+            "                                android:layout_width=\"wrap_content\"" \
+            "                                android:layout_height=\"wrap_content\"" \
+            "                                android:text=\"0\"" \
+            "                                android:textSize=\"24sp\"" \
+            "                                android:textStyle=\"bold\"" \
+            "                                android:textColor=\"@color/primary\" />" \
+            "                        </LinearLayout>" \
+            "                    </androidx.cardview.widget.CardView>" \
+            "" \
+            "                    <androidx.cardview.widget.CardView" \
+            "                        android:layout_width=\"0dp\"" \
+            "                        android:layout_height=\"wrap_content\"" \
+            "                        android:layout_weight=\"1\"" \
+            "                        android:layout_marginStart=\"6dp\"" \
+            "                        app:cardCornerRadius=\"12dp\"" \
+            "                        app:cardElevation=\"4dp\">" \
+            "" \
+            "                        <LinearLayout" \
+            "                            android:layout_width=\"match_parent\"" \
+            "                            android:layout_height=\"wrap_content\"" \
+            "                            android:orientation=\"vertical\"" \
+            "                            android:padding=\"16dp\">" \
+            "" \
+            "                            <TextView" \
+            "                                android:layout_width=\"wrap_content\"" \
+            "                                android:layout_height=\"wrap_content\"" \
+            "                                android:text=\"Ingresos Hoy\"" \
+            "                                android:textSize=\"12sp\"" \
+            "                                android:textColor=\"@color/gray\" />" \
+            "" \
+            "                            <TextView" \
+            "                                android:id=\"@+id/tv_ingresos_hoy\"" \
+            "                                android:layout_width=\"wrap_content\"" \
+            "                                android:layout_height=\"wrap_content\"" \
+            "                                android:text=\"$0.00\"" \
+            "                                android:textSize=\"24sp\"" \
+            "                                android:textStyle=\"bold\"" \
+            "                                android:textColor=\"@color/success\" />" \
+            "                        </LinearLayout>" \
+            "                    </androidx.cardview.widget.CardView>" \
+            "                </LinearLayout>" \
+            "" \
+            "                <LinearLayout" \
+            "                    android:layout_width=\"match_parent\"" \
+            "                    android:layout_height=\"wrap_content\"" \
+            "                    android:orientation=\"horizontal\"" \
+            "                    android:weightSum=\"2\"" \
+            "                    android:layout_marginBottom=\"12dp\">" \
+            "" \
+            "                    <androidx.cardview.widget.CardView" \
+            "                        android:layout_width=\"0dp\"" \
+            "                        android:layout_height=\"wrap_content\"" \
+            "                        android:layout_weight=\"1\"" \
+            "                        android:layout_marginEnd=\"6dp\"" \
+            "                        app:cardCornerRadius=\"12dp\"" \
+            "                        app:cardElevation=\"4dp\">" \
+            "" \
+            "                        <LinearLayout" \
+            "                            android:layout_width=\"match_parent\"" \
+            "                            android:layout_height=\"wrap_content\"" \
+            "                            android:orientation=\"vertical\"" \
+            "                            android:padding=\"16dp\">" \
+            "" \
+            "                            <TextView" \
+            "                                android:layout_width=\"wrap_content\"" \
+            "                                android:layout_height=\"wrap_content\"" \
+            "                                android:text=\"Ventas Mes\"" \
+            "                                android:textSize=\"12sp\"" \
+            "                                android:textColor=\"@color/gray\" />" \
+            "" \
+            "                            <TextView" \
+            "                                android:id=\"@+id/tv_ventas_mes\"" \
+            "                                android:layout_width=\"wrap_content\"" \
+            "                                android:layout_height=\"wrap_content\"" \
+            "                                android:text=\"0\"" \
+            "                                android:textSize=\"24sp\"" \
+            "                                android:textStyle=\"bold\"" \
+            "                                android:textColor=\"@color/primary\" />" \
+            "                        </LinearLayout>" \
+            "                    </androidx.cardview.widget.CardView>" \
+            "" \
+            "                    <androidx.cardview.widget.CardView" \
+            "                        android:layout_width=\"0dp\"" \
+            "                        android:layout_height=\"wrap_content\"" \
+            "                        android:layout_weight=\"1\"" \
+            "                        android:layout_marginStart=\"6dp\"" \
+            "                        app:cardCornerRadius=\"12dp\"" \
+            "                        app:cardElevation=\"4dp\">" \
+            "" \
+            "                        <LinearLayout" \
+            "                            android:layout_width=\"match_parent\"" \
+            "                            android:layout_height=\"wrap_content\"" \
+           
