@@ -244,6 +244,27 @@ class DatabaseManager:
                         )
                     ''')
                 logger.info("Tabla users creada exitosamente")
+            else:
+                # Verificar si existe la columna role
+                if is_postgres:
+                    c.execute("""
+                        SELECT column_name 
+                        FROM information_schema.columns 
+                        WHERE table_name = 'users' AND column_name = 'role'
+                    """)
+                    has_role = c.fetchone() is not None
+                else:
+                    c.execute("PRAGMA table_info(users)")
+                    columns = [col[1] for col in c.fetchall()]
+                    has_role = 'role' in columns
+                
+                if not has_role:
+                    logger.warning("Columna role no existe en users, agregándola...")
+                    if is_postgres:
+                        c.execute("ALTER TABLE users ADD COLUMN role TEXT DEFAULT 'admin'")
+                    else:
+                        c.execute("ALTER TABLE users ADD COLUMN role TEXT DEFAULT 'admin'")
+                    logger.info("Columna role agregada exitosamente")
             
             conn.commit()
             logger.info("Estructura de tablas globales verificada y corregida correctamente")
@@ -326,11 +347,14 @@ class DatabaseManager:
                 serial_type = "SERIAL PRIMARY KEY"
                 foreign_key = "REFERENCES"
                 timestamp_type = "TIMESTAMP DEFAULT CURRENT_TIMESTAMP"
+                boolean_type = "BOOLEAN DEFAULT FALSE"
             else:
                 serial_type = "INTEGER PRIMARY KEY AUTOINCREMENT"
                 foreign_key = "REFERENCES"
                 timestamp_type = "TIMESTAMP DEFAULT CURRENT_TIMESTAMP"
+                boolean_type = "BOOLEAN DEFAULT FALSE"
             
+            # Tabla secciones
             self.c.execute(f'''
                 CREATE TABLE IF NOT EXISTS secciones (
                     id {serial_type},
@@ -338,6 +362,7 @@ class DatabaseManager:
                 )
             ''')
             
+            # Tabla productos
             self.c.execute(f'''
                 CREATE TABLE IF NOT EXISTS productos (
                     id {serial_type},
@@ -352,6 +377,7 @@ class DatabaseManager:
                 )
             ''')
             
+            # Tabla ventas
             self.c.execute(f'''
                 CREATE TABLE IF NOT EXISTS ventas (
                     id {serial_type},
@@ -362,6 +388,7 @@ class DatabaseManager:
                 )
             ''')
             
+            # Tabla inversiones
             self.c.execute(f'''
                 CREATE TABLE IF NOT EXISTS inversiones (
                     id {serial_type},
@@ -373,6 +400,7 @@ class DatabaseManager:
                 )
             ''')
             
+            # Tabla objetivos financieros
             self.c.execute(f'''
                 CREATE TABLE IF NOT EXISTS objetivos_financieros (
                     id {serial_type},
@@ -380,20 +408,22 @@ class DatabaseManager:
                     monto_objetivo DECIMAL(10,2) NOT NULL,
                     fecha_limite DATE,
                     monto_actual DECIMAL(10,2) DEFAULT 0,
-                    completado BOOLEAN DEFAULT FALSE
+                    completado {boolean_type}
                 )
             ''')
             
+            # Tabla vendedores
             self.c.execute(f'''
                 CREATE TABLE IF NOT EXISTS vendedores (
                     id {serial_type},
                     telegram_id TEXT UNIQUE NOT NULL,
                     nombre TEXT NOT NULL,
-                    activo BOOLEAN DEFAULT FALSE,
+                    activo {boolean_type},
                     fecha_registro {timestamp_type}
                 )
             ''')
             
+            # Crear índices para mejorar rendimiento
             if is_postgres:
                 self.c.execute("CREATE INDEX IF NOT EXISTS idx_productos_seccion ON productos(seccion_id)")
                 self.c.execute("CREATE INDEX IF NOT EXISTS idx_ventas_producto ON ventas(producto_id)")
