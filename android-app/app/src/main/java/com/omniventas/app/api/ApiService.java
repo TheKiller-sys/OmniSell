@@ -6,12 +6,8 @@ import com.omniventas.app.models.LoginResponse;
 import com.omniventas.app.models.Producto;
 import com.omniventas.app.models.VentaRequest;
 import com.omniventas.app.models.VentaResponse;
-import java.util.List;
 import retrofit2.Call;
-import retrofit2.http.Body;
-import retrofit2.http.GET;
-import retrofit2.http.Header;
-import retrofit2.http.POST;
+import retrofit2.http.*;
 
 public interface ApiService {
     
