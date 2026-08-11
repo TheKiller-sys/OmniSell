@@ -1,5 +1,6 @@
 package com.omniventas.app;
 
+import android.content.Intent;
 import android.os.Bundle;
 import android.view.MenuItem;
 import android.widget.Toast;
@@ -10,17 +11,20 @@ import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.omniventas.app.ui.DashboardFragment;
 import com.omniventas.app.ui.VentasFragment;
 import com.omniventas.app.ui.InventarioFragment;
+import com.omniventas.app.utils.SessionManager;
 
 public class MainActivity extends AppCompatActivity {
 
     private BottomNavigationView bottomNav;
     private long backPressedTime = 0;
+    private SessionManager sessionManager;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+        sessionManager = new SessionManager(this);
         bottomNav = findViewById(R.id.bottom_navigation);
         bottomNav.setOnItemSelectedListener(this::onNavigationItemSelected);
 
@@ -42,7 +46,10 @@ public class MainActivity extends AppCompatActivity {
         } else if (id == R.id.nav_inventario) {
             selectedFragment = new InventarioFragment();
         } else if (id == R.id.nav_logout) {
-            Toast.makeText(this, "Cerrando sesión...", Toast.LENGTH_SHORT).show();
+            sessionManager.clearSession();
+            Toast.makeText(this, "Sesión cerrada", Toast.LENGTH_SHORT).show();
+            startActivity(new Intent(this, LoginActivity.class));
+            finish();
             return true;
         }
 
