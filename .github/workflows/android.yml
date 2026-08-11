@@ -35,13 +35,13 @@ jobs:
           # Crear gradle-wrapper.properties si no existe
           if [ ! -f "android-app/gradle/wrapper/gradle-wrapper.properties" ]; then
             echo "⚠️ gradle-wrapper.properties no encontrado, creándolo..."
-            cat > android-app/gradle/wrapper/gradle-wrapper.properties << 'EOF'
-            distributionBase=GRADLE_USER_HOME
-            distributionPath=wrapper/dists
-            distributionUrl=https\://services.gradle.org/distributions/gradle-8.2-bin.zip
-            zipStoreBase=GRADLE_USER_HOME
-            zipStorePath=wrapper/dists
-            EOF
+            printf '%s\n' \
+              "distributionBase=GRADLE_USER_HOME" \
+              "distributionPath=wrapper/dists" \
+              "distributionUrl=https\://services.gradle.org/distributions/gradle-8.2-bin.zip" \
+              "zipStoreBase=GRADLE_USER_HOME" \
+              "zipStorePath=wrapper/dists" \
+              > android-app/gradle/wrapper/gradle-wrapper.properties
             echo "✅ gradle-wrapper.properties creado"
           else
             echo "✅ gradle-wrapper.properties existe"
