@@ -6,8 +6,14 @@ import com.omniventas.app.models.LoginResponse;
 import com.omniventas.app.models.Producto;
 import com.omniventas.app.models.VentaRequest;
 import com.omniventas.app.models.VentaResponse;
+
+import java.util.List;  // ← ESTE IMPORT FALTABA
+
 import retrofit2.Call;
-import retrofit2.http.*;
+import retrofit2.http.Body;
+import retrofit2.http.GET;
+import retrofit2.http.Header;
+import retrofit2.http.POST;
 
 public interface ApiService {
     
