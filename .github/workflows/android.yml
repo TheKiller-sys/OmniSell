@@ -2,12 +2,9 @@ name: Build Android APK
 
 on:
   push:
-    branches:
-      - main
-      - master
+    branches: [ main, master ]
   pull_request:
-    branches:
-      - main
+    branches: [ main ]
   workflow_dispatch:
 
 jobs:
@@ -19,27 +16,24 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Set up JDK 17
-        uses: actions/setup-java@v3
+        uses: actions/setup-java@v4
         with:
           java-version: '17'
           distribution: 'temurin'
 
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
-        with:
-          cmdline-tools-version: latest
 
-      - name: Setup Gradle
-        uses: gradle/gradle-build-action@v2
+      - name: Grant execute permission for gradlew
+        run: chmod +x android-app/gradlew
 
       - name: Build Debug APK
         run: |
           cd android-app
-          chmod +x gradlew
-          ./gradlew assembleDebug
+          ./gradlew assembleDebug --no-daemon
 
       - name: Upload Debug APK
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: app-debug
           path: android-app/app/build/outputs/apk/debug/*.apk
@@ -47,17 +41,30 @@ jobs:
       - name: Build Release APK
         run: |
           cd android-app
-          ./gradlew assembleRelease
+          ./gradlew assembleRelease --no-daemon
 
       - name: Upload Release APK
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: app-release-unsigned
           path: android-app/app/build/outputs/apk/release/*.apk
 
-      # ✅ Línea 59 CORREGIDA
-      - name: Sign Release APK (if secrets configured)
-        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request' && secrets.KEYSTORE_BASE64 != ''
+      # ✅ PASO 1: Verificar si existen secrets y guardar resultado
+      - name: Check signing secrets
+        id: check_secrets
+        run: |
+          if [ -n "${{ secrets.KEYSTORE_BASE64 }}" ] && [ -n "${{ secrets.KEYSTORE_PASSWORD }}" ] && [ -n "${{ secrets.KEY_ALIAS }}" ] && [ -n "${{ secrets.KEY_PASSWORD }}" ]; then
+            echo "has_secrets=true" >> $GITHUB_OUTPUT
+            echo "✅ Secrets encontrados"
+          else
+            echo "has_secrets=false" >> $GITHUB_OUTPUT
+            echo "⚠️ Secrets no configurados, saltando signing"
+          fi
+        shell: bash
+
+      # ✅ PASO 2: Firmar APK (solo si hay secrets y estamos en main)
+      - name: Sign Release APK
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request' && steps.check_secrets.outputs.has_secrets == 'true'
         run: |
           echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > keystore.jks
           cd android-app
@@ -66,10 +73,10 @@ jobs:
             -Pandroid.injected.signing.key.alias=${{ secrets.KEY_ALIAS }} \
             -Pandroid.injected.signing.key.password=${{ secrets.KEY_PASSWORD }}
 
-      # ✅ Línea 69 CORREGIDA (typo fs → refs)
+      # ✅ PASO 3: Subir APK firmado
       - name: Upload Signed APK
-        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request' && secrets.KEYSTORE_BASE64 != ''
-        uses: actions/upload-artifact@v3
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request' && steps.check_secrets.outputs.has_secrets == 'true'
+        uses: actions/upload-artifact@v4
         with:
           name: app-release-signed
           path: android-app/app/build/outputs/apk/release/*.apk
