@@ -28,7 +28,7 @@ jobs:
         run: |
           echo "📱 Creando proyecto Android desde cero..."
           
-          # Crear estructura de directorios
+          # Crear TODOS los directorios necesarios
           mkdir -p android-app/app/src/main/java/com/omniventas/app
           mkdir -p android-app/app/src/main/res/layout
           mkdir -p android-app/app/src/main/res/values
@@ -38,6 +38,7 @@ jobs:
           mkdir -p android-app/app/src/main/res/mipmap-xhdpi
           mkdir -p android-app/app/src/main/res/mipmap-xxhdpi
           mkdir -p android-app/app/src/main/res/mipmap-xxxhdpi
+          mkdir -p android-app/app/src/main/res/mipmap-anydpi-v26
           mkdir -p android-app/gradle/wrapper
           
           cd android-app
@@ -277,7 +278,7 @@ jobs:
           EOF
           
           # ============================================
-          # 11. CREAR ic_launcher.xml (vector drawable)
+          # 11. CREAR ic_launcher_foreground.xml (vector drawable)
           # ============================================
           cat > app/src/main/res/drawable/ic_launcher_foreground.xml << 'EOF'
           <?xml version="1.0" encoding="utf-8"?>
@@ -296,7 +297,7 @@ jobs:
           EOF
           
           # ============================================
-          # 12. CREAR ic_launcher.xml (configuración)
+          # 12. CREAR ic_launcher.xml (configuración adaptive icon)
           # ============================================
           cat > app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml << 'EOF'
           <?xml version="1.0" encoding="utf-8"?>
@@ -315,15 +316,22 @@ jobs:
           EOF
           
           # ============================================
-          # 13. CREAR iconos placeholder PNG
+          # 13. CREAR iconos PNG con colores sólidos (usando convert)
           # ============================================
-          # Crear iconos placeholder usando convert (ImageMagick) si está disponible
-          # Si no, crear archivos PNG vacíos (no ideales pero funcionan)
+          # Crear iconos de colores usando ImageMagick (disponible en GitHub Actions)
           for size in 72 96 144 192; do
-              echo "Creando icono ${size}x${size}..."
-              # Crear un PNG simple con texto
-              echo -n "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==" | base64 -d > app/src/main/res/mipmap-mdpi/ic_launcher.png 2>/dev/null || true
+            density=$((size * 4))
+            convert -size ${size}x${size} xc:#4361EE \
+              -gravity center -pointsize $((size / 3)) -fill white -annotate 0 "OV" \
+              -alpha off \
+              app/src/main/res/mipmap-mdpi/ic_launcher.png 2>/dev/null || echo "⚠️ No se pudo crear icono ${size}"
           done
+          
+          # Copiar los mismos iconos a las diferentes densidades
+          cp app/src/main/res/mipmap-mdpi/ic_launcher.png app/src/main/res/mipmap-hdpi/ 2>/dev/null || true
+          cp app/src/main/res/mipmap-mdpi/ic_launcher.png app/src/main/res/mipmap-xhdpi/ 2>/dev/null || true
+          cp app/src/main/res/mipmap-mdpi/ic_launcher.png app/src/main/res/mipmap-xxhdpi/ 2>/dev/null || true
+          cp app/src/main/res/mipmap-mdpi/ic_launcher.png app/src/main/res/mipmap-xxxhdpi/ 2>/dev/null || true
           
           # ============================================
           # 14. CREAR gradle-wrapper.properties
@@ -371,6 +379,9 @@ jobs:
           echo ""
           echo "📁 Contenido de app/:"
           ls -la app/
+          echo ""
+          echo "📁 Iconos creados:"
+          find app/src/main/res -name "ic_launcher*" -type f
 
       - name: Validate Gradle Wrapper
         uses: gradle/wrapper-validation-action@v1
