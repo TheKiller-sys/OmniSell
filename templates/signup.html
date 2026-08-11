@@ -66,10 +66,6 @@
             transform: translateY(-2px);
             box-shadow: 0 8px 25px rgba(67, 97, 238, 0.4);
         }
-        .btn-primary:disabled {
-            opacity: 0.7;
-            transform: none;
-        }
         .password-strength-bar {
             height: 4px;
             border-radius: 2px;
@@ -79,15 +75,6 @@
         .password-strength-text {
             font-size: 0.8rem;
             margin-top: 4px;
-        }
-        .input-group-text {
-            border-radius: 12px 0 0 12px;
-            background: #f8f9fa;
-            border: 2px solid #e9ecef;
-            border-right: none;
-        }
-        .input-group .form-control {
-            border-radius: 0 12px 12px 0;
         }
         .feature-badge {
             display: inline-block;
@@ -109,6 +96,27 @@
             background: #fff3cd;
             color: #856404;
         }
+        .download-app-banner {
+            background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+            border-radius: 12px;
+            padding: 16px;
+            text-align: center;
+            margin-bottom: 20px;
+            border: 2px dashed #4361ee;
+        }
+        .download-app-banner .btn-android {
+            background: #3DDC84;
+            color: white;
+            border-radius: 12px;
+            padding: 10px 24px;
+            font-weight: 600;
+            transition: all 0.3s;
+            border: none;
+        }
+        .download-app-banner .btn-android:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(61, 220, 132, 0.4);
+        }
     </style>
 </head>
 <body>
@@ -116,9 +124,19 @@
         <div class="card">
             <div class="card-header text-white text-center">
                 <h4 class="mb-0"><i class="fas fa-store me-2"></i>Crear Cuenta de Negocio</h4>
-                <p class="mb-0 mt-2 opacity-75">Comienza a gestionar tu negocio hoy mismo</p>
+                <p class="mb-0 mt-2 opacity-75">Comienza a gestionar tu negocio desde la app</p>
             </div>
             <div class="card-body p-4 p-md-5">
+                <!-- Banner de descarga de la app -->
+                <div class="download-app-banner">
+                    <i class="fas fa-mobile-alt fa-2x text-primary mb-2"></i>
+                    <h6 class="mb-1">📱 Descarga la App</h6>
+                    <p class="text-muted small mb-2">Gestiona tu negocio desde cualquier lugar</p>
+                    <a href="#download-apk" class="btn btn-android">
+                        <i class="fab fa-android me-2"></i>Descargar APK
+                    </a>
+                </div>
+
                 <div id="alert-container"></div>
                 
                 <form id="signup-form" action="/signup" method="post" novalidate>
@@ -127,7 +145,7 @@
                         <input type="text" name="business_name" class="form-control" 
                                placeholder="Ej: Mi Tienda Online" required
                                oninput="validateField(this)">
-                        <div class="form-text">Este nombre aparecerá en tu panel y comunicaciones</div>
+                        <div class="form-text">Este nombre aparecerá en tu panel y en la app</div>
                     </div>
 
                     <div class="mb-3">
@@ -163,20 +181,6 @@
                                oninput="validateConfirmPassword(this)">
                     </div>
 
-                    <div class="mb-3">
-                        <label class="form-label">ID de Telegram <span class="text-danger">*</span></label>
-                        <div class="input-group">
-                            <span class="input-group-text"><i class="fab fa-telegram"></i></span>
-                            <input type="text" name="telegram_id" class="form-control" 
-                                   placeholder="123456789" required
-                                   oninput="validateField(this)">
-                        </div>
-                        <div class="form-text">
-                            <i class="fas fa-info-circle me-1"></i>
-                            Envía <code>/id</code> a <a href="https://t.me/userinfobot" target="_blank">@userinfobot</a> en Telegram para obtener tu ID
-                        </div>
-                    </div>
-
                     <div class="form-check mb-3">
                         <input class="form-check-input" type="checkbox" id="terms" required>
                         <label class="form-check-label" for="terms">
@@ -201,7 +205,7 @@
                 <hr class="my-4">
 
                 <div class="text-center">
-                    <span class="feature-badge feature-badge-success"><i class="fas fa-robot me-1"></i>Bot Telegram</span>
+                    <span class="feature-badge feature-badge-success"><i class="fas fa-mobile-alt me-1"></i>App Móvil</span>
                     <span class="feature-badge feature-badge-info"><i class="fas fa-chart-line me-1"></i>Análisis</span>
                     <span class="feature-badge feature-badge-warning"><i class="fas fa-shield-alt me-1"></i>Seguro</span>
                 </div>
