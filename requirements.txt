@@ -1,4 +1,4 @@
-# requirements.txt - Optimizado para Python 3.14 en Windows
+# requirements.txt - Optimizado para Python 3.14
 
 # Web Framework
 Flask==2.3.3
@@ -11,18 +11,16 @@ psycopg2-binary>=2.9.9
 pandas>=2.2.0
 numpy==1.26.4
 
-# Telegram Bot
-python-telegram-bot==20.7
+# API & Security
 requests==2.31.0
+bcrypt==4.1.2
+cryptography==42.0.5
+PyJWT==2.8.0
 
-# Charts & Visualization (versiones con wheels disponibles)
+# Charts & Visualization
 matplotlib==3.8.2
 seaborn==0.13.2
 scipy==1.11.4
-
-# Security
-bcrypt==4.1.2
-cryptography==42.0.5
 
 # Utilities
 python-dotenv==1.0.0
