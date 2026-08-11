@@ -24,6 +24,55 @@ jobs:
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
 
+      # ✅ PASO CLAVE: Crear los archivos del wrapper si no existen
+      - name: Setup Gradle Wrapper
+        run: |
+          echo "📁 Verificando archivos del wrapper..."
+          
+          # Crear el directorio wrapper si no existe
+          mkdir -p android-app/gradle/wrapper
+          
+          # Crear gradle-wrapper.properties si no existe
+          if [ ! -f "android-app/gradle/wrapper/gradle-wrapper.properties" ]; then
+            echo "⚠️ gradle-wrapper.properties no encontrado, creándolo..."
+            cat > android-app/gradle/wrapper/gradle-wrapper.properties << 'EOF'
+            distributionBase=GRADLE_USER_HOME
+            distributionPath=wrapper/dists
+            distributionUrl=https\://services.gradle.org/distributions/gradle-8.2-bin.zip
+            zipStoreBase=GRADLE_USER_HOME
+            zipStorePath=wrapper/dists
+            EOF
+            echo "✅ gradle-wrapper.properties creado"
+          else
+            echo "✅ gradle-wrapper.properties existe"
+          fi
+          
+          # Descargar gradle-wrapper.jar si no existe
+          if [ ! -f "android-app/gradle/wrapper/gradle-wrapper.jar" ]; then
+            echo "⚠️ gradle-wrapper.jar no encontrado, descargándolo..."
+            curl -L -o android-app/gradle/wrapper/gradle-wrapper.jar \
+              https://raw.githubusercontent.com/gradle/gradle/v8.2.0/gradle/wrapper/gradle-wrapper.jar
+            echo "✅ gradle-wrapper.jar descargado"
+          else
+            echo "✅ gradle-wrapper.jar existe"
+          fi
+          
+          # Asegurar permisos de ejecución para gradlew
+          if [ -f "android-app/gradlew" ]; then
+            chmod +x android-app/gradlew
+            echo "✅ Permisos de ejecución para gradlew"
+          else
+            echo "⚠️ gradlew no encontrado, generándolo..."
+            cd android-app
+            gradle wrapper --gradle-version 8.2
+            chmod +x gradlew
+            cd ..
+            echo "✅ gradlew generado"
+          fi
+          
+          echo "📁 Contenido final de android-app/gradle/wrapper/:"
+          ls -la android-app/gradle/wrapper/
+
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v3
         with:
@@ -33,7 +82,6 @@ jobs:
       - name: Build Debug APK
         run: |
           cd android-app
-          chmod +x gradlew
           ./gradlew assembleDebug --no-daemon
 
       - name: Upload Debug APK
@@ -53,9 +101,6 @@ jobs:
           name: app-release-unsigned
           path: android-app/app/build/outputs/apk/release/*.apk
 
-      # ============================================
-      # FIRMAR APK (si tienes secrets configurados)
-      # ============================================
       - name: Check signing secrets
         id: check_secrets
         run: |
