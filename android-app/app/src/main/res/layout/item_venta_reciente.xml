@@ -6,19 +6,16 @@
     android:layout_marginBottom="4dp"
     app:cardCornerRadius="8dp"
     app:cardElevation="1dp">
-
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
         android:padding="12dp">
-
         <LinearLayout
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:orientation="vertical">
-
             <TextView
                 android:id="@+id/tv_producto"
                 android:layout_width="match_parent"
@@ -27,7 +24,6 @@
                 android:textSize="14sp"
                 android:textStyle="bold"
                 android:textColor="@color/dark" />
-
             <TextView
                 android:id="@+id/tv_fecha"
                 android:layout_width="match_parent"
@@ -35,9 +31,7 @@
                 android:text="Fecha"
                 android:textSize="12sp"
                 android:textColor="@color/gray" />
-
         </LinearLayout>
-
         <TextView
             android:id="@+id/tv_cantidad"
             android:layout_width="wrap_content"
@@ -46,15 +40,13 @@
             android:textSize="14sp"
             android:textColor="@color/gray"
             android:layout_marginEnd="12dp" />
-
         <TextView
             android:id="@+id/tv_total"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="$0.00"
+            android:text="/home/runner/work/_temp/40349393-c1d4-420c-97af-5d3b8662377e.sh.00"
             android:textSize="14sp"
             android:textStyle="bold"
             android:textColor="@color/success" />
-
     </LinearLayout>
 </androidx.cardview.widget.CardView>
