@@ -8,7 +8,6 @@
     android:padding="32dp"
     android:background="@color/light_gray">
 
-    <!-- Logo con animación de entrada -->
     <ImageView
         android:id="@+id/iv_logo"
         android:layout_width="100dp"
@@ -17,7 +16,6 @@
         android:layout_marginBottom="16dp"
         android:scaleType="centerInside" />
 
-    <!-- Título -->
     <TextView
         android:id="@+id/tv_title"
         android:layout_width="wrap_content"
@@ -37,7 +35,6 @@
         android:textColor="@color/gray"
         android:layout_marginBottom="32dp" />
 
-    <!-- Card contenedor -->
     <androidx.cardview.widget.CardView
         android:id="@+id/card_login"
         android:layout_width="match_parent"
@@ -52,52 +49,69 @@
             android:orientation="vertical"
             android:padding="24dp">
 
-            <!-- Icono de vendedor -->
-            <ImageView
-                android:layout_width="64dp"
-                android:layout_height="64dp"
-                android:src="@drawable/ic_vendor"
-                android:layout_gravity="center"
-                android:layout_marginBottom="16dp" />
-
+            <!-- ID del Negocio -->
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="ID de Vendedor"
+                android:text="ID del Negocio"
                 android:textSize="14sp"
                 android:textColor="@color/gray"
                 android:layout_marginBottom="8dp" />
 
-            <!-- Campo de entrada con ícono -->
-            <LinearLayout
+            <EditText
+                android:id="@+id/et_vendor_id"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:orientation="horizontal"
+                android:hint="Ej: mi_tienda_abc1"
+                android:inputType="text"
                 android:background="@drawable/edit_text_background"
-                android:padding="4dp"
-                android:layout_marginBottom="20dp">
+                android:padding="12dp"
+                android:textSize="16sp"
+                android:textColor="@color/dark"
+                android:layout_marginBottom="16dp" />
 
-                <ImageView
-                    android:layout_width="24dp"
-                    android:layout_height="24dp"
-                    android:src="@drawable/ic_vendor_id"
-                    android:layout_gravity="center"
-                    android:layout_marginStart="12dp" />
+            <!-- Usuario -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Usuario"
+                android:textSize="14sp"
+                android:textColor="@color/gray"
+                android:layout_marginBottom="8dp" />
 
-                <EditText
-                    android:id="@+id/et_vendor_id"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:hint="Ej: VEN-001"
-                    android:inputType="text"
-                    android:background="@android:color/transparent"
-                    android:padding="12dp"
-                    android:textSize="16dp"
-                    android:textColor="@color/dark" />
-            </LinearLayout>
+            <EditText
+                android:id="@+id/et_username"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:hint="Tu usuario"
+                android:inputType="text"
+                android:background="@drawable/edit_text_background"
+                android:padding="12dp"
+                android:textSize="16sp"
+                android:textColor="@color/dark"
+                android:layout_marginBottom="16dp" />
 
-            <!-- Botón de inicio de sesión -->
+            <!-- Contraseña -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Contraseña"
+                android:textSize="14sp"
+                android:textColor="@color/gray"
+                android:layout_marginBottom="8dp" />
+
+            <EditText
+                android:id="@+id/et_password"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:hint="Tu contraseña"
+                android:inputType="textPassword"
+                android:background="@drawable/edit_text_background"
+                android:padding="12dp"
+                android:textSize="16sp"
+                android:textColor="@color/dark"
+                android:layout_marginBottom="20dp" />
+
             <Button
                 android:id="@+id/btn_login"
                 android:layout_width="match_parent"
@@ -108,11 +122,10 @@
                 android:backgroundTint="@color/primary"
                 app:cornerRadius="12dp" />
 
-            <!-- Texto de ayuda -->
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Contacta al administrador para obtener tu ID"
+                android:text="Contacta al administrador para obtener tus credenciales"
                 android:textSize="12sp"
                 android:textColor="@color/gray"
                 android:layout_gravity="center"
