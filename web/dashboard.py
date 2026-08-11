@@ -127,10 +127,9 @@ def create_app():
                 business_name = request.form.get('business_name', '').strip()
                 username = request.form.get('username', '').strip()
                 password = request.form.get('password', '').strip()
-                telegram_id = request.form.get('telegram_id', '').strip()
                 email = request.form.get('email', '').strip()
                 
-                if not all([business_name, username, password, telegram_id]):
+                if not all([business_name, username, password, email]):
                     return render_template('signup.html', error="Todos los campos son obligatorios")
                 
                 if len(password) < 8:
@@ -172,23 +171,23 @@ def create_app():
                     c.execute('''
                         INSERT INTO businesses (id, name, admin_id, web_user, web_pass, email)
                         VALUES (%s, %s, %s, %s, %s, %s)
-                    ''', (business_id, business_name, telegram_id, username, hashed_password.decode(), email))
+                    ''', (business_id, business_name, '', username, hashed_password.decode(), email))
                 else:
                     c.execute('''
                         INSERT INTO businesses (id, name, admin_id, web_user, web_pass, email)
                         VALUES (?, ?, ?, ?, ?, ?)
-                    ''', (business_id, business_name, telegram_id, username, hashed_password.decode(), email))
+                    ''', (business_id, business_name, '', username, hashed_password.decode(), email))
             
                 if is_postgres:
                     c.execute('''
                         INSERT INTO users (business_id, username, password, role, telegram_id)
                         VALUES (%s, %s, %s, 'admin', %s)
-                    ''', (business_id, username, hashed_password.decode(), telegram_id))
+                    ''', (business_id, username, hashed_password.decode(), ''))
                 else:
                     c.execute('''
                         INSERT INTO users (business_id, username, password, role, telegram_id)
                         VALUES (?, ?, ?, 'admin', ?)
-                    ''', (business_id, username, hashed_password.decode(), telegram_id))
+                    ''', (business_id, username, hashed_password.decode(), ''))
             
                 conn.commit()
                 
