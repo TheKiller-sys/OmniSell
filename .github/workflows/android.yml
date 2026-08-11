@@ -24,6 +24,51 @@ jobs:
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
 
+      # ============================================
+      # ✅ NUEVO PASO: Crear archivos del wrapper
+      # ============================================
+      - name: Create Gradle Wrapper files
+        run: |
+          echo "📁 Creando archivos del wrapper de Gradle..."
+          
+          # Crear directorio wrapper
+          mkdir -p android-app/gradle/wrapper
+          
+          # Crear gradle-wrapper.properties
+          printf '%s\n' \
+            "distributionBase=GRADLE_USER_HOME" \
+            "distributionPath=wrapper/dists" \
+            "distributionUrl=https\://services.gradle.org/distributions/gradle-8.2-bin.zip" \
+            "zipStoreBase=GRADLE_USER_HOME" \
+            "zipStorePath=wrapper/dists" \
+            > android-app/gradle/wrapper/gradle-wrapper.properties
+          
+          echo "✅ gradle-wrapper.properties creado"
+          
+          # Descargar gradle-wrapper.jar
+          curl -L -o android-app/gradle/wrapper/gradle-wrapper.jar \
+            https://raw.githubusercontent.com/gradle/gradle/v8.2.0/gradle/wrapper/gradle-wrapper.jar
+          
+          echo "✅ gradle-wrapper.jar descargado"
+          
+          # Crear gradlew si no existe
+          if [ ! -f "android-app/gradlew" ]; then
+            printf '%s\n' \
+              '#!/bin/sh' \
+              'APP_HOME=$(cd "$(dirname "$0")" && pwd)' \
+              'CLASSPATH=$APP_HOME/gradle/wrapper/gradle-wrapper.jar' \
+              'exec java -cp "$CLASSPATH" org.gradle.wrapper.GradleWrapperMain "$@"' \
+              > android-app/gradlew
+            chmod +x android-app/gradlew
+            echo "✅ gradlew creado"
+          else
+            chmod +x android-app/gradlew
+            echo "✅ gradlew ya existe"
+          fi
+          
+          echo "📁 Contenido de android-app/gradle/wrapper/:"
+          ls -la android-app/gradle/wrapper/
+
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v3
         with:
@@ -33,7 +78,6 @@ jobs:
       - name: Build Debug APK
         run: |
           cd android-app
-          chmod +x gradlew
           ./gradlew assembleDebug --no-daemon
 
       - name: Upload Debug APK
