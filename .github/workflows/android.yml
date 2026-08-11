@@ -11,6 +11,9 @@ jobs:
   build:
     runs-on: ubuntu-latest
     
+    permissions:
+      contents: write  # 🔑 Necesario para subir archivos al repo
+    
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -25,11 +28,11 @@ jobs:
         uses: android-actions/setup-android@v3
 
       # ============================================
-      # CREAR PROYECTO ANDROID COMPLETO CON TODOS LOS RECURSOS
+      # CREAR PROYECTO ANDROID COMPLETO CON NUEVO DISEÑO DE LOGIN
       # ============================================
-      - name: Create full Android project with all resources
+      - name: Create full Android project with new login design
         run: |
-          echo "📱 Creando proyecto Android completo con todos los recursos..."
+          echo "📱 Creando proyecto Android con nuevo diseño de login..."
           
           # Crear estructura de directorios
           mkdir -p android-app/app/src/main/java/com/omniventas/app
@@ -224,20 +227,23 @@ jobs:
             > app/src/main/AndroidManifest.xml
           
           # ============================================
-          # COLORS.XML - ¡TODOS LOS COLORES DE OMNI VENTAS!
+          # COLORS.XML - ACTUALIZADO
           # ============================================
           printf '%s\n' \
             "<?xml version=\"1.0\" encoding=\"utf-8\"?>" \
             "<resources>" \
             "    <color name=\"primary\">#4361EE</color>" \
             "    <color name=\"primary_dark\">#3A56D4</color>" \
+            "    <color name=\"primary_light\">#6C8CFF</color>" \
             "    <color name=\"secondary\">#3F37C9</color>" \
             "    <color name=\"success\">#4CC9F0</color>" \
             "    <color name=\"warning\">#FFD166</color>" \
             "    <color name=\"danger\">#EF476F</color>" \
             "    <color name=\"dark\">#212529</color>" \
+            "    <color name=\"dark_secondary\">#343A40</color>" \
             "    <color name=\"light_gray\">#F5F7FB</color>" \
             "    <color name=\"gray\">#6C757D</color>" \
+            "    <color name=\"gray_light\">#E9ECEF</color>" \
             "    <color name=\"white\">#FFFFFF</color>" \
             "    <color name=\"bottom_nav_tint\">@color/primary</color>" \
             "</resources>" \
@@ -254,7 +260,7 @@ jobs:
             > app/src/main/res/values/strings.xml
           
           # ============================================
-          # THEMES.XML
+          # THEMES.XML - ACTUALIZADO
           # ============================================
           printf '%s\n' \
             "<?xml version=\"1.0\" encoding=\"utf-8\"?>" \
@@ -266,36 +272,233 @@ jobs:
             "        <item name=\"colorSecondary\">@color/secondary</item>" \
             "        <item name=\"colorOnSecondary\">@color/white</item>" \
             "        <item name=\"android:statusBarColor\">@color/primary</item>" \
+            "        <item name=\"android:windowBackground\">@color/light_gray</item>" \
             "    </style>" \
             "</resources>" \
             > app/src/main/res/values/themes.xml
           
           # ============================================
-          # EDIT_TEXT_BACKGROUND.XML
+          # ACTIVITY_LOGIN.XML - NUEVO DISEÑO PARA VENDEDORES
           # ============================================
           printf '%s\n' \
             "<?xml version=\"1.0\" encoding=\"utf-8\"?>" \
-            "<shape xmlns:android=\"http://schemas.android.com/apk/res/android\">" \
-            "    <solid android:color=\"@color/white\" />" \
-            "    <stroke android:width=\"1dp\" android:color=\"@color/gray\" />" \
-            "    <corners android:radius=\"8dp\" />" \
-            "</shape>" \
-            > app/src/main/res/drawable/edit_text_background.xml
+            "<LinearLayout xmlns:android=\"http://schemas.android.com/apk/res/android\"" \
+            "    xmlns:app=\"http://schemas.android.com/apk/res-auto\"" \
+            "    android:layout_width=\"match_parent\"" \
+            "    android:layout_height=\"match_parent\"" \
+            "    android:orientation=\"vertical\"" \
+            "    android:gravity=\"center\"" \
+            "    android:padding=\"32dp\"" \
+            "    android:background=\"@color/light_gray\">" \
+            "" \
+            "    <!-- Logo con animación de entrada -->" \
+            "    <ImageView" \
+            "        android:id=\"@+id/iv_logo\"" \
+            "        android:layout_width=\"100dp\"" \
+            "        android:layout_height=\"100dp\"" \
+            "        android:src=\"@drawable/ic_launcher_foreground\"" \
+            "        android:layout_marginBottom=\"16dp\"" \
+            "        android:scaleType=\"centerInside\" />" \
+            "" \
+            "    <!-- Título -->" \
+            "    <TextView" \
+            "        android:id=\"@+id/tv_title\"" \
+            "        android:layout_width=\"wrap_content\"" \
+            "        android:layout_height=\"wrap_content\"" \
+            "        android:text=\"OmniVentas\"" \
+            "        android:textSize=\"32sp\"" \
+            "        android:textStyle=\"bold\"" \
+            "        android:textColor=\"@color/primary\"" \
+            "        android:layout_marginBottom=\"4dp\" />" \
+            "" \
+            "    <TextView" \
+            "        android:id=\"@+id/tv_subtitle\"" \
+            "        android:layout_width=\"wrap_content\"" \
+            "        android:layout_height=\"wrap_content\"" \
+            "        android:text=\"Acceso para Vendedores\"" \
+            "        android:textSize=\"16sp\"" \
+            "        android:textColor=\"@color/gray\"" \
+            "        android:layout_marginBottom=\"32dp\" />" \
+            "" \
+            "    <!-- Card contenedor -->" \
+            "    <androidx.cardview.widget.CardView" \
+            "        android:id=\"@+id/card_login\"" \
+            "        android:layout_width=\"match_parent\"" \
+            "        android:layout_height=\"wrap_content\"" \
+            "        app:cardCornerRadius=\"24dp\"" \
+            "        app:cardElevation=\"8dp\"" \
+            "        app:cardBackgroundColor=\"@color/white\">" \
+            "" \
+            "        <LinearLayout" \
+            "            android:layout_width=\"match_parent\"" \
+            "            android:layout_height=\"wrap_content\"" \
+            "            android:orientation=\"vertical\"" \
+            "            android:padding=\"24dp\">" \
+            "" \
+            "            <!-- Icono de vendedor -->" \
+            "            <ImageView" \
+            "                android:layout_width=\"64dp\"" \
+            "                android:layout_height=\"64dp\"" \
+            "                android:src=\"@drawable/ic_vendor\"" \
+            "                android:layout_gravity=\"center\"" \
+            "                android:layout_marginBottom=\"16dp\" />" \
+            "" \
+            "            <TextView" \
+            "                android:layout_width=\"wrap_content\"" \
+            "                android:layout_height=\"wrap_content\"" \
+            "                android:text=\"ID de Vendedor\"" \
+            "                android:textSize=\"14sp\"" \
+            "                android:textColor=\"@color/gray\"" \
+            "                android:layout_marginBottom=\"8dp\" />" \
+            "" \
+            "            <!-- Campo de entrada con ícono -->" \
+            "            <LinearLayout" \
+            "                android:layout_width=\"match_parent\"" \
+            "                android:layout_height=\"wrap_content\"" \
+            "                android:orientation=\"horizontal\"" \
+            "                android:background=\"@drawable/edit_text_background\"" \
+            "                android:padding=\"4dp\"" \
+            "                android:layout_marginBottom=\"20dp\">" \
+            "" \
+            "                <ImageView" \
+            "                    android:layout_width=\"24dp\"" \
+            "                    android:layout_height=\"24dp\"" \
+            "                    android:src=\"@drawable/ic_vendor_id\"" \
+            "                    android:layout_gravity=\"center\"" \
+            "                    android:layout_marginStart=\"12dp\" />" \
+            "" \
+            "                <EditText" \
+            "                    android:id=\"@+id/et_vendor_id\"" \
+            "                    android:layout_width=\"0dp\"" \
+            "                    android:layout_height=\"wrap_content\"" \
+            "                    android:layout_weight=\"1\"" \
+            "                    android:hint=\"Ej: VEN-001\"" \
+            "                    android:inputType=\"text\"" \
+            "                    android:background=\"@android:color/transparent\"" \
+            "                    android:padding=\"12dp\"" \
+            "                    android:textSize=\"16dp\"" \
+            "                    android:textColor=\"@color/dark\" />" \
+            "            </LinearLayout>" \
+            "" \
+            "            <!-- Botón de inicio de sesión -->" \
+            "            <Button" \
+            "                android:id=\"@+id/btn_login\"" \
+            "                android:layout_width=\"match_parent\"" \
+            "                android:layout_height=\"56dp\"" \
+            "                android:text=\"Ingresar\"" \
+            "                android:textSize=\"16sp\"" \
+            "                android:textStyle=\"bold\"" \
+            "                android:backgroundTint=\"@color/primary\"" \
+            "                app:cornerRadius=\"12dp\" />" \
+            "" \
+            "            <!-- Texto de ayuda -->" \
+            "            <TextView" \
+            "                android:layout_width=\"wrap_content\"" \
+            "                android:layout_height=\"wrap_content\"" \
+            "                android:text=\"Contacta al administrador para obtener tu ID\"" \
+            "                android:textSize=\"12sp\"" \
+            "                android:textColor=\"@color/gray\"" \
+            "                android:layout_gravity=\"center\"" \
+            "                android:layout_marginTop=\"16dp\" />" \
+            "" \
+            "        </LinearLayout>" \
+            "    </androidx.cardview.widget.CardView>" \
+            "" \
+            "</LinearLayout>" \
+            > app/src/main/res/layout/activity_login.xml
           
           # ============================================
-          # SPINNER_BACKGROUND.XML
+          # LOGIN ACTIVITY - CON NUEVA LÓGICA
+          # ============================================
+          printf '%s\n' \
+            "package com.omniventas.app;" \
+            "" \
+            "import android.animation.ObjectAnimator;" \
+            "import android.os.Bundle;" \
+            "import android.view.View;" \
+            "import android.widget.Button;" \
+            "import android.widget.EditText;" \
+            "import android.widget.Toast;" \
+            "import androidx.appcompat.app.AppCompatActivity;" \
+            "import androidx.cardview.widget.CardView;" \
+            "" \
+            "public class LoginActivity extends AppCompatActivity {" \
+            "" \
+            "    private EditText etVendorId;" \
+            "    private Button btnLogin;" \
+            "    private CardView cardLogin;" \
+            "" \
+            "    @Override" \
+            "    protected void onCreate(Bundle savedInstanceState) {" \
+            "        super.onCreate(savedInstanceState);" \
+            "        setContentView(R.layout.activity_login);" \
+            "" \
+            "        etVendorId = findViewById(R.id.et_vendor_id);" \
+            "        btnLogin = findViewById(R.id.btn_login);" \
+            "        cardLogin = findViewById(R.id.card_login);" \
+            "" \
+            "        // Animación de entrada de la tarjeta" \
+            "        cardLogin.setTranslationY(100f);" \
+            "        cardLogin.setAlpha(0f);" \
+            "        cardLogin.animate()" \
+            "            .translationY(0f)" \
+            "            .alpha(1f)" \
+            "            .setDuration(600)" \
+            "            .start();" \
+            "" \
+            "        btnLogin.setOnClickListener(v -> performLogin());" \
+            "    }" \
+            "" \
+            "    private void performLogin() {" \
+            "        String vendorId = etVendorId.getText().toString().trim();" \
+            "" \
+            "        if (vendorId.isEmpty()) {" \
+            "            etVendorId.setError(\"Ingresa tu ID de vendedor\");" \
+            "            etVendorId.requestFocus();" \
+            "            shakeView(etVendorId);" \
+            "            return;" \
+            "        }" \
+            "" \
+            "        btnLogin.setEnabled(false);" \
+            "        btnLogin.setText(\"Verificando...\");" \
+            "" \
+            "        // Simular verificación del ID" \
+            "        btnLogin.postDelayed(() -> {" \
+            "            Toast.makeText(LoginActivity.this, \"✅ ¡Bienvenido Vendedor!\", Toast.LENGTH_LONG).show();" \
+            "            btnLogin.setEnabled(true);" \
+            "            btnLogin.setText(\"Ingresar\");" \
+            "        }, 1500);" \
+            "    }" \
+            "" \
+            "    private void shakeView(View view) {" \
+            "        ObjectAnimator shake = ObjectAnimator.ofFloat(view, \"translationX\", 0f, -20f, 20f, -20f, 20f, -10f, 10f, 0f);" \
+            "        shake.setDuration(500);" \
+            "        shake.start();" \
+            "    }" \
+            "}" \
+            > app/src/main/java/com/omniventas/app/LoginActivity.java
+          
+          # ============================================
+          # IC_VENDOR.XML - NUEVO ICONO DE VENDEDOR
           # ============================================
           printf '%s\n' \
             "<?xml version=\"1.0\" encoding=\"utf-8\"?>" \
-            "<shape xmlns:android=\"http://schemas.android.com/apk/res/android\">" \
-            "    <solid android:color=\"@color/white\" />" \
-            "    <stroke android:width=\"1dp\" android:color=\"@color/gray\" />" \
-            "    <corners android:radius=\"8dp\" />" \
-            "</shape>" \
-            > app/src/main/res/drawable/spinner_background.xml
+            "<vector xmlns:android=\"http://schemas.android.com/apk/res/android\"" \
+            "    android:width=\"64dp\"" \
+            "    android:height=\"64dp\"" \
+            "    android:viewportWidth=\"24\"" \
+            "    android:viewportHeight=\"24\">" \
+            "    <path" \
+            "        android:fillColor=\"@color/primary\"" \
+            "        android:pathData=\"M12,12c2.21,0 4,-1.79 4,-4s-1.79,-4 -4,-4 -4,1.79 -4,4 1.79,4 4,4zM12,14c-2.67,0 -8,1.34 -8,4v2h16v-2c0,-2.66 -5.33,-4 -8,-4z\"/>" \
+            "    <path" \
+            "        android:fillColor=\"@color/white\"" \
+            "        android:pathData=\"M12,12c-0.83,0 -1.5,-0.67 -1.5,-1.5S11.17,9 12,9s1.5,0.67 1.5,1.5S12.83,12 12,12zM12,10c-0.28,0 -0.5,0.22 -0.5,0.5S11.72,11 12,11s0.5,-0.22 0.5,-0.5S12.28,10 12,10z\"/>" \
+            "</vector>" \
+            > app/src/main/res/drawable/ic_vendor.xml
           
           # ============================================
-          # IC_LOGO.XML
+          # IC_VENDOR_ID.XML - NUEVO ICONO DE ID
           # ============================================
           printf '%s\n' \
             "<?xml version=\"1.0\" encoding=\"utf-8\"?>" \
@@ -305,15 +508,26 @@ jobs:
             "    android:viewportWidth=\"24\"" \
             "    android:viewportHeight=\"24\">" \
             "    <path" \
-            "        android:fillColor=\"@color/primary\"" \
-            "        android:pathData=\"M12,2C6.48,2 2,6.48 2,12s4.48,10 10,10 10,-4.48 10,-10S17.52,2 12,2zm-2,15l-5,-5 1.41,-1.41L10,14.17l7.59,-7.59L19,8l-9,9z\"/>" \
+            "        android:fillColor=\"@color/gray\"" \
+            "        android:pathData=\"M20,4H4c-1.1,0 -2,0.9 -2,2v12c0,1.1 0.9,2 2,2h16c1.1,0 2,-0.9 2,-2V6c0,-1.1 -0.9,-2 -2,-2zM4,6h16v2H4V6zM4,12v-2h4v2H4zM4,10V8h4v2H4zM12,12H8v-2h4v2zM12,10H8V8h4v2zM20,12h-6v-2h6v2zM20,10h-6V8h6v2zM4,16v-2h16v2H4z\"/>" \
             "</vector>" \
-            > app/src/main/res/drawable/ic_logo.xml
+            > app/src/main/res/drawable/ic_vendor_id.xml
           
           # ============================================
-          # ICONOS DEL MENÚ
+          # EDIT_TEXT_BACKGROUND.XML
           # ============================================
-          # ic_dashboard
+          printf '%s\n' \
+            "<?xml version=\"1.0\" encoding=\"utf-8\"?>" \
+            "<shape xmlns:android=\"http://schemas.android.com/apk/res/android\">" \
+            "    <solid android:color=\"@color/white\" />" \
+            "    <stroke android:width=\"1dp\" android:color=\"@color/gray_light\" />" \
+            "    <corners android:radius=\"12dp\" />" \
+            "</shape>" \
+            > app/src/main/res/drawable/edit_text_background.xml
+          
+          # ============================================
+          # ICONOS DEL MENÚ (Dashboard, Ventas, Inventario, Logout)
+          # ============================================
           printf '%s\n' \
             "<?xml version=\"1.0\" encoding=\"utf-8\"?>" \
             "<vector xmlns:android=\"http://schemas.android.com/apk/res/android\"" \
@@ -327,7 +541,6 @@ jobs:
             "</vector>" \
             > app/src/main/res/drawable/ic_dashboard.xml
           
-          # ic_ventas
           printf '%s\n' \
             "<?xml version=\"1.0\" encoding=\"utf-8\"?>" \
             "<vector xmlns:android=\"http://schemas.android.com/apk/res/android\"" \
@@ -341,7 +554,6 @@ jobs:
             "</vector>" \
             > app/src/main/res/drawable/ic_ventas.xml
           
-          # ic_inventario
           printf '%s\n' \
             "<?xml version=\"1.0\" encoding=\"utf-8\"?>" \
             "<vector xmlns:android=\"http://schemas.android.com/apk/res/android\"" \
@@ -355,7 +567,6 @@ jobs:
             "</vector>" \
             > app/src/main/res/drawable/ic_inventario.xml
           
-          # ic_logout
           printf '%s\n' \
             "<?xml version=\"1.0\" encoding=\"utf-8\"?>" \
             "<vector xmlns:android=\"http://schemas.android.com/apk/res/android\"" \
@@ -394,86 +605,6 @@ jobs:
             "        android:title=\"Salir\" />" \
             "</menu>" \
             > app/src/main/res/menu/bottom_nav_menu.xml
-          
-          # ============================================
-          # ACTIVITY_LOGIN.XML
-          # ============================================
-          printf '%s\n' \
-            "<?xml version=\"1.0\" encoding=\"utf-8\"?>" \
-            "<LinearLayout xmlns:android=\"http://schemas.android.com/apk/res/android\"" \
-            "    xmlns:app=\"http://schemas.android.com/apk/res-auto\"" \
-            "    android:layout_width=\"match_parent\"" \
-            "    android:layout_height=\"match_parent\"" \
-            "    android:orientation=\"vertical\"" \
-            "    android:padding=\"24dp\"" \
-            "    android:gravity=\"center\"" \
-            "    android:background=\"@color/white\">" \
-            "" \
-            "    <ImageView" \
-            "        android:layout_width=\"80dp\"" \
-            "        android:layout_height=\"80dp\"" \
-            "        android:src=\"@drawable/ic_logo\"" \
-            "        android:layout_marginBottom=\"16dp\" />" \
-            "" \
-            "    <TextView" \
-            "        android:layout_width=\"wrap_content\"" \
-            "        android:layout_height=\"wrap_content\"" \
-            "        android:text=\"OmniVentas\"" \
-            "        android:textSize=\"28sp\"" \
-            "        android:textStyle=\"bold\"" \
-            "        android:textColor=\"@color/primary\"" \
-            "        android:layout_marginBottom=\"8dp\" />" \
-            "" \
-            "    <TextView" \
-            "        android:layout_width=\"wrap_content\"" \
-            "        android:layout_height=\"wrap_content\"" \
-            "        android:text=\"Sistema de Gestión para Vendedores\"" \
-            "        android:textSize=\"14sp\"" \
-            "        android:textColor=\"@color/gray\"" \
-            "        android:layout_marginBottom=\"32dp\" />" \
-            "" \
-            "    <EditText" \
-            "        android:id=\"@+id/et_business_id\"" \
-            "        android:layout_width=\"match_parent\"" \
-            "        android:layout_height=\"wrap_content\"" \
-            "        android:hint=\"ID del Negocio\"" \
-            "        android:inputType=\"text\"" \
-            "        android:padding=\"14dp\"" \
-            "        android:background=\"@drawable/edit_text_background\"" \
-            "        android:layout_marginBottom=\"12dp\" />" \
-            "" \
-            "    <EditText" \
-            "        android:id=\"@+id/et_username\"" \
-            "        android:layout_width=\"match_parent\"" \
-            "        android:layout_height=\"wrap_content\"" \
-            "        android:hint=\"Usuario\"" \
-            "        android:inputType=\"text\"" \
-            "        android:padding=\"14dp\"" \
-            "        android:background=\"@drawable/edit_text_background\"" \
-            "        android:layout_marginBottom=\"12dp\" />" \
-            "" \
-            "    <EditText" \
-            "        android:id=\"@+id/et_password\"" \
-            "        android:layout_width=\"match_parent\"" \
-            "        android:layout_height=\"wrap_content\"" \
-            "        android:hint=\"Contraseña\"" \
-            "        android:inputType=\"textPassword\"" \
-            "        android:padding=\"14dp\"" \
-            "        android:background=\"@drawable/edit_text_background\"" \
-            "        android:layout_marginBottom=\"24dp\" />" \
-            "" \
-            "    <Button" \
-            "        android:id=\"@+id/btn_login\"" \
-            "        android:layout_width=\"match_parent\"" \
-            "        android:layout_height=\"wrap_content\"" \
-            "        android:text=\"Iniciar Sesión\"" \
-            "        android:textSize=\"16sp\"" \
-            "        android:padding=\"14dp\"" \
-            "        android:backgroundTint=\"@color/primary\"" \
-            "        app:cornerRadius=\"12dp\" />" \
-            "" \
-            "</LinearLayout>" \
-            > app/src/main/res/layout/activity_login.xml
           
           # ============================================
           # ACTIVITY_MAIN.XML
@@ -546,7 +677,6 @@ jobs:
             "                    android:orientation=\"horizontal\"" \
             "                    android:weightSum=\"2\"" \
             "                    android:layout_marginBottom=\"12dp\">" \
-            "" \
             "                    <androidx.cardview.widget.CardView" \
             "                        android:layout_width=\"0dp\"" \
             "                        android:layout_height=\"wrap_content\"" \
@@ -554,20 +684,17 @@ jobs:
             "                        android:layout_marginEnd=\"6dp\"" \
             "                        app:cardCornerRadius=\"12dp\"" \
             "                        app:cardElevation=\"4dp\">" \
-            "" \
             "                        <LinearLayout" \
             "                            android:layout_width=\"match_parent\"" \
             "                            android:layout_height=\"wrap_content\"" \
             "                            android:orientation=\"vertical\"" \
             "                            android:padding=\"16dp\">" \
-            "" \
             "                            <TextView" \
             "                                android:layout_width=\"wrap_content\"" \
             "                                android:layout_height=\"wrap_content\"" \
             "                                android:text=\"Ventas Hoy\"" \
             "                                android:textSize=\"12sp\"" \
             "                                android:textColor=\"@color/gray\" />" \
-            "" \
             "                            <TextView" \
             "                                android:id=\"@+id/tv_ventas_hoy\"" \
             "                                android:layout_width=\"wrap_content\"" \
@@ -578,7 +705,6 @@ jobs:
             "                                android:textColor=\"@color/primary\" />" \
             "                        </LinearLayout>" \
             "                    </androidx.cardview.widget.CardView>" \
-            "" \
             "                    <androidx.cardview.widget.CardView" \
             "                        android:layout_width=\"0dp\"" \
             "                        android:layout_height=\"wrap_content\"" \
@@ -586,20 +712,17 @@ jobs:
             "                        android:layout_marginStart=\"6dp\"" \
             "                        app:cardCornerRadius=\"12dp\"" \
             "                        app:cardElevation=\"4dp\">" \
-            "" \
             "                        <LinearLayout" \
             "                            android:layout_width=\"match_parent\"" \
             "                            android:layout_height=\"wrap_content\"" \
             "                            android:orientation=\"vertical\"" \
             "                            android:padding=\"16dp\">" \
-            "" \
             "                            <TextView" \
             "                                android:layout_width=\"wrap_content\"" \
             "                                android:layout_height=\"wrap_content\"" \
             "                                android:text=\"Ingresos Hoy\"" \
             "                                android:textSize=\"12sp\"" \
             "                                android:textColor=\"@color/gray\" />" \
-            "" \
             "                            <TextView" \
             "                                android:id=\"@+id/tv_ingresos_hoy\"" \
             "                                android:layout_width=\"wrap_content\"" \
@@ -611,14 +734,12 @@ jobs:
             "                        </LinearLayout>" \
             "                    </androidx.cardview.widget.CardView>" \
             "                </LinearLayout>" \
-            "" \
             "                <LinearLayout" \
             "                    android:layout_width=\"match_parent\"" \
             "                    android:layout_height=\"wrap_content\"" \
             "                    android:orientation=\"horizontal\"" \
             "                    android:weightSum=\"2\"" \
             "                    android:layout_marginBottom=\"12dp\">" \
-            "" \
             "                    <androidx.cardview.widget.CardView" \
             "                        android:layout_width=\"0dp\"" \
             "                        android:layout_height=\"wrap_content\"" \
@@ -626,20 +747,17 @@ jobs:
             "                        android:layout_marginEnd=\"6dp\"" \
             "                        app:cardCornerRadius=\"12dp\"" \
             "                        app:cardElevation=\"4dp\">" \
-            "" \
             "                        <LinearLayout" \
             "                            android:layout_width=\"match_parent\"" \
             "                            android:layout_height=\"wrap_content\"" \
             "                            android:orientation=\"vertical\"" \
             "                            android:padding=\"16dp\">" \
-            "" \
             "                            <TextView" \
             "                                android:layout_width=\"wrap_content\"" \
             "                                android:layout_height=\"wrap_content\"" \
             "                                android:text=\"Ventas Mes\"" \
             "                                android:textSize=\"12sp\"" \
             "                                android:textColor=\"@color/gray\" />" \
-            "" \
             "                            <TextView" \
             "                                android:id=\"@+id/tv_ventas_mes\"" \
             "                                android:layout_width=\"wrap_content\"" \
@@ -650,7 +768,6 @@ jobs:
             "                                android:textColor=\"@color/primary\" />" \
             "                        </LinearLayout>" \
             "                    </androidx.cardview.widget.CardView>" \
-            "" \
             "                    <androidx.cardview.widget.CardView" \
             "                        android:layout_width=\"0dp\"" \
             "                        android:layout_height=\"wrap_content\"" \
@@ -658,20 +775,17 @@ jobs:
             "                        android:layout_marginStart=\"6dp\"" \
             "                        app:cardCornerRadius=\"12dp\"" \
             "                        app:cardElevation=\"4dp\">" \
-            "" \
             "                        <LinearLayout" \
             "                            android:layout_width=\"match_parent\"" \
             "                            android:layout_height=\"wrap_content\"" \
             "                            android:orientation=\"vertical\"" \
             "                            android:padding=\"16dp\">" \
-            "" \
             "                            <TextView" \
             "                                android:layout_width=\"wrap_content\"" \
             "                                android:layout_height=\"wrap_content\"" \
             "                                android:text=\"Ingresos Mes\"" \
             "                                android:textSize=\"12sp\"" \
             "                                android:textColor=\"@color/gray\" />" \
-            "" \
             "                            <TextView" \
             "                                android:id=\"@+id/tv_ingresos_mes\"" \
             "                                android:layout_width=\"wrap_content\"" \
@@ -683,26 +797,22 @@ jobs:
             "                        </LinearLayout>" \
             "                    </androidx.cardview.widget.CardView>" \
             "                </LinearLayout>" \
-            "" \
             "                <androidx.cardview.widget.CardView" \
             "                    android:layout_width=\"match_parent\"" \
             "                    android:layout_height=\"wrap_content\"" \
             "                    android:layout_marginBottom=\"16dp\"" \
             "                    app:cardCornerRadius=\"12dp\"" \
             "                    app:cardElevation=\"4dp\">" \
-            "" \
             "                    <LinearLayout" \
             "                        android:layout_width=\"match_parent\"" \
             "                        android:layout_height=\"wrap_content\"" \
             "                        android:orientation=\"horizontal\"" \
             "                        android:padding=\"16dp\">" \
-            "" \
             "                        <TextView" \
             "                            android:layout_width=\"0dp\"" \
             "                            android:layout_height=\"wrap_content\"" \
             "                            android:layout_weight=\"1\"" \
             "                            android:text=\"⚠️ Productos con stock bajo:\" />" \
-            "" \
             "                        <TextView" \
             "                            android:id=\"@+id/tv_bajo_stock\"" \
             "                            android:layout_width=\"wrap_content\"" \
@@ -712,7 +822,6 @@ jobs:
             "                            android:textColor=\"@color/warning\" />" \
             "                    </LinearLayout>" \
             "                </androidx.cardview.widget.CardView>" \
-            "" \
             "                <TextView" \
             "                    android:layout_width=\"match_parent\"" \
             "                    android:layout_height=\"wrap_content\"" \
@@ -721,13 +830,11 @@ jobs:
             "                    android:textStyle=\"bold\"" \
             "                    android:textColor=\"@color/dark\"" \
             "                    android:layout_marginBottom=\"8dp\" />" \
-            "" \
             "                <androidx.recyclerview.widget.RecyclerView" \
             "                    android:id=\"@+id/rv_ventas_recientes\"" \
             "                    android:layout_width=\"match_parent\"" \
             "                    android:layout_height=\"wrap_content\"" \
             "                    android:nestedScrollingEnabled=\"false\" />" \
-            "" \
             "            </LinearLayout>" \
             "        </ScrollView>" \
             "    </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>" \
@@ -745,17 +852,14 @@ jobs:
             "    android:orientation=\"vertical\"" \
             "    android:padding=\"16dp\"" \
             "    android:background=\"@color/light_gray\">" \
-            "" \
             "    <androidx.swiperefreshlayout.widget.SwipeRefreshLayout" \
             "        android:id=\"@+id/swipe_refresh\"" \
             "        android:layout_width=\"match_parent\"" \
             "        android:layout_height=\"match_parent\">" \
-            "" \
             "        <LinearLayout" \
             "            android:layout_width=\"match_parent\"" \
             "            android:layout_height=\"wrap_content\"" \
             "            android:orientation=\"vertical\">" \
-            "" \
             "            <TextView" \
             "                android:layout_width=\"match_parent\"" \
             "                android:layout_height=\"wrap_content\"" \
@@ -764,13 +868,11 @@ jobs:
             "                android:textStyle=\"bold\"" \
             "                android:textColor=\"@color/dark\"" \
             "                android:layout_marginBottom=\"8dp\" />" \
-            "" \
             "            <LinearLayout" \
             "                android:layout_width=\"match_parent\"" \
             "                android:layout_height=\"wrap_content\"" \
             "                android:orientation=\"horizontal\"" \
             "                android:layout_marginBottom=\"12dp\">" \
-            "" \
             "                <TextView" \
             "                    android:id=\"@+id/tv_total_productos\"" \
             "                    android:layout_width=\"0dp\"" \
@@ -779,7 +881,6 @@ jobs:
             "                    android:text=\"Total: 0 productos\"" \
             "                    android:textSize=\"14sp\"" \
             "                    android:textColor=\"@color/gray\" />" \
-            "" \
             "                <TextView" \
             "                    android:id=\"@+id/tv_bajo_stock\"" \
             "                    android:layout_width=\"wrap_content\"" \
@@ -788,12 +889,10 @@ jobs:
             "                    android:textSize=\"14sp\"" \
             "                    android:textColor=\"@color/warning\" />" \
             "            </LinearLayout>" \
-            "" \
             "            <androidx.recyclerview.widget.RecyclerView" \
             "                android:id=\"@+id/rv_inventario\"" \
             "                android:layout_width=\"match_parent\"" \
             "                android:layout_height=\"match_parent\" />" \
-            "" \
             "        </LinearLayout>" \
             "    </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>" \
             "</LinearLayout>" \
@@ -811,21 +910,17 @@ jobs:
             "    android:orientation=\"vertical\"" \
             "    android:padding=\"16dp\"" \
             "    android:background=\"@color/light_gray\">" \
-            "" \
             "    <androidx.swiperefreshlayout.widget.SwipeRefreshLayout" \
             "        android:id=\"@+id/swipe_refresh\"" \
             "        android:layout_width=\"match_parent\"" \
             "        android:layout_height=\"match_parent\">" \
-            "" \
             "        <ScrollView" \
             "            android:layout_width=\"match_parent\"" \
             "            android:layout_height=\"match_parent\">" \
-            "" \
             "            <LinearLayout" \
             "                android:layout_width=\"match_parent\"" \
             "                android:layout_height=\"wrap_content\"" \
             "                android:orientation=\"vertical\">" \
-            "" \
             "                <TextView" \
             "                    android:layout_width=\"match_parent\"" \
             "                    android:layout_height=\"wrap_content\"" \
@@ -834,20 +929,17 @@ jobs:
             "                    android:textStyle=\"bold\"" \
             "                    android:textColor=\"@color/dark\"" \
             "                    android:layout_marginBottom=\"16dp\" />" \
-            "" \
             "                <androidx.cardview.widget.CardView" \
             "                    android:layout_width=\"match_parent\"" \
             "                    android:layout_height=\"wrap_content\"" \
             "                    app:cardCornerRadius=\"12dp\"" \
             "                    app:cardElevation=\"4dp\"" \
             "                    android:layout_marginBottom=\"16dp\">" \
-            "" \
             "                    <LinearLayout" \
             "                        android:layout_width=\"match_parent\"" \
             "                        android:layout_height=\"wrap_content\"" \
             "                        android:orientation=\"vertical\"" \
             "                        android:padding=\"16dp\">" \
-            "" \
             "                        <TextView" \
             "                            android:layout_width=\"wrap_content\"" \
             "                            android:layout_height=\"wrap_content\"" \
@@ -855,7 +947,6 @@ jobs:
             "                            android:textSize=\"14sp\"" \
             "                            android:textColor=\"@color/gray\"" \
             "                            android:layout_marginBottom=\"4dp\" />" \
-            "" \
             "                        <Spinner" \
             "                            android:id=\"@+id/spinner_productos\"" \
             "                            android:layout_width=\"match_parent\"" \
@@ -863,7 +954,6 @@ jobs:
             "                            android:padding=\"12dp\"" \
             "                            android:background=\"@drawable/spinner_background\"" \
             "                            android:layout_marginBottom=\"12dp\" />" \
-            "" \
             "                        <TextView" \
             "                            android:layout_width=\"wrap_content\"" \
             "                            android:layout_height=\"wrap_content\"" \
@@ -871,7 +961,6 @@ jobs:
             "                            android:textSize=\"14sp\"" \
             "                            android:textColor=\"@color/gray\"" \
             "                            android:layout_marginBottom=\"4dp\" />" \
-            "" \
             "                        <EditText" \
             "                            android:id=\"@+id/et_cantidad\"" \
             "                            android:layout_width=\"match_parent\"" \
@@ -881,7 +970,6 @@ jobs:
             "                            android:padding=\"12dp\"" \
             "                            android:background=\"@drawable/edit_text_background\"" \
             "                            android:layout_marginBottom=\"12dp\" />" \
-            "" \
             "                        <TextView" \
             "                            android:layout_width=\"wrap_content\"" \
             "                            android:layout_height=\"wrap_content\"" \
@@ -889,7 +977,6 @@ jobs:
             "                            android:textSize=\"14sp\"" \
             "                            android:textColor=\"@color/gray\"" \
             "                            android:layout_marginBottom=\"4dp\" />" \
-            "" \
             "                        <TextView" \
             "                            android:id=\"@+id/tv_precio\"" \
             "                            android:layout_width=\"match_parent\"" \
@@ -901,7 +988,6 @@ jobs:
             "                            android:padding=\"12dp\"" \
             "                            android:background=\"@drawable/edit_text_background\"" \
             "                            android:layout_marginBottom=\"12dp\" />" \
-            "" \
             "                        <TextView" \
             "                            android:id=\"@+id/tv_total\"" \
             "                            android:layout_width=\"match_parent\"" \
@@ -914,7 +1000,6 @@ jobs:
             "                            android:padding=\"12dp\"" \
             "                            android:background=\"@drawable/edit_text_background\"" \
             "                            android:layout_marginBottom=\"16dp\" />" \
-            "" \
             "                        <Button" \
             "                            android:id=\"@+id/btn_registrar_venta\"" \
             "                            android:layout_width=\"match_parent\"" \
@@ -924,10 +1009,8 @@ jobs:
             "                            android:padding=\"14dp\"" \
             "                            android:backgroundTint=\"@color/primary\"" \
             "                            app:cornerRadius=\"12dp\" />" \
-            "" \
             "                    </LinearLayout>" \
             "                </androidx.cardview.widget.CardView>" \
-            "" \
             "            </LinearLayout>" \
             "        </ScrollView>" \
             "    </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>" \
@@ -946,13 +1029,11 @@ jobs:
             "    android:layout_marginBottom=\"8dp\"" \
             "    app:cardCornerRadius=\"8dp\"" \
             "    app:cardElevation=\"2dp\">" \
-            "" \
             "    <LinearLayout" \
             "        android:layout_width=\"match_parent\"" \
             "        android:layout_height=\"wrap_content\"" \
             "        android:orientation=\"vertical\"" \
             "        android:padding=\"12dp\">" \
-            "" \
             "        <TextView" \
             "            android:id=\"@+id/tv_nombre\"" \
             "            android:layout_width=\"match_parent\"" \
@@ -961,13 +1042,11 @@ jobs:
             "            android:textSize=\"16sp\"" \
             "            android:textStyle=\"bold\"" \
             "            android:textColor=\"@color/dark\" />" \
-            "" \
             "        <LinearLayout" \
             "            android:layout_width=\"match_parent\"" \
             "            android:layout_height=\"wrap_content\"" \
             "            android:orientation=\"horizontal\"" \
             "            android:layout_marginTop=\"4dp\">" \
-            "" \
             "            <TextView" \
             "                android:id=\"@+id/tv_seccion\"" \
             "                android:layout_width=\"0dp\"" \
@@ -976,7 +1055,6 @@ jobs:
             "                android:text=\"Sección\"" \
             "                android:textSize=\"14sp\"" \
             "                android:textColor=\"@color/gray\" />" \
-            "" \
             "            <TextView" \
             "                android:id=\"@+id/tv_precio\"" \
             "                android:layout_width=\"wrap_content\"" \
@@ -986,7 +1064,6 @@ jobs:
             "                android:textColor=\"@color/primary\"" \
             "                android:textStyle=\"bold\" />" \
             "        </LinearLayout>" \
-            "" \
             "        <TextView" \
             "            android:id=\"@+id/tv_stock\"" \
             "            android:layout_width=\"wrap_content\"" \
@@ -994,7 +1071,6 @@ jobs:
             "            android:text=\"Stock: 0\"" \
             "            android:textSize=\"14sp\"" \
             "            android:layout_marginTop=\"4dp\" />" \
-            "" \
             "    </LinearLayout>" \
             "</androidx.cardview.widget.CardView>" \
             > app/src/main/res/layout/item_producto.xml
@@ -1011,19 +1087,16 @@ jobs:
             "    android:layout_marginBottom=\"4dp\"" \
             "    app:cardCornerRadius=\"8dp\"" \
             "    app:cardElevation=\"1dp\">" \
-            "" \
             "    <LinearLayout" \
             "        android:layout_width=\"match_parent\"" \
             "        android:layout_height=\"wrap_content\"" \
             "        android:orientation=\"horizontal\"" \
             "        android:padding=\"12dp\">" \
-            "" \
             "        <LinearLayout" \
             "            android:layout_width=\"0dp\"" \
             "            android:layout_height=\"wrap_content\"" \
             "            android:layout_weight=\"1\"" \
             "            android:orientation=\"vertical\">" \
-            "" \
             "            <TextView" \
             "                android:id=\"@+id/tv_producto\"" \
             "                android:layout_width=\"match_parent\"" \
@@ -1032,7 +1105,6 @@ jobs:
             "                android:textSize=\"14sp\"" \
             "                android:textStyle=\"bold\"" \
             "                android:textColor=\"@color/dark\" />" \
-            "" \
             "            <TextView" \
             "                android:id=\"@+id/tv_fecha\"" \
             "                android:layout_width=\"match_parent\"" \
@@ -1040,9 +1112,7 @@ jobs:
             "                android:text=\"Fecha\"" \
             "                android:textSize=\"12sp\"" \
             "                android:textColor=\"@color/gray\" />" \
-            "" \
             "        </LinearLayout>" \
-            "" \
             "        <TextView" \
             "            android:id=\"@+id/tv_cantidad\"" \
             "            android:layout_width=\"wrap_content\"" \
@@ -1051,7 +1121,6 @@ jobs:
             "            android:textSize=\"14sp\"" \
             "            android:textColor=\"@color/gray\"" \
             "            android:layout_marginEnd=\"12dp\" />" \
-            "" \
             "        <TextView" \
             "            android:id=\"@+id/tv_total\"" \
             "            android:layout_width=\"wrap_content\"" \
@@ -1060,13 +1129,12 @@ jobs:
             "            android:textSize=\"14sp\"" \
             "            android:textStyle=\"bold\"" \
             "            android:textColor=\"@color/success\" />" \
-            "" \
             "    </LinearLayout>" \
             "</androidx.cardview.widget.CardView>" \
             > app/src/main/res/layout/item_venta_reciente.xml
           
           # ============================================
-          # MAIN ACTIVITY (con soporte para fragments)
+          # MAIN ACTIVITY
           # ============================================
           printf '%s\n' \
             "package com.omniventas.app;" \
@@ -1150,7 +1218,6 @@ jobs:
             "import android.view.View;" \
             "import android.view.ViewGroup;" \
             "import android.widget.TextView;" \
-            "import android.widget.Toast;" \
             "import androidx.annotation.NonNull;" \
             "import androidx.annotation.Nullable;" \
             "import androidx.fragment.app.Fragment;" \
@@ -1180,6 +1247,7 @@ jobs:
             "" \
             "        rvVentasRecientes.setLayoutManager(new LinearLayoutManager(getContext()));" \
             "" \
+            "        // Datos de ejemplo" \
             "        tvVentasHoy.setText(\"5\");" \
             "        tvIngresosHoy.setText(\"$125.50\");" \
             "        tvVentasMes.setText(\"42\");" \
@@ -1192,7 +1260,7 @@ jobs:
             > app/src/main/java/com/omniventas/app/ui/DashboardFragment.java
           
           # ============================================
-          # VENTAS FRAGMENT (simplificado)
+          # VENTAS FRAGMENT
           # ============================================
           printf '%s\n' \
             "package com.omniventas.app.ui;" \
@@ -1304,8 +1372,6 @@ jobs:
             "import androidx.recyclerview.widget.RecyclerView;" \
             "import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;" \
             "import com.omniventas.app.R;" \
-            "import java.util.ArrayList;" \
-            "import java.util.List;" \
             "" \
             "public class InventarioFragment extends Fragment {" \
             "" \
@@ -1333,42 +1399,20 @@ jobs:
             > app/src/main/java/com/omniventas/app/ui/InventarioFragment.java
           
           # ============================================
-          # LOGIN ACTIVITY
+          # SPINNER_BACKGROUND.XML
           # ============================================
           printf '%s\n' \
-            "package com.omniventas.app;" \
-            "" \
-            "import android.os.Bundle;" \
-            "import android.widget.Button;" \
-            "import android.widget.EditText;" \
-            "import android.widget.Toast;" \
-            "import androidx.appcompat.app.AppCompatActivity;" \
-            "" \
-            "public class LoginActivity extends AppCompatActivity {" \
-            "    private EditText etBusinessId, etUsername, etPassword;" \
-            "    private Button btnLogin;" \
-            "" \
-            "    @Override" \
-            "    protected void onCreate(Bundle savedInstanceState) {" \
-            "        super.onCreate(savedInstanceState);" \
-            "        setContentView(R.layout.activity_login);" \
-            "" \
-            "        etBusinessId = findViewById(R.id.et_business_id);" \
-            "        etUsername = findViewById(R.id.et_username);" \
-            "        etPassword = findViewById(R.id.et_password);" \
-            "        btnLogin = findViewById(R.id.btn_login);" \
-            "" \
-            "        btnLogin.setOnClickListener(v -> {" \
-            "            Toast.makeText(LoginActivity.this, \"Login funcionando!\", Toast.LENGTH_SHORT).show();" \
-            "        });" \
-            "    }" \
-            "}" \
-            > app/src/main/java/com/omniventas/app/LoginActivity.java
+            "<?xml version=\"1.0\" encoding=\"utf-8\"?>" \
+            "<shape xmlns:android=\"http://schemas.android.com/apk/res/android\">" \
+            "    <solid android:color=\"@color/white\" />" \
+            "    <stroke android:width=\"1dp\" android:color=\"@color/gray_light\" />" \
+            "    <corners android:radius=\"12dp\" />" \
+            "</shape>" \
+            > app/src/main/res/drawable/spinner_background.xml
           
           # ============================================
           # ICONOS DE LAUNCHER
           # ============================================
-          # Crear icono vectorial
           printf '%s\n' \
             '<?xml version="1.0" encoding="utf-8"?>' \
             '<vector xmlns:android="http://schemas.android.com/apk/res/android"' \
@@ -1403,11 +1447,37 @@ jobs:
             echo -n "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==" | base64 -d > app/src/main/res/$dir/ic_launcher_round.png
           done
           
-          echo "✅ Proyecto Android completo creado con todos los recursos!"
+          echo "✅ Proyecto Android completo creado con nuevo diseño de login!"
           echo "📁 Archivos de recursos creados:"
           find app/src/main/res -type f -name "*.xml" | wc -l
           echo " archivos XML de recursos"
 
+      # ============================================
+      # SUBIR LOS ARCHIVOS FUENTE AL REPOSITORIO
+      # ============================================
+      - name: Push source files to repository
+        run: |
+          echo "📤 Subiendo archivos fuente al repositorio..."
+          
+          # Configurar git
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          
+          # Agregar los archivos de android-app
+          git add android-app/
+          
+          # Verificar si hay cambios
+          if git diff --staged --quiet; then
+            echo "✅ No hay cambios nuevos en android-app/"
+          else
+            git commit -m "🤖 Update Android app source files [skip ci]"
+            git push
+            echo "✅ Archivos subidos al repositorio"
+          fi
+
+      # ============================================
+      # COMPILAR APKS
+      # ============================================
       - name: Build Debug APK
         run: |
           cd android-app
@@ -1431,7 +1501,7 @@ jobs:
           path: android-app/app/build/outputs/apk/release/*.apk
 
       # ============================================
-      # FIRMAR APK (si tienes secrets configurados)
+      # FIRMAR APK (opcional)
       # ============================================
       - name: Check signing secrets
         id: check_secrets
@@ -1470,3 +1540,4 @@ jobs:
         run: |
           echo "✅ APK compilados exitosamente!"
           echo "📱 Descarga los APKs desde los artifacts"
+          echo "📂 Los archivos fuente están en tu repositorio en android-app/"
