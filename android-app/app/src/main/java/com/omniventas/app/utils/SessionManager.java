@@ -13,6 +13,8 @@ public class SessionManager {
     private static final String KEY_USERNAME = "username";
     private static final String KEY_BUSINESS_NAME = "business_name";
     private static final String KEY_IS_LOGGED_IN = "is_logged_in";
+    private static final String KEY_USER_ID = "user_id";
+    private static final String KEY_ROLE = "role";
 
     private SharedPreferences sharedPreferences;
 
@@ -27,7 +29,6 @@ public class SessionManager {
                 EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
             );
         } catch (GeneralSecurityException | IOException e) {
-            // Fallback a SharedPreferences normal si hay error con encriptación
             sharedPreferences = context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE);
         }
     }
@@ -37,6 +38,17 @@ public class SessionManager {
         editor.putString(KEY_TOKEN, token);
         editor.putString(KEY_USERNAME, username);
         editor.putString(KEY_BUSINESS_NAME, businessName);
+        editor.putBoolean(KEY_IS_LOGGED_IN, true);
+        editor.apply();
+    }
+
+    public void saveFullUser(String token, String username, String businessName, int userId, String role) {
+        SharedPreferences.Editor editor = sharedPreferences.edit();
+        editor.putString(KEY_TOKEN, token);
+        editor.putString(KEY_USERNAME, username);
+        editor.putString(KEY_BUSINESS_NAME, businessName);
+        editor.putInt(KEY_USER_ID, userId);
+        editor.putString(KEY_ROLE, role);
         editor.putBoolean(KEY_IS_LOGGED_IN, true);
         editor.apply();
     }
@@ -51,6 +63,14 @@ public class SessionManager {
 
     public String getBusinessName() {
         return sharedPreferences.getString(KEY_BUSINESS_NAME, null);
+    }
+
+    public int getUserId() {
+        return sharedPreferences.getInt(KEY_USER_ID, -1);
+    }
+
+    public String getRole() {
+        return sharedPreferences.getString(KEY_ROLE, "vendedor");
     }
 
     public boolean isLoggedIn() {
