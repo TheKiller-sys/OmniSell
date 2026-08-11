@@ -1,100 +1,107 @@
 package com.omniventas.app;
 
-import android.content.Intent;
+import android.animation.Animator;
+import android.animation.AnimatorListenerAdapter;
+import android.animation.ObjectAnimator;
 import android.os.Bundle;
 import android.view.View;
+import android.view.animation.AccelerateDecelerateInterpolator;
 import android.widget.Button;
 import android.widget.EditText;
-import android.widget.ProgressBar;
 import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
-import com.omniventas.app.api.RetrofitClient;
-import com.omniventas.app.models.LoginRequest;
-import com.omniventas.app.models.LoginResponse;
-import com.omniventas.app.utils.SessionManager;
-import retrofit2.Call;
-import retrofit2.Callback;
-import retrofit2.Response;
+import androidx.cardview.widget.CardView;
 
 public class LoginActivity extends AppCompatActivity {
 
-    private EditText etBusinessId, etUsername, etPassword;
+    private EditText etVendorId;
     private Button btnLogin;
-    private ProgressBar progressBar;
-    private SessionManager sessionManager;
+    private CardView cardLogin;
+    private View logo, title, subtitle;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_login);
 
-        sessionManager = new SessionManager(this);
-        
-        // Si ya está logueado, ir a MainActivity
-        if (sessionManager.isLoggedIn()) {
-            startActivity(new Intent(this, MainActivity.class));
-            finish();
-            return;
-        }
-
-        etBusinessId = findViewById(R.id.et_business_id);
-        etUsername = findViewById(R.id.et_username);
-        etPassword = findViewById(R.id.et_password);
+        // Inicializar vistas
+        etVendorId = findViewById(R.id.et_vendor_id);
         btnLogin = findViewById(R.id.btn_login);
-        progressBar = findViewById(R.id.progress_bar);
+        cardLogin = findViewById(R.id.card_login);
+        logo = findViewById(R.id.iv_logo);
+        title = findViewById(R.id.tv_title);
+        subtitle = findViewById(R.id.tv_subtitle);
 
-        btnLogin.setOnClickListener(v -> realizarLogin());
+        // Aplicar animaciones de entrada
+        animateEntrance();
+
+        // Configurar botón de login
+        btnLogin.setOnClickListener(v -> performLogin());
     }
 
-    private void realizarLogin() {
-        String businessId = etBusinessId.getText().toString().trim();
-        String username = etUsername.getText().toString().trim();
-        String password = etPassword.getText().toString().trim();
+    private void animateEntrance() {
+        // Animación del logo
+        ObjectAnimator fadeLogo = ObjectAnimator.ofFloat(logo, "alpha", 0f, 1f);
+        fadeLogo.setDuration(600);
+        fadeLogo.setStartDelay(200);
+        fadeLogo.start();
 
-        if (businessId.isEmpty() || username.isEmpty() || password.isEmpty()) {
-            Toast.makeText(this, "Todos los campos son requeridos", Toast.LENGTH_SHORT).show();
+        // Animación del título
+        ObjectAnimator fadeTitle = ObjectAnimator.ofFloat(title, "alpha", 0f, 1f);
+        fadeTitle.setDuration(600);
+        fadeTitle.setStartDelay(400);
+        fadeTitle.start();
+
+        // Animación del subtítulo
+        ObjectAnimator fadeSubtitle = ObjectAnimator.ofFloat(subtitle, "alpha", 0f, 1f);
+        fadeSubtitle.setDuration(600);
+        fadeSubtitle.setStartDelay(600);
+        fadeSubtitle.start();
+
+        // Animación de la tarjeta (deslizamiento hacia arriba)
+        cardLogin.setTranslationY(100f);
+        cardLogin.setAlpha(0f);
+        cardLogin.animate()
+            .translationY(0f)
+            .alpha(1f)
+            .setDuration(500)
+            .setStartDelay(800)
+            .setInterpolator(new AccelerateDecelerateInterpolator())
+            .start();
+    }
+
+    private void performLogin() {
+        String vendorId = etVendorId.getText().toString().trim();
+
+        if (vendorId.isEmpty()) {
+            // Error shake animation
+            etVendorId.setError("Ingresa tu ID de vendedor");
+            etVendorId.requestFocus();
+            shakeView(etVendorId);
             return;
         }
 
+        // Mostrar estado de carga
         btnLogin.setEnabled(false);
-        progressBar.setVisibility(View.VISIBLE);
+        btnLogin.setText("Verificando...");
 
-        LoginRequest request = new LoginRequest(username, password, businessId);
-        Call<LoginResponse> call = RetrofitClient.getInstance().getApiService().login(request);
+        // Simular verificación (aquí iría la llamada a la API)
+        btnLogin.postDelayed(() -> {
+            // Por ahora solo mostramos éxito
+            Toast.makeText(LoginActivity.this, "✅ ¡Bienvenido Vendedor!", Toast.LENGTH_LONG).show();
+            
+            // Ir a MainActivity
+            // startActivity(new Intent(LoginActivity.this, MainActivity.class));
+            // finish();
+            
+            btnLogin.setEnabled(true);
+            btnLogin.setText("Ingresar");
+        }, 1500);
+    }
 
-        call.enqueue(new Callback<LoginResponse>() {
-            @Override
-            public void onResponse(Call<LoginResponse> call, Response<LoginResponse> response) {
-                progressBar.setVisibility(View.GONE);
-                btnLogin.setEnabled(true);
-
-                if (response.isSuccessful() && response.body() != null) {
-                    LoginResponse loginResponse = response.body();
-                    if (loginResponse.isSuccess()) {
-                        // Guardar token y datos del usuario
-                        sessionManager.saveUser(
-                            loginResponse.getToken(),
-                            loginResponse.getUser().getUsername(),
-                            loginResponse.getUser().getBusinessName()
-                        );
-                        
-                        Toast.makeText(LoginActivity.this, "✅ Login exitoso", Toast.LENGTH_SHORT).show();
-                        startActivity(new Intent(LoginActivity.this, MainActivity.class));
-                        finish();
-                    } else {
-                        Toast.makeText(LoginActivity.this, "❌ " + loginResponse.getMessage(), Toast.LENGTH_SHORT).show();
-                    }
-                } else {
-                    Toast.makeText(LoginActivity.this, "❌ Error de conexión", Toast.LENGTH_SHORT).show();
-                }
-            }
-
-            @Override
-            public void onFailure(Call<LoginResponse> call, Throwable t) {
-                progressBar.setVisibility(View.GONE);
-                btnLogin.setEnabled(true);
-                Toast.makeText(LoginActivity.this, "❌ Error: " + t.getMessage(), Toast.LENGTH_SHORT).show();
-            }
-        });
+    private void shakeView(View view) {
+        ObjectAnimator shake = ObjectAnimator.ofFloat(view, "translationX", 0f, -20f, 20f, -20f, 20f, -10f, 10f, 0f);
+        shake.setDuration(500);
+        shake.start();
     }
 }
