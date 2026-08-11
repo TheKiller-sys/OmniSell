@@ -62,6 +62,18 @@ def health_check():
         'environment': 'production' if 'RENDER' in os.environ else 'development'
     }), 200
 
+# ==================== DESCARGA DE APK ====================
+
+@app.route('/download/app-release.apk')
+def download_apk():
+    """Servir la APK para descargar"""
+    from flask import send_from_directory
+    try:
+        return send_from_directory('static', 'app-release.apk', as_attachment=True)
+    except Exception as e:
+        logger.error(f"Error sirviendo APK: {e}")
+        return jsonify({'success': False, 'message': 'APK no encontrada'}), 404
+
 # ==================== API PARA LA APP ANDROID ====================
 
 @app.route('/api/login-vendedor', methods=['POST'])
@@ -483,6 +495,9 @@ def perfil_vendedor():
     except Exception as e:
         logger.error(f"Error en perfil_vendedor: {e}")
         return jsonify({'success': False, 'message': str(e)}), 500
+
+# ==================== NOTA: EL LOGOUT YA ESTÁ EN DASHBOARD.PY ====================
+# No duplicar la ruta /logout aquí
 
 # ==================== INICIO ====================
 
