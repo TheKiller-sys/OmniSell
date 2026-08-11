@@ -662,4 +662,811 @@ jobs:
             "                        <LinearLayout" \
             "                            android:layout_width=\"match_parent\"" \
             "                            android:layout_height=\"wrap_content\"" \
-           
+            "                            android:orientation=\"vertical\"" \
+            "                            android:padding=\"16dp\">" \
+            "" \
+            "                            <TextView" \
+            "                                android:layout_width=\"wrap_content\"" \
+            "                                android:layout_height=\"wrap_content\"" \
+            "                                android:text=\"Ingresos Mes\"" \
+            "                                android:textSize=\"12sp\"" \
+            "                                android:textColor=\"@color/gray\" />" \
+            "" \
+            "                            <TextView" \
+            "                                android:id=\"@+id/tv_ingresos_mes\"" \
+            "                                android:layout_width=\"wrap_content\"" \
+            "                                android:layout_height=\"wrap_content\"" \
+            "                                android:text=\"$0.00\"" \
+            "                                android:textSize=\"24sp\"" \
+            "                                android:textStyle=\"bold\"" \
+            "                                android:textColor=\"@color/success\" />" \
+            "                        </LinearLayout>" \
+            "                    </androidx.cardview.widget.CardView>" \
+            "                </LinearLayout>" \
+            "" \
+            "                <androidx.cardview.widget.CardView" \
+            "                    android:layout_width=\"match_parent\"" \
+            "                    android:layout_height=\"wrap_content\"" \
+            "                    android:layout_marginBottom=\"16dp\"" \
+            "                    app:cardCornerRadius=\"12dp\"" \
+            "                    app:cardElevation=\"4dp\">" \
+            "" \
+            "                    <LinearLayout" \
+            "                        android:layout_width=\"match_parent\"" \
+            "                        android:layout_height=\"wrap_content\"" \
+            "                        android:orientation=\"horizontal\"" \
+            "                        android:padding=\"16dp\">" \
+            "" \
+            "                        <TextView" \
+            "                            android:layout_width=\"0dp\"" \
+            "                            android:layout_height=\"wrap_content\"" \
+            "                            android:layout_weight=\"1\"" \
+            "                            android:text=\"⚠️ Productos con stock bajo:\" />" \
+            "" \
+            "                        <TextView" \
+            "                            android:id=\"@+id/tv_bajo_stock\"" \
+            "                            android:layout_width=\"wrap_content\"" \
+            "                            android:layout_height=\"wrap_content\"" \
+            "                            android:text=\"0\"" \
+            "                            android:textStyle=\"bold\"" \
+            "                            android:textColor=\"@color/warning\" />" \
+            "                    </LinearLayout>" \
+            "                </androidx.cardview.widget.CardView>" \
+            "" \
+            "                <TextView" \
+            "                    android:layout_width=\"match_parent\"" \
+            "                    android:layout_height=\"wrap_content\"" \
+            "                    android:text=\"🕐 Ventas Recientes\"" \
+            "                    android:textSize=\"18sp\"" \
+            "                    android:textStyle=\"bold\"" \
+            "                    android:textColor=\"@color/dark\"" \
+            "                    android:layout_marginBottom=\"8dp\" />" \
+            "" \
+            "                <androidx.recyclerview.widget.RecyclerView" \
+            "                    android:id=\"@+id/rv_ventas_recientes\"" \
+            "                    android:layout_width=\"match_parent\"" \
+            "                    android:layout_height=\"wrap_content\"" \
+            "                    android:nestedScrollingEnabled=\"false\" />" \
+            "" \
+            "            </LinearLayout>" \
+            "        </ScrollView>" \
+            "    </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>" \
+            "</LinearLayout>" \
+            > app/src/main/res/layout/fragment_dashboard.xml
+          
+          # ============================================
+          # FRAGMENT_INVENTARIO.XML
+          # ============================================
+          printf '%s\n' \
+            "<?xml version=\"1.0\" encoding=\"utf-8\"?>" \
+            "<LinearLayout xmlns:android=\"http://schemas.android.com/apk/res/android\"" \
+            "    android:layout_width=\"match_parent\"" \
+            "    android:layout_height=\"match_parent\"" \
+            "    android:orientation=\"vertical\"" \
+            "    android:padding=\"16dp\"" \
+            "    android:background=\"@color/light_gray\">" \
+            "" \
+            "    <androidx.swiperefreshlayout.widget.SwipeRefreshLayout" \
+            "        android:id=\"@+id/swipe_refresh\"" \
+            "        android:layout_width=\"match_parent\"" \
+            "        android:layout_height=\"match_parent\">" \
+            "" \
+            "        <LinearLayout" \
+            "            android:layout_width=\"match_parent\"" \
+            "            android:layout_height=\"wrap_content\"" \
+            "            android:orientation=\"vertical\">" \
+            "" \
+            "            <TextView" \
+            "                android:layout_width=\"match_parent\"" \
+            "                android:layout_height=\"wrap_content\"" \
+            "                android:text=\"📦 Inventario\"" \
+            "                android:textSize=\"24sp\"" \
+            "                android:textStyle=\"bold\"" \
+            "                android:textColor=\"@color/dark\"" \
+            "                android:layout_marginBottom=\"8dp\" />" \
+            "" \
+            "            <LinearLayout" \
+            "                android:layout_width=\"match_parent\"" \
+            "                android:layout_height=\"wrap_content\"" \
+            "                android:orientation=\"horizontal\"" \
+            "                android:layout_marginBottom=\"12dp\">" \
+            "" \
+            "                <TextView" \
+            "                    android:id=\"@+id/tv_total_productos\"" \
+            "                    android:layout_width=\"0dp\"" \
+            "                    android:layout_height=\"wrap_content\"" \
+            "                    android:layout_weight=\"1\"" \
+            "                    android:text=\"Total: 0 productos\"" \
+            "                    android:textSize=\"14sp\"" \
+            "                    android:textColor=\"@color/gray\" />" \
+            "" \
+            "                <TextView" \
+            "                    android:id=\"@+id/tv_bajo_stock\"" \
+            "                    android:layout_width=\"wrap_content\"" \
+            "                    android:layout_height=\"wrap_content\"" \
+            "                    android:text=\"⚠️ Stock bajo: 0\"" \
+            "                    android:textSize=\"14sp\"" \
+            "                    android:textColor=\"@color/warning\" />" \
+            "            </LinearLayout>" \
+            "" \
+            "            <androidx.recyclerview.widget.RecyclerView" \
+            "                android:id=\"@+id/rv_inventario\"" \
+            "                android:layout_width=\"match_parent\"" \
+            "                android:layout_height=\"match_parent\" />" \
+            "" \
+            "        </LinearLayout>" \
+            "    </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>" \
+            "</LinearLayout>" \
+            > app/src/main/res/layout/fragment_inventario.xml
+          
+          # ============================================
+          # FRAGMENT_VENTAS.XML
+          # ============================================
+          printf '%s\n' \
+            "<?xml version=\"1.0\" encoding=\"utf-8\"?>" \
+            "<LinearLayout xmlns:android=\"http://schemas.android.com/apk/res/android\"" \
+            "    xmlns:app=\"http://schemas.android.com/apk/res-auto\"" \
+            "    android:layout_width=\"match_parent\"" \
+            "    android:layout_height=\"match_parent\"" \
+            "    android:orientation=\"vertical\"" \
+            "    android:padding=\"16dp\"" \
+            "    android:background=\"@color/light_gray\">" \
+            "" \
+            "    <androidx.swiperefreshlayout.widget.SwipeRefreshLayout" \
+            "        android:id=\"@+id/swipe_refresh\"" \
+            "        android:layout_width=\"match_parent\"" \
+            "        android:layout_height=\"match_parent\">" \
+            "" \
+            "        <ScrollView" \
+            "            android:layout_width=\"match_parent\"" \
+            "            android:layout_height=\"match_parent\">" \
+            "" \
+            "            <LinearLayout" \
+            "                android:layout_width=\"match_parent\"" \
+            "                android:layout_height=\"wrap_content\"" \
+            "                android:orientation=\"vertical\">" \
+            "" \
+            "                <TextView" \
+            "                    android:layout_width=\"match_parent\"" \
+            "                    android:layout_height=\"wrap_content\"" \
+            "                    android:text=\"🧾 Registrar Venta\"" \
+            "                    android:textSize=\"24sp\"" \
+            "                    android:textStyle=\"bold\"" \
+            "                    android:textColor=\"@color/dark\"" \
+            "                    android:layout_marginBottom=\"16dp\" />" \
+            "" \
+            "                <androidx.cardview.widget.CardView" \
+            "                    android:layout_width=\"match_parent\"" \
+            "                    android:layout_height=\"wrap_content\"" \
+            "                    app:cardCornerRadius=\"12dp\"" \
+            "                    app:cardElevation=\"4dp\"" \
+            "                    android:layout_marginBottom=\"16dp\">" \
+            "" \
+            "                    <LinearLayout" \
+            "                        android:layout_width=\"match_parent\"" \
+            "                        android:layout_height=\"wrap_content\"" \
+            "                        android:orientation=\"vertical\"" \
+            "                        android:padding=\"16dp\">" \
+            "" \
+            "                        <TextView" \
+            "                            android:layout_width=\"wrap_content\"" \
+            "                            android:layout_height=\"wrap_content\"" \
+            "                            android:text=\"Producto\"" \
+            "                            android:textSize=\"14sp\"" \
+            "                            android:textColor=\"@color/gray\"" \
+            "                            android:layout_marginBottom=\"4dp\" />" \
+            "" \
+            "                        <Spinner" \
+            "                            android:id=\"@+id/spinner_productos\"" \
+            "                            android:layout_width=\"match_parent\"" \
+            "                            android:layout_height=\"wrap_content\"" \
+            "                            android:padding=\"12dp\"" \
+            "                            android:background=\"@drawable/spinner_background\"" \
+            "                            android:layout_marginBottom=\"12dp\" />" \
+            "" \
+            "                        <TextView" \
+            "                            android:layout_width=\"wrap_content\"" \
+            "                            android:layout_height=\"wrap_content\"" \
+            "                            android:text=\"Cantidad\"" \
+            "                            android:textSize=\"14sp\"" \
+            "                            android:textColor=\"@color/gray\"" \
+            "                            android:layout_marginBottom=\"4dp\" />" \
+            "" \
+            "                        <EditText" \
+            "                            android:id=\"@+id/et_cantidad\"" \
+            "                            android:layout_width=\"match_parent\"" \
+            "                            android:layout_height=\"wrap_content\"" \
+            "                            android:text=\"1\"" \
+            "                            android:inputType=\"number\"" \
+            "                            android:padding=\"12dp\"" \
+            "                            android:background=\"@drawable/edit_text_background\"" \
+            "                            android:layout_marginBottom=\"12dp\" />" \
+            "" \
+            "                        <TextView" \
+            "                            android:layout_width=\"wrap_content\"" \
+            "                            android:layout_height=\"wrap_content\"" \
+            "                            android:text=\"Precio Unitario\"" \
+            "                            android:textSize=\"14sp\"" \
+            "                            android:textColor=\"@color/gray\"" \
+            "                            android:layout_marginBottom=\"4dp\" />" \
+            "" \
+            "                        <TextView" \
+            "                            android:id=\"@+id/tv_precio\"" \
+            "                            android:layout_width=\"match_parent\"" \
+            "                            android:layout_height=\"wrap_content\"" \
+            "                            android:text=\"$0.00\"" \
+            "                            android:textSize=\"18sp\"" \
+            "                            android:textStyle=\"bold\"" \
+            "                            android:textColor=\"@color/primary\"" \
+            "                            android:padding=\"12dp\"" \
+            "                            android:background=\"@drawable/edit_text_background\"" \
+            "                            android:layout_marginBottom=\"12dp\" />" \
+            "" \
+            "                        <TextView" \
+            "                            android:id=\"@+id/tv_total\"" \
+            "                            android:layout_width=\"match_parent\"" \
+            "                            android:layout_height=\"wrap_content\"" \
+            "                            android:text=\"Total: $0.00\"" \
+            "                            android:textSize=\"20sp\"" \
+            "                            android:textStyle=\"bold\"" \
+            "                            android:textColor=\"@color/dark\"" \
+            "                            android:gravity=\"center\"" \
+            "                            android:padding=\"12dp\"" \
+            "                            android:background=\"@drawable/edit_text_background\"" \
+            "                            android:layout_marginBottom=\"16dp\" />" \
+            "" \
+            "                        <Button" \
+            "                            android:id=\"@+id/btn_registrar_venta\"" \
+            "                            android:layout_width=\"match_parent\"" \
+            "                            android:layout_height=\"wrap_content\"" \
+            "                            android:text=\"Registrar Venta\"" \
+            "                            android:textSize=\"16sp\"" \
+            "                            android:padding=\"14dp\"" \
+            "                            android:backgroundTint=\"@color/primary\"" \
+            "                            app:cornerRadius=\"12dp\" />" \
+            "" \
+            "                    </LinearLayout>" \
+            "                </androidx.cardview.widget.CardView>" \
+            "" \
+            "            </LinearLayout>" \
+            "        </ScrollView>" \
+            "    </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>" \
+            "</LinearLayout>" \
+            > app/src/main/res/layout/fragment_ventas.xml
+          
+          # ============================================
+          # ITEM_PRODUCTO.XML
+          # ============================================
+          printf '%s\n' \
+            "<?xml version=\"1.0\" encoding=\"utf-8\"?>" \
+            "<androidx.cardview.widget.CardView xmlns:android=\"http://schemas.android.com/apk/res/android\"" \
+            "    xmlns:app=\"http://schemas.android.com/apk/res-auto\"" \
+            "    android:layout_width=\"match_parent\"" \
+            "    android:layout_height=\"wrap_content\"" \
+            "    android:layout_marginBottom=\"8dp\"" \
+            "    app:cardCornerRadius=\"8dp\"" \
+            "    app:cardElevation=\"2dp\">" \
+            "" \
+            "    <LinearLayout" \
+            "        android:layout_width=\"match_parent\"" \
+            "        android:layout_height=\"wrap_content\"" \
+            "        android:orientation=\"vertical\"" \
+            "        android:padding=\"12dp\">" \
+            "" \
+            "        <TextView" \
+            "            android:id=\"@+id/tv_nombre\"" \
+            "            android:layout_width=\"match_parent\"" \
+            "            android:layout_height=\"wrap_content\"" \
+            "            android:text=\"Nombre del Producto\"" \
+            "            android:textSize=\"16sp\"" \
+            "            android:textStyle=\"bold\"" \
+            "            android:textColor=\"@color/dark\" />" \
+            "" \
+            "        <LinearLayout" \
+            "            android:layout_width=\"match_parent\"" \
+            "            android:layout_height=\"wrap_content\"" \
+            "            android:orientation=\"horizontal\"" \
+            "            android:layout_marginTop=\"4dp\">" \
+            "" \
+            "            <TextView" \
+            "                android:id=\"@+id/tv_seccion\"" \
+            "                android:layout_width=\"0dp\"" \
+            "                android:layout_height=\"wrap_content\"" \
+            "                android:layout_weight=\"1\"" \
+            "                android:text=\"Sección\"" \
+            "                android:textSize=\"14sp\"" \
+            "                android:textColor=\"@color/gray\" />" \
+            "" \
+            "            <TextView" \
+            "                android:id=\"@+id/tv_precio\"" \
+            "                android:layout_width=\"wrap_content\"" \
+            "                android:layout_height=\"wrap_content\"" \
+            "                android:text=\"$0.00\"" \
+            "                android:textSize=\"14sp\"" \
+            "                android:textColor=\"@color/primary\"" \
+            "                android:textStyle=\"bold\" />" \
+            "        </LinearLayout>" \
+            "" \
+            "        <TextView" \
+            "            android:id=\"@+id/tv_stock\"" \
+            "            android:layout_width=\"wrap_content\"" \
+            "            android:layout_height=\"wrap_content\"" \
+            "            android:text=\"Stock: 0\"" \
+            "            android:textSize=\"14sp\"" \
+            "            android:layout_marginTop=\"4dp\" />" \
+            "" \
+            "    </LinearLayout>" \
+            "</androidx.cardview.widget.CardView>" \
+            > app/src/main/res/layout/item_producto.xml
+          
+          # ============================================
+          # ITEM_VENTA_RECIENTE.XML
+          # ============================================
+          printf '%s\n' \
+            "<?xml version=\"1.0\" encoding=\"utf-8\"?>" \
+            "<androidx.cardview.widget.CardView xmlns:android=\"http://schemas.android.com/apk/res/android\"" \
+            "    xmlns:app=\"http://schemas.android.com/apk/res-auto\"" \
+            "    android:layout_width=\"match_parent\"" \
+            "    android:layout_height=\"wrap_content\"" \
+            "    android:layout_marginBottom=\"4dp\"" \
+            "    app:cardCornerRadius=\"8dp\"" \
+            "    app:cardElevation=\"1dp\">" \
+            "" \
+            "    <LinearLayout" \
+            "        android:layout_width=\"match_parent\"" \
+            "        android:layout_height=\"wrap_content\"" \
+            "        android:orientation=\"horizontal\"" \
+            "        android:padding=\"12dp\">" \
+            "" \
+            "        <LinearLayout" \
+            "            android:layout_width=\"0dp\"" \
+            "            android:layout_height=\"wrap_content\"" \
+            "            android:layout_weight=\"1\"" \
+            "            android:orientation=\"vertical\">" \
+            "" \
+            "            <TextView" \
+            "                android:id=\"@+id/tv_producto\"" \
+            "                android:layout_width=\"match_parent\"" \
+            "                android:layout_height=\"wrap_content\"" \
+            "                android:text=\"Producto\"" \
+            "                android:textSize=\"14sp\"" \
+            "                android:textStyle=\"bold\"" \
+            "                android:textColor=\"@color/dark\" />" \
+            "" \
+            "            <TextView" \
+            "                android:id=\"@+id/tv_fecha\"" \
+            "                android:layout_width=\"match_parent\"" \
+            "                android:layout_height=\"wrap_content\"" \
+            "                android:text=\"Fecha\"" \
+            "                android:textSize=\"12sp\"" \
+            "                android:textColor=\"@color/gray\" />" \
+            "" \
+            "        </LinearLayout>" \
+            "" \
+            "        <TextView" \
+            "            android:id=\"@+id/tv_cantidad\"" \
+            "            android:layout_width=\"wrap_content\"" \
+            "            android:layout_height=\"wrap_content\"" \
+            "            android:text=\"1x\"" \
+            "            android:textSize=\"14sp\"" \
+            "            android:textColor=\"@color/gray\"" \
+            "            android:layout_marginEnd=\"12dp\" />" \
+            "" \
+            "        <TextView" \
+            "            android:id=\"@+id/tv_total\"" \
+            "            android:layout_width=\"wrap_content\"" \
+            "            android:layout_height=\"wrap_content\"" \
+            "            android:text=\"$0.00\"" \
+            "            android:textSize=\"14sp\"" \
+            "            android:textStyle=\"bold\"" \
+            "            android:textColor=\"@color/success\" />" \
+            "" \
+            "    </LinearLayout>" \
+            "</androidx.cardview.widget.CardView>" \
+            > app/src/main/res/layout/item_venta_reciente.xml
+          
+          # ============================================
+          # MAIN ACTIVITY (con soporte para fragments)
+          # ============================================
+          printf '%s\n' \
+            "package com.omniventas.app;" \
+            "" \
+            "import android.os.Bundle;" \
+            "import android.view.MenuItem;" \
+            "import android.widget.Toast;" \
+            "import androidx.annotation.NonNull;" \
+            "import androidx.appcompat.app.AppCompatActivity;" \
+            "import androidx.fragment.app.Fragment;" \
+            "import com.google.android.material.bottomnavigation.BottomNavigationView;" \
+            "import com.omniventas.app.ui.DashboardFragment;" \
+            "import com.omniventas.app.ui.VentasFragment;" \
+            "import com.omniventas.app.ui.InventarioFragment;" \
+            "" \
+            "public class MainActivity extends AppCompatActivity {" \
+            "" \
+            "    private BottomNavigationView bottomNav;" \
+            "    private long backPressedTime = 0;" \
+            "" \
+            "    @Override" \
+            "    protected void onCreate(Bundle savedInstanceState) {" \
+            "        super.onCreate(savedInstanceState);" \
+            "        setContentView(R.layout.activity_main);" \
+            "" \
+            "        bottomNav = findViewById(R.id.bottom_navigation);" \
+            "        bottomNav.setOnItemSelectedListener(this::onNavigationItemSelected);" \
+            "" \
+            "        if (savedInstanceState == null) {" \
+            "            getSupportFragmentManager().beginTransaction()" \
+            "                .replace(R.id.fragment_container, new DashboardFragment())" \
+            "                .commit();" \
+            "        }" \
+            "    }" \
+            "" \
+            "    private boolean onNavigationItemSelected(@NonNull MenuItem item) {" \
+            "        Fragment selectedFragment = null;" \
+            "        int id = item.getItemId();" \
+            "" \
+            "        if (id == R.id.nav_dashboard) {" \
+            "            selectedFragment = new DashboardFragment();" \
+            "        } else if (id == R.id.nav_ventas) {" \
+            "            selectedFragment = new VentasFragment();" \
+            "        } else if (id == R.id.nav_inventario) {" \
+            "            selectedFragment = new InventarioFragment();" \
+            "        } else if (id == R.id.nav_logout) {" \
+            "            Toast.makeText(this, \"Cerrando sesión...\", Toast.LENGTH_SHORT).show();" \
+            "            return true;" \
+            "        }" \
+            "" \
+            "        if (selectedFragment != null) {" \
+            "            getSupportFragmentManager().beginTransaction()" \
+            "                .replace(R.id.fragment_container, selectedFragment)" \
+            "                .commit();" \
+            "            return true;" \
+            "        }" \
+            "        return false;" \
+            "    }" \
+            "" \
+            "    @Override" \
+            "    public void onBackPressed() {" \
+            "        if (backPressedTime + 2000 > System.currentTimeMillis()) {" \
+            "            super.onBackPressed();" \
+            "            finish();" \
+            "        } else {" \
+            "            Toast.makeText(this, \"Presiona de nuevo para salir\", Toast.LENGTH_SHORT).show();" \
+            "            backPressedTime = System.currentTimeMillis();" \
+            "        }" \
+            "    }" \
+            "}" \
+            > app/src/main/java/com/omniventas/app/MainActivity.java
+          
+          # ============================================
+          # DASHBOARD FRAGMENT
+          # ============================================
+          printf '%s\n' \
+            "package com.omniventas.app.ui;" \
+            "" \
+            "import android.os.Bundle;" \
+            "import android.view.LayoutInflater;" \
+            "import android.view.View;" \
+            "import android.view.ViewGroup;" \
+            "import android.widget.TextView;" \
+            "import android.widget.Toast;" \
+            "import androidx.annotation.NonNull;" \
+            "import androidx.annotation.Nullable;" \
+            "import androidx.fragment.app.Fragment;" \
+            "import androidx.recyclerview.widget.LinearLayoutManager;" \
+            "import androidx.recyclerview.widget.RecyclerView;" \
+            "import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;" \
+            "import com.omniventas.app.R;" \
+            "" \
+            "public class DashboardFragment extends Fragment {" \
+            "" \
+            "    private TextView tvVentasHoy, tvIngresosHoy, tvVentasMes, tvIngresosMes, tvBajoStock;" \
+            "    private RecyclerView rvVentasRecientes;" \
+            "    private SwipeRefreshLayout swipeRefresh;" \
+            "" \
+            "    @Nullable" \
+            "    @Override" \
+            "    public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {" \
+            "        View view = inflater.inflate(R.layout.fragment_dashboard, container, false);" \
+            "" \
+            "        tvVentasHoy = view.findViewById(R.id.tv_ventas_hoy);" \
+            "        tvIngresosHoy = view.findViewById(R.id.tv_ingresos_hoy);" \
+            "        tvVentasMes = view.findViewById(R.id.tv_ventas_mes);" \
+            "        tvIngresosMes = view.findViewById(R.id.tv_ingresos_mes);" \
+            "        tvBajoStock = view.findViewById(R.id.tv_bajo_stock);" \
+            "        rvVentasRecientes = view.findViewById(R.id.rv_ventas_recientes);" \
+            "        swipeRefresh = view.findViewById(R.id.swipe_refresh);" \
+            "" \
+            "        rvVentasRecientes.setLayoutManager(new LinearLayoutManager(getContext()));" \
+            "" \
+            "        tvVentasHoy.setText(\"5\");" \
+            "        tvIngresosHoy.setText(\"$125.50\");" \
+            "        tvVentasMes.setText(\"42\");" \
+            "        tvIngresosMes.setText(\"$1,250.00\");" \
+            "        tvBajoStock.setText(\"3\");" \
+            "" \
+            "        return view;" \
+            "    }" \
+            "}" \
+            > app/src/main/java/com/omniventas/app/ui/DashboardFragment.java
+          
+          # ============================================
+          # VENTAS FRAGMENT (simplificado)
+          # ============================================
+          printf '%s\n' \
+            "package com.omniventas.app.ui;" \
+            "" \
+            "import android.os.Bundle;" \
+            "import android.view.LayoutInflater;" \
+            "import android.view.View;" \
+            "import android.view.ViewGroup;" \
+            "import android.widget.AdapterView;" \
+            "import android.widget.ArrayAdapter;" \
+            "import android.widget.Button;" \
+            "import android.widget.EditText;" \
+            "import android.widget.Spinner;" \
+            "import android.widget.TextView;" \
+            "import android.widget.Toast;" \
+            "import androidx.annotation.NonNull;" \
+            "import androidx.annotation.Nullable;" \
+            "import androidx.fragment.app.Fragment;" \
+            "import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;" \
+            "import com.omniventas.app.R;" \
+            "import java.util.ArrayList;" \
+            "import java.util.List;" \
+            "" \
+            "public class VentasFragment extends Fragment {" \
+            "" \
+            "    private Spinner spinnerProductos;" \
+            "    private EditText etCantidad;" \
+            "    private TextView tvPrecio, tvTotal;" \
+            "    private Button btnRegistrarVenta;" \
+            "    private SwipeRefreshLayout swipeRefresh;" \
+            "" \
+            "    @Nullable" \
+            "    @Override" \
+            "    public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {" \
+            "        View view = inflater.inflate(R.layout.fragment_ventas, container, false);" \
+            "" \
+            "        spinnerProductos = view.findViewById(R.id.spinner_productos);" \
+            "        etCantidad = view.findViewById(R.id.et_cantidad);" \
+            "        tvPrecio = view.findViewById(R.id.tv_precio);" \
+            "        tvTotal = view.findViewById(R.id.tv_total);" \
+            "        btnRegistrarVenta = view.findViewById(R.id.btn_registrar_venta);" \
+            "        swipeRefresh = view.findViewById(R.id.swipe_refresh);" \
+            "" \
+            "        List<String> productos = new ArrayList<>();" \
+            "        productos.add(\"Seleccionar producto...\");" \
+            "        productos.add(\"Producto A - $10.00\");" \
+            "        productos.add(\"Producto B - $15.00\");" \
+            "        productos.add(\"Producto C - $20.00\");" \
+            "" \
+            "        ArrayAdapter<String> adapter = new ArrayAdapter<>(getContext(), android.R.layout.simple_spinner_item, productos);" \
+            "        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);" \
+            "        spinnerProductos.setAdapter(adapter);" \
+            "" \
+            "        spinnerProductos.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {" \
+            "            @Override" \
+            "            public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {" \
+            "                if (position > 0) {" \
+            "                    tvPrecio.setText(\"$10.00\");" \
+            "                    actualizarTotal();" \
+            "                }" \
+            "            }" \
+            "            @Override" \
+            "            public void onNothingSelected(AdapterView<?> parent) {}" \
+            "        });" \
+            "" \
+            "        etCantidad.addTextChangedListener(new android.text.TextWatcher() {" \
+            "            @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) {}" \
+            "            @Override public void onTextChanged(CharSequence s, int start, int before, int count) {}" \
+            "            @Override public void afterTextChanged(android.text.Editable s) { actualizarTotal(); }" \
+            "        });" \
+            "" \
+            "        btnRegistrarVenta.setOnClickListener(v -> {" \
+            "            Toast.makeText(getContext(), \"✅ Venta registrada!\", Toast.LENGTH_SHORT).show();" \
+            "        });" \
+            "" \
+            "        tvPrecio.setText(\"$0.00\");" \
+            "        tvTotal.setText(\"Total: $0.00\");" \
+            "" \
+            "        return view;" \
+            "    }" \
+            "" \
+            "    private void actualizarTotal() {" \
+            "        try {" \
+            "            int cantidad = Integer.parseInt(etCantidad.getText().toString());" \
+            "            double total = cantidad * 10.00;" \
+            "            tvTotal.setText(String.format(\"Total: $%.2f\", total));" \
+            "        } catch (NumberFormatException e) {" \
+            "            tvTotal.setText(\"Total: $0.00\");" \
+            "        }" \
+            "    }" \
+            "}" \
+            > app/src/main/java/com/omniventas/app/ui/VentasFragment.java
+          
+          # ============================================
+          # INVENTARIO FRAGMENT
+          # ============================================
+          printf '%s\n' \
+            "package com.omniventas.app.ui;" \
+            "" \
+            "import android.os.Bundle;" \
+            "import android.view.LayoutInflater;" \
+            "import android.view.View;" \
+            "import android.view.ViewGroup;" \
+            "import android.widget.TextView;" \
+            "import androidx.annotation.NonNull;" \
+            "import androidx.annotation.Nullable;" \
+            "import androidx.fragment.app.Fragment;" \
+            "import androidx.recyclerview.widget.LinearLayoutManager;" \
+            "import androidx.recyclerview.widget.RecyclerView;" \
+            "import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;" \
+            "import com.omniventas.app.R;" \
+            "import java.util.ArrayList;" \
+            "import java.util.List;" \
+            "" \
+            "public class InventarioFragment extends Fragment {" \
+            "" \
+            "    private RecyclerView rvInventario;" \
+            "    private SwipeRefreshLayout swipeRefresh;" \
+            "    private TextView tvTotalProductos, tvBajoStock;" \
+            "" \
+            "    @Nullable" \
+            "    @Override" \
+            "    public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {" \
+            "        View view = inflater.inflate(R.layout.fragment_inventario, container, false);" \
+            "" \
+            "        rvInventario = view.findViewById(R.id.rv_inventario);" \
+            "        swipeRefresh = view.findViewById(R.id.swipe_refresh);" \
+            "        tvTotalProductos = view.findViewById(R.id.tv_total_productos);" \
+            "        tvBajoStock = view.findViewById(R.id.tv_bajo_stock);" \
+            "" \
+            "        rvInventario.setLayoutManager(new LinearLayoutManager(getContext()));" \
+            "        tvTotalProductos.setText(\"Total: 10 productos\");" \
+            "        tvBajoStock.setText(\"⚠️ Stock bajo: 2\");" \
+            "" \
+            "        return view;" \
+            "    }" \
+            "}" \
+            > app/src/main/java/com/omniventas/app/ui/InventarioFragment.java
+          
+          # ============================================
+          # LOGIN ACTIVITY
+          # ============================================
+          printf '%s\n' \
+            "package com.omniventas.app;" \
+            "" \
+            "import android.os.Bundle;" \
+            "import android.widget.Button;" \
+            "import android.widget.EditText;" \
+            "import android.widget.Toast;" \
+            "import androidx.appcompat.app.AppCompatActivity;" \
+            "" \
+            "public class LoginActivity extends AppCompatActivity {" \
+            "    private EditText etBusinessId, etUsername, etPassword;" \
+            "    private Button btnLogin;" \
+            "" \
+            "    @Override" \
+            "    protected void onCreate(Bundle savedInstanceState) {" \
+            "        super.onCreate(savedInstanceState);" \
+            "        setContentView(R.layout.activity_login);" \
+            "" \
+            "        etBusinessId = findViewById(R.id.et_business_id);" \
+            "        etUsername = findViewById(R.id.et_username);" \
+            "        etPassword = findViewById(R.id.et_password);" \
+            "        btnLogin = findViewById(R.id.btn_login);" \
+            "" \
+            "        btnLogin.setOnClickListener(v -> {" \
+            "            Toast.makeText(LoginActivity.this, \"Login funcionando!\", Toast.LENGTH_SHORT).show();" \
+            "        });" \
+            "    }" \
+            "}" \
+            > app/src/main/java/com/omniventas/app/LoginActivity.java
+          
+          # ============================================
+          # ICONOS DE LAUNCHER
+          # ============================================
+          # Crear icono vectorial
+          printf '%s\n' \
+            '<?xml version="1.0" encoding="utf-8"?>' \
+            '<vector xmlns:android="http://schemas.android.com/apk/res/android"' \
+            '    android:width="108dp"' \
+            '    android:height="108dp"' \
+            '    android:viewportWidth="108"' \
+            '    android:viewportHeight="108">' \
+            '    <path' \
+            '        android:fillColor="#4361EE"' \
+            '        android:pathData="M54,27C40.5,27 30,37.5 30,51C30,64.5 40.5,75 54,75C67.5,75 78,64.5 78,51C78,37.5 67.5,27 54,27ZM54,69C44.1,69 36,60.9 36,51C36,41.1 44.1,33 54,33C63.9,33 72,41.1 72,51C72,60.9 63.9,69 54,69ZM54,39C47.4,39 42,44.4 42,51C42,57.6 47.4,63 54,63C60.6,63 66,57.6 66,51C66,44.4 60.6,39 54,39Z"/>' \
+            '    <path' \
+            '        android:fillColor="#FFFFFF"' \
+            '        android:pathData="M54,45C50.7,45 48,47.7 48,51C48,54.3 50.7,57 54,57C57.3,57 60,54.3 60,51C60,47.7 57.3,45 54,45Z"/>' \
+            '</vector>' \
+            > app/src/main/res/drawable/ic_launcher_foreground.xml
+          
+          # Adaptive icons
+          printf '%s\n' \
+            '<?xml version="1.0" encoding="utf-8"?>' \
+            '<adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">' \
+            '    <background android:drawable="@color/white"/>' \
+            '    <foreground android:drawable="@drawable/ic_launcher_foreground"/>' \
+            '</adaptive-icon>' \
+            > app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml
+          
+          cp app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml \
+             app/src/main/res/mipmap-anydpi-v26/ic_launcher_round.xml
+          
+          # PNG placeholder icons
+          for dir in mipmap-mdpi mipmap-hdpi mipmap-xhdpi mipmap-xxhdpi mipmap-xxxhdpi; do
+            echo -n "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==" | base64 -d > app/src/main/res/$dir/ic_launcher.png
+            echo -n "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==" | base64 -d > app/src/main/res/$dir/ic_launcher_round.png
+          done
+          
+          echo "✅ Proyecto Android completo creado con todos los recursos!"
+          echo "📁 Archivos de recursos creados:"
+          find app/src/main/res -type f -name "*.xml" | wc -l
+          echo " archivos XML de recursos"
+
+      - name: Build Debug APK
+        run: |
+          cd android-app
+          ./gradlew assembleDebug --no-daemon
+
+      - name: Upload Debug APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-debug
+          path: android-app/app/build/outputs/apk/debug/*.apk
+
+      - name: Build Release APK
+        run: |
+          cd android-app
+          ./gradlew assembleRelease --no-daemon
+
+      - name: Upload Release APK (unsigned)
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-release-unsigned
+          path: android-app/app/build/outputs/apk/release/*.apk
+
+      # ============================================
+      # FIRMAR APK (si tienes secrets configurados)
+      # ============================================
+      - name: Check signing secrets
+        id: check_secrets
+        run: |
+          if [ -n "${{ secrets.KEYSTORE_BASE64 }}" ] && \
+             [ -n "${{ secrets.KEYSTORE_PASSWORD }}" ] && \
+             [ -n "${{ secrets.KEY_ALIAS }}" ] && \
+             [ -n "${{ secrets.KEY_PASSWORD }}" ]; then
+            echo "has_secrets=true" >> $GITHUB_OUTPUT
+            echo "✅ Secrets de firma encontrados"
+          else
+            echo "has_secrets=false" >> $GITHUB_OUTPUT
+            echo "⚠️ Secrets de firma NO configurados"
+          fi
+
+      - name: Sign Release APK
+        if: github.ref == 'refs/heads/main' && steps.check_secrets.outputs.has_secrets == 'true'
+        run: |
+          echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > keystore.jks
+          cd android-app
+          ./gradlew assembleRelease \
+            -Pandroid.injected.signing.store.file=$(pwd)/../keystore.jks \
+            -Pandroid.injected.signing.store.password=${{ secrets.KEYSTORE_PASSWORD }} \
+            -Pandroid.injected.signing.key.alias=${{ secrets.KEY_ALIAS }} \
+            -Pandroid.injected.signing.key.password=${{ secrets.KEY_PASSWORD }}
+
+      - name: Upload Signed APK
+        if: github.ref == 'refs/heads/main' && steps.check_secrets.outputs.has_secrets == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-release-signed
+          path: android-app/app/build/outputs/apk/release/*.apk
+
+      - name: Notify success
+        if: success()
+        run: |
+          echo "✅ APK compilados exitosamente!"
+          echo "📱 Descarga los APKs desde los artifacts"
