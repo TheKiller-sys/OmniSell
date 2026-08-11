@@ -24,12 +24,10 @@ jobs:
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
 
-      # ✅ CREAR el wrapper.properties si no existe
-      - name: Create Gradle Wrapper files if missing
+      # ✅ PASO 1: Crear archivos del wrapper si no existen
+      - name: Setup Gradle Wrapper
         run: |
           cd android-app
-          
-          # Crear directorio wrapper si no existe
           mkdir -p gradle/wrapper
           
           # Crear gradle-wrapper.properties
@@ -41,25 +39,25 @@ jobs:
           zipStorePath=wrapper/dists
           EOF
           
-          # Descargar gradle-wrapper.jar si no existe
-          if [ ! -f "gradle/wrapper/gradle-wrapper.jar" ]; then
-            curl -L -o gradle/wrapper/gradle-wrapper.jar \
-              https://raw.githubusercontent.com/gradle/gradle/v8.2.0/gradle/wrapper/gradle-wrapper.jar
-          fi
+          # Descargar gradle-wrapper.jar
+          curl -L -o gradle/wrapper/gradle-wrapper.jar \
+            https://raw.githubusercontent.com/gradle/gradle/v8.2.0/gradle/wrapper/gradle-wrapper.jar
           
-          # Asegurar permisos
           chmod +x gradlew
-          
-          echo "✅ Wrapper files created successfully"
-          ls -la gradle/wrapper/
+          echo "✅ Wrapper configurado"
 
-      # ✅ USAR gradle/actions/setup-gradle para manejar el wrapper
+      # ✅ PASO 2: Validar wrapper
+      - name: Validate Gradle Wrapper
+        uses: gradle/wrapper-validation-action@v1
+
+      # ✅ PASO 3: Setup Gradle
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v3
         with:
           gradle-version: '8.2'
           build-root-directory: android-app
 
+      # ✅ PASO 4: Build Debug
       - name: Build Debug APK
         run: |
           cd android-app
@@ -71,38 +69,55 @@ jobs:
           name: app-debug
           path: android-app/app/build/outputs/apk/debug/*.apk
 
+      # ✅ PASO 5: Build Release (sin firmar)
       - name: Build Release APK
         run: |
           cd android-app
           ./gradlew assembleRelease --no-daemon
 
-      - name: Upload Release APK
+      - name: Upload Release APK (unsigned)
         uses: actions/upload-artifact@v4
         with:
           name: app-release-unsigned
           path: android-app/app/build/outputs/apk/release/*.apk
 
-      # ✅ Firmar solo en main
-      - name: Sign Release APK
-        if: github.ref == 'refs/heads/main'
-        env:
-          HAS_KEYSTORE: ${{ secrets.KEYSTORE_BASE64 != '' }}
+      # ✅ PASO 6: Verificar secrets (SIN usar secrets en if)
+      - name: Check signing secrets
+        id: check_secrets
         run: |
-          if [ "$HAS_KEYSTORE" = "true" ]; then
-            echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > keystore.jks
-            cd android-app
-            ./gradlew assembleRelease \
-              -Pandroid.injected.signing.store.file=$(pwd)/../keystore.jks \
-              -Pandroid.injected.signing.store.password=${{ secrets.KEYSTORE_PASSWORD }} \
-              -Pandroid.injected.signing.key.alias=${{ secrets.KEY_ALIAS }} \
-              -Pandroid.injected.signing.key.password=${{ secrets.KEY_PASSWORD }}
+          if [ -n "${{ secrets.KEYSTORE_BASE64 }}" ] && \
+             [ -n "${{ secrets.KEYSTORE_PASSWORD }}" ] && \
+             [ -n "${{ secrets.KEY_ALIAS }}" ] && \
+             [ -n "${{ secrets.KEY_PASSWORD }}" ]; then
+            echo "has_secrets=true" >> $GITHUB_OUTPUT
+            echo "✅ Secrets de firma encontrados"
           else
-            echo "⚠️ No se encontraron secrets de firma, saltando..."
+            echo "has_secrets=false" >> $GITHUB_OUTPUT
+            echo "⚠️ Secrets de firma NO configurados"
           fi
 
+      # ✅ PASO 7: Firmar APK (solo si hay secrets Y estamos en main)
+      - name: Sign Release APK
+        if: github.ref == 'refs/heads/main' && steps.check_secrets.outputs.has_secrets == 'true'
+        run: |
+          echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > keystore.jks
+          cd android-app
+          ./gradlew assembleRelease \
+            -Pandroid.injected.signing.store.file=$(pwd)/../keystore.jks \
+            -Pandroid.injected.signing.store.password=${{ secrets.KEYSTORE_PASSWORD }} \
+            -Pandroid.injected.signing.key.alias=${{ secrets.KEY_ALIAS }} \
+            -Pandroid.injected.signing.key.password=${{ secrets.KEY_PASSWORD }}
+
+      # ✅ PASO 8: Subir APK firmado
       - name: Upload Signed APK
-        if: github.ref == 'refs/heads/main' && secrets.KEYSTORE_BASE64 != ''
+        if: github.ref == 'refs/heads/main' && steps.check_secrets.outputs.has_secrets == 'true'
         uses: actions/upload-artifact@v4
         with:
           name: app-release-signed
           path: android-app/app/build/outputs/apk/release/*.apk
+
+      - name: Notify success
+        if: success() && github.ref == 'refs/heads/main'
+        run: |
+          echo "✅ APK compiled successfully!"
+          echo "Download from artifacts"
