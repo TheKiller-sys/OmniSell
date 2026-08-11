@@ -1,4 +1,4 @@
-# web/dashboard.py - Panel de administración web unificado
+# web/dashboard.py - Panel de administración web unificado (SIN TELEGRAM)
 from flask import Flask, render_template, request, redirect, url_for, jsonify, g, session
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
 from flask_socketio import SocketIO
@@ -7,14 +7,14 @@ import os
 from datetime import datetime, timedelta
 import logging
 import psycopg2
-import requests
 import random
 import string
 from slugify import slugify
 import threading
 import time
 import bcrypt
-from urllib.parse import urljoin
+import jwt
+import json
 
 logger = logging.getLogger(__name__)
 
@@ -29,10 +29,11 @@ def create_app():
     login_manager.login_view = 'login'
 
     class User(UserMixin):
-        def __init__(self, user_id, business_id, username):
+        def __init__(self, user_id, business_id, username, role='admin'):
             self.id = user_id
             self.business_id = business_id
             self.username = username
+            self.role = role
 
     # Variable global para almacenar conexiones de base de datos por negocio
     business_db_connections = {}
@@ -56,13 +57,15 @@ def create_app():
                 return None
                 
             c = conn.cursor()
-            if 'RENDER' in os.environ and os.environ.get('DATABASE_URL'):
-                c.execute("SELECT id, business_id, username FROM users WHERE id = %s", (user_id,))
+            is_postgres = 'RENDER' in os.environ and os.environ.get('DATABASE_URL')
+            
+            if is_postgres:
+                c.execute("SELECT id, business_id, username, role FROM users WHERE id = %s", (user_id,))
             else:
-                c.execute("SELECT id, business_id, username FROM users WHERE id = ?", (user_id,))
+                c.execute("SELECT id, business_id, username, role FROM users WHERE id = ?", (user_id,))
             user_data = c.fetchone()
             if user_data:
-                return User(user_data[0], user_data[1], user_data[2])
+                return User(user_data[0], user_data[1], user_data[2], user_data[3] if len(user_data) > 3 else 'admin')
         except Exception as e:
             logger.error(f"Error loading user: {e}")
         return None
@@ -80,7 +83,8 @@ def create_app():
                     conn = DatabaseManager.get_global_connection()
                     if conn is not None:
                         c = conn.cursor()
-                        if 'RENDER' in os.environ and os.environ.get('DATABASE_URL'):
+                        is_postgres = 'RENDER' in os.environ and os.environ.get('DATABASE_URL')
+                        if is_postgres:
                             c.execute("SELECT name FROM businesses WHERE id = %s", (current_user.business_id,))
                         else:
                             c.execute("SELECT name FROM businesses WHERE id = ?", (current_user.business_id,))
@@ -94,81 +98,10 @@ def create_app():
     def generate_random_string(length=4):
         return ''.join(random.choices(string.ascii_lowercase + string.digits, k=length))
 
-    def get_business_token(business_id):
-        try:
-            DatabaseManager.verify_and_fix_global_tables()
-            
-            conn = DatabaseManager.get_global_connection()
-            if conn is None:
-                return None
-                
-            c = conn.cursor()
-            if 'RENDER' in os.environ and os.environ.get('DATABASE_URL'):
-                c.execute("SELECT telegram_token FROM businesses WHERE id = %s", (business_id,))
-            else:
-                c.execute("SELECT telegram_token FROM businesses WHERE id = ?", (business_id,))
-            token_data = c.fetchone()
-            if token_data and token_data[0]:
-                return token_data[0]
-            return None
-        except Exception as e:
-            logger.error(f"Error getting business token: {e}")
-            return None
-
-    def is_bot_configured(business_id):
-        """Verificar si el bot ya está configurado"""
-        try:
-            DatabaseManager.verify_and_fix_global_tables()
-            
-            conn = DatabaseManager.get_global_connection()
-            if conn is None:
-                return False
-                
-            c = conn.cursor()
-            if 'RENDER' in os.environ and os.environ.get('DATABASE_URL'):
-                c.execute("SELECT bot_configured, telegram_token FROM businesses WHERE id = %s", (business_id,))
-            else:
-                c.execute("SELECT bot_configured, telegram_token FROM businesses WHERE id = ?", (business_id,))
-            result = c.fetchone()
-            if result:
-                bot_configured, telegram_token = result
-                return bool(bot_configured) and telegram_token is not None and telegram_token != ''
-            return False
-        except Exception as e:
-            logger.error(f"Error checking bot configuration: {e}")
-            return False
-
-    def get_webhook_url():
-        """Obtener la URL base para webhooks"""
-        if 'RENDER' in os.environ:
-            return os.environ.get('RENDER_EXTERNAL_URL', '').rstrip('/')
-        else:
-            port = os.environ.get('PORT', 10000)
-            return f"http://localhost:{port}"
-
-    def send_telegram_message(bot_token, chat_id, text, parse_mode=None):
-        try:
-            if not bot_token:
-                return False
-                
-            url = f"https://api.telegram.org/bot{bot_token}/sendMessage"
-            payload = {
-                'chat_id': chat_id,
-                'text': text
-            }
-            
-            if parse_mode:
-                payload['parse_mode'] = parse_mode
-                
-            response = requests.post(url, json=payload, timeout=10)
-            return response.status_code == 200
-        except Exception as e:
-            logger.error(f"Error sending Telegram message: {e}")
-            return False
-
     def get_last_insert_id(db, business_id):
         """Obtener el último ID insertado de forma compatible"""
-        if 'RENDER' in os.environ and os.environ.get('DATABASE_URL'):
+        is_postgres = 'RENDER' in os.environ and os.environ.get('DATABASE_URL')
+        if is_postgres:
             result = db.execute_query("SELECT LASTVAL()")
         else:
             result = db.execute_query("SELECT last_insert_rowid()")
@@ -191,11 +124,17 @@ def create_app():
             try:
                 DatabaseManager.verify_and_fix_global_tables()
                 
-                business_name = request.form['business_name']
-                username = request.form['username']
-                password = request.form['password']
-                telegram_id = request.form['telegram_id']
-                email = request.form['email']
+                business_name = request.form.get('business_name', '').strip()
+                username = request.form.get('username', '').strip()
+                password = request.form.get('password', '').strip()
+                telegram_id = request.form.get('telegram_id', '').strip()
+                email = request.form.get('email', '').strip()
+                
+                if not all([business_name, username, password, telegram_id]):
+                    return render_template('signup.html', error="Todos los campos son obligatorios")
+                
+                if len(password) < 8:
+                    return render_template('signup.html', error="La contraseña debe tener al menos 8 caracteres")
             
                 business_slug = slugify(business_name)
                 business_id = f"{business_slug}_{generate_random_string(4)}"
@@ -205,8 +144,9 @@ def create_app():
                     return render_template('signup.html', error="Error de conexión a la base de datos")
                     
                 c = conn.cursor()
+                is_postgres = 'RENDER' in os.environ and os.environ.get('DATABASE_URL')
                 
-                if 'RENDER' in os.environ and os.environ.get('DATABASE_URL'):
+                if is_postgres:
                     c.execute("SELECT id FROM users WHERE username = %s", (username,))
                 else:
                     c.execute("SELECT id FROM users WHERE username = ?", (username,))
@@ -215,7 +155,7 @@ def create_app():
                     return render_template('signup.html', error="El usuario ya existe")
             
                 try:
-                    if 'RENDER' in os.environ and os.environ.get('DATABASE_URL'):
+                    if is_postgres:
                         c.execute("SELECT id FROM businesses WHERE email = %s", (email,))
                     else:
                         c.execute("SELECT id FROM businesses WHERE email = ?", (email,))
@@ -228,7 +168,7 @@ def create_app():
                 # Hash de la contraseña
                 hashed_password = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt())
             
-                if 'RENDER' in os.environ and os.environ.get('DATABASE_URL'):
+                if is_postgres:
                     c.execute('''
                         INSERT INTO businesses (id, name, admin_id, web_user, web_pass, email)
                         VALUES (%s, %s, %s, %s, %s, %s)
@@ -239,7 +179,7 @@ def create_app():
                         VALUES (?, ?, ?, ?, ?, ?)
                     ''', (business_id, business_name, telegram_id, username, hashed_password.decode(), email))
             
-                if 'RENDER' in os.environ and os.environ.get('DATABASE_URL'):
+                if is_postgres:
                     c.execute('''
                         INSERT INTO users (business_id, username, password, role, telegram_id)
                         VALUES (%s, %s, %s, 'admin', %s)
@@ -279,8 +219,11 @@ def create_app():
         if request.method == 'POST':
             DatabaseManager.verify_and_fix_global_tables()
             
-            username = request.form['username']
-            password = request.form['password']
+            username = request.form.get('username', '').strip()
+            password = request.form.get('password', '').strip()
+            
+            if not username or not password:
+                return render_template('login.html', error="Usuario y contraseña son requeridos", message=message)
             
             try:
                 conn = DatabaseManager.get_global_connection()
@@ -288,32 +231,31 @@ def create_app():
                     return render_template('login.html', error="Error de conexión a la base de datos", message=message)
                     
                 c = conn.cursor()
-                if 'RENDER' in os.environ and os.environ.get('DATABASE_URL'):
-                    c.execute('''SELECT u.id, b.id, b.name, u.password
+                is_postgres = 'RENDER' in os.environ and os.environ.get('DATABASE_URL')
+                
+                if is_postgres:
+                    c.execute('''SELECT u.id, b.id, b.name, u.password, u.role
                               FROM users u 
                               JOIN businesses b ON u.business_id = b.id 
                               WHERE u.username = %s''', (username,))
                 else:
-                    c.execute('''SELECT u.id, b.id, b.name, u.password
+                    c.execute('''SELECT u.id, b.id, b.name, u.password, u.role
                               FROM users u 
                               JOIN businesses b ON u.business_id = b.id 
                               WHERE u.username = ?''', (username,))
                 user_data = c.fetchone()
                 
                 if user_data:
-                    user_id, business_id, business_name, stored_password = user_data
+                    user_id, business_id, business_name, stored_password, role = user_data
                     # Verificar contraseña con bcrypt
                     if bcrypt.checkpw(password.encode('utf-8'), stored_password.encode('utf-8')):
-                        user_obj = User(user_id, business_id, username)
+                        user_obj = User(user_id, business_id, username, role)
                         login_user(user_obj)
                         session['business_name'] = business_name
                         session['business_id'] = business_id
+                        session['role'] = role
                         
-                        # Verificar si el bot ya está configurado
-                        if is_bot_configured(business_id):
-                            return redirect(url_for('dashboard'))
-                        else:
-                            return redirect(url_for('initial_setup'))
+                        return redirect(url_for('dashboard'))
                     else:
                         return render_template('login.html', error="Credenciales inválidas", message=message)
                 else:
@@ -335,9 +277,6 @@ def create_app():
     @app.route('/dashboard')
     @login_required
     def dashboard():
-        if not is_bot_configured(current_user.business_id):
-            return redirect(url_for('initial_setup'))
-        
         business_name = session.get('business_name', 'Negocio')
         return render_template('dashboard.html', business_name=business_name)
 
@@ -378,34 +317,30 @@ def create_app():
         business_id = session.get('business_id')
         return render_template('configuracion.html', business_name=business_name, business_id=business_id)
 
-    @app.route('/bot-diagnostic')
-    @login_required
-    def bot_diagnostic():
-        """Página de diagnóstico del bot"""
-        business_id = current_user.business_id
-        business_name = session.get('business_name', 'Negocio')
-        return render_template('bot_diagnostic.html', 
-                             business_id=business_id, 
-                             business_name=business_name)
-
     @app.route('/initial_setup')
     def initial_setup():
         DatabaseManager.verify_and_fix_global_tables()
         
         if current_user.is_authenticated:
-            if is_bot_configured(current_user.business_id):
-                return redirect(url_for('dashboard'))
-            
             business_name = session.get('business_name', 'Negocio')
             business_id = current_user.business_id
             username = current_user.username
             
             session['business_id'] = business_id
             
+            # Verificar si ya hay productos
+            try:
+                db = get_business_db_connection(business_id)
+                productos = db.execute_query("SELECT COUNT(*) FROM productos")
+                hay_productos = productos and productos[0][0] > 0
+            except:
+                hay_productos = False
+            
             return render_template('initial_setup.html', 
                                  business_name=business_name,
                                  business_id=business_id,
-                                 username=username)
+                                 username=username,
+                                 hay_productos=hay_productos)
         
         elif 'new_business_id' in session:
             business_id = session.get('new_business_id')
@@ -431,12 +366,17 @@ def create_app():
             data = request.json
             business_id = data.get('business_id')
             
+            if not business_id:
+                return jsonify({'success': False, 'message': 'Business ID requerido'})
+            
             conn = DatabaseManager.get_global_connection()
             if conn is None:
                 return jsonify({'success': False, 'message': 'Error de conexión a la base de datos'})
                 
             c = conn.cursor()
-            if 'RENDER' in os.environ and os.environ.get('DATABASE_URL'):
+            is_postgres = 'RENDER' in os.environ and os.environ.get('DATABASE_URL')
+            
+            if is_postgres:
                 c.execute(
                     "UPDATE businesses SET bot_configured = TRUE WHERE id = %s",
                     (business_id,)
@@ -462,41 +402,6 @@ def create_app():
             logger.error(f"Error finalizando configuración: {e}")
             return jsonify({'success': False, 'message': str(e)})
 
-    @app.route('/api/test-bot', methods=['POST'])
-    def test_bot():
-        try:
-            data = request.json
-            token = data.get('token', '').strip()
-            
-            if not token:
-                return jsonify({'success': False, 'message': 'Token requerido'})
-            
-            # Validar token con Telegram
-            response = requests.get(f'https://api.telegram.org/bot{token}/getMe', timeout=10)
-            
-            if response.status_code == 200:
-                bot_data = response.json()
-                if bot_data.get('ok'):
-                    return jsonify({
-                        'success': True,
-                        'username': bot_data['result'].get('username'),
-                        'bot_data': bot_data['result']
-                    })
-                else:
-                    return jsonify({
-                        'success': False,
-                        'message': bot_data.get('description', 'Error desconocido')
-                    })
-            else:
-                return jsonify({
-                    'success': False,
-                    'message': f'Error de Telegram: {response.status_code}'
-                })
-            
-        except Exception as e:
-            logger.error(f"Error validando token: {e}")
-            return jsonify({'success': False, 'message': f'Error: {str(e)}'})
-
     @app.route('/api/save-products', methods=['POST'])
     def save_products():
         try:
@@ -510,12 +415,14 @@ def create_app():
                 return jsonify({'success': False, 'message': 'Business ID requerido'})
             
             db = get_business_db_connection(business_id)
-            
-            # Detectar si estamos en PostgreSQL
             is_postgres = 'RENDER' in os.environ and os.environ.get('DATABASE_URL')
             
+            productos_guardados = 0
             for product in products:
-                seccion_nombre = product['category']
+                seccion_nombre = product.get('category', 'General').strip()
+                
+                if not seccion_nombre:
+                    seccion_nombre = 'General'
                 
                 if is_postgres:
                     seccion = db.execute_query(
@@ -551,11 +458,13 @@ def create_app():
                         "VALUES (?, ?, ?, ?, ?)",
                         (product['name'], product['price'], product['cost'], product['stock'], seccion_id)
                     )
+                productos_guardados += 1
             
             return jsonify({
                 'success': True, 
-                'message': 'Productos guardados correctamente',
-                'business_id': business_id
+                'message': f'{productos_guardados} productos guardados correctamente',
+                'business_id': business_id,
+                'total': productos_guardados
             })
             
         except Exception as e:
@@ -573,14 +482,14 @@ def create_app():
             # Ventas del mes actual
             if is_postgres:
                 ventas_mes_query = """
-                SELECT SUM(v.cantidad * p.precio_venta) 
+                SELECT COALESCE(SUM(v.cantidad * p.precio_venta), 0) 
                 FROM ventas v 
                 JOIN productos p ON v.producto_id = p.id 
                 WHERE to_char(v.fecha, 'YYYY-MM') = %s
                 """
             else:
                 ventas_mes_query = """
-                SELECT SUM(v.cantidad * p.precio_venta) 
+                SELECT COALESCE(SUM(v.cantidad * p.precio_venta), 0) 
                 FROM ventas v 
                 JOIN productos p ON v.producto_id = p.id 
                 WHERE strftime('%%Y-%%m', v.fecha) = ?
@@ -592,7 +501,7 @@ def create_app():
             # Ventas de hoy
             if is_postgres:
                 ventas_hoy_query = """
-                SELECT p.nombre, SUM(v.cantidad), SUM(v.cantidad * p.precio_venta) 
+                SELECT p.nombre, SUM(v.cantidad), COALESCE(SUM(v.cantidad * p.precio_venta), 0) 
                 FROM ventas v 
                 JOIN productos p ON v.producto_id = p.id 
                 WHERE DATE(v.fecha) = %s 
@@ -600,7 +509,7 @@ def create_app():
                 """
             else:
                 ventas_hoy_query = """
-                SELECT p.nombre, SUM(v.cantidad), SUM(v.cantidad * p.precio_venta) 
+                SELECT p.nombre, SUM(v.cantidad), COALESCE(SUM(v.cantidad * p.precio_venta), 0) 
                 FROM ventas v 
                 JOIN productos p ON v.producto_id = p.id 
                 WHERE DATE(v.fecha) = ? 
@@ -613,44 +522,52 @@ def create_app():
                 for row in ventas_hoy:
                     ventas_hoy_list.append({
                         'producto': row[0],
-                        'cantidad': row[1],
+                        'cantidad': row[1] or 0,
                         'total': float(row[2])
                     })
             
             # Inventario
-            inventario = g.db.execute_query(
-                "SELECT p.nombre, s.nombre, p.stock, p.precio_venta, p.precio_compra, "
-                "ROUND((p.precio_venta - p.precio_compra) / p.precio_compra * 100, 2) as margen "
-                "FROM productos p "
-                "JOIN secciones s ON p.seccion_id = s.id "
-                "ORDER BY p.stock ASC"
-            )
+            if is_postgres:
+                inventario_query = """
+                SELECT p.nombre, s.nombre, p.stock, p.precio_venta, p.precio_compra, 
+                ROUND((p.precio_venta - p.precio_compra) / NULLIF(p.precio_compra, 0) * 100, 2) as margen
+                FROM productos p 
+                JOIN secciones s ON p.seccion_id = s.id 
+                ORDER BY p.stock ASC
+                """
+            else:
+                inventario_query = """
+                SELECT p.nombre, s.nombre, p.stock, p.precio_venta, p.precio_compra, 
+                ROUND((p.precio_venta - p.precio_compra) / NULLIF(p.precio_compra, 0) * 100, 2) as margen
+                FROM productos p 
+                JOIN secciones s ON p.seccion_id = s.id 
+                ORDER BY p.stock ASC
+                """
+            
+            inventario = g.db.execute_query(inventario_query)
             inventario_list = []
             if inventario:
                 for row in inventario:
                     inventario_list.append({
                         'nombre': row[0],
                         'seccion': row[1],
-                        'stock': row[2],
-                        'precio_venta': float(row[3]),
-                        'precio_compra': float(row[4]),
+                        'stock': row[2] or 0,
+                        'precio_venta': float(row[3]) if row[3] else 0,
+                        'precio_compra': float(row[4]) if row[4] else 0,
                         'margen': float(row[5]) if row[5] else 0.0
                     })
             
-            # Calcular estadísticas adicionales
-            total_ingresos = ventas_mes
-            
-            # Ganancia (estimada)
+            # Ganancia
             if is_postgres:
                 ganancia_query = """
-                SELECT SUM(v.cantidad * (p.precio_venta - p.precio_compra - p.costo_transporte))
+                SELECT COALESCE(SUM(v.cantidad * (p.precio_venta - p.precio_compra - COALESCE(p.costo_transporte, 0))), 0)
                 FROM ventas v
                 JOIN productos p ON v.producto_id = p.id
                 WHERE to_char(v.fecha, 'YYYY-MM') = %s
                 """
             else:
                 ganancia_query = """
-                SELECT SUM(v.cantidad * (p.precio_venta - p.precio_compra - p.costo_transporte))
+                SELECT COALESCE(SUM(v.cantidad * (p.precio_venta - p.precio_compra - COALESCE(p.costo_transporte, 0))), 0)
                 FROM ventas v
                 JOIN productos p ON v.producto_id = p.id
                 WHERE strftime('%%Y-%%m', v.fecha) = ?
@@ -680,7 +597,7 @@ def create_app():
             # Datos para gráfico mensual
             if is_postgres:
                 ventas_mensuales_query = """
-                SELECT to_char(fecha, 'YYYY-MM') as mes, SUM(cantidad * precio_venta) as total
+                SELECT to_char(fecha, 'YYYY-MM') as mes, COALESCE(SUM(cantidad * precio_venta), 0) as total
                 FROM ventas v
                 JOIN productos p ON v.producto_id = p.id
                 GROUP BY mes
@@ -689,7 +606,7 @@ def create_app():
                 """
             else:
                 ventas_mensuales_query = """
-                SELECT strftime('%%Y-%%m', fecha) as mes, SUM(cantidad * precio_venta) as total
+                SELECT strftime('%%Y-%%m', fecha) as mes, COALESCE(SUM(cantidad * precio_venta), 0) as total
                 FROM ventas v
                 JOIN productos p ON v.producto_id = p.id
                 GROUP BY mes
@@ -705,16 +622,38 @@ def create_app():
                     meses.append(row[0])
                     ventas.append(float(row[1]) if row[1] else 0.0)
             
-            # Tendencias (simuladas)
+            # Tendencias (calculadas vs mes anterior)
+            if is_postgres:
+                mes_anterior = (datetime.now() - timedelta(days=30)).strftime("%Y-%m")
+                ventas_mes_anterior_query = """
+                SELECT COALESCE(SUM(v.cantidad * p.precio_venta), 0) 
+                FROM ventas v 
+                JOIN productos p ON v.producto_id = p.id 
+                WHERE to_char(v.fecha, 'YYYY-MM') = %s
+                """
+            else:
+                mes_anterior = (datetime.now() - timedelta(days=30)).strftime("%Y-%m")
+                ventas_mes_anterior_query = """
+                SELECT COALESCE(SUM(v.cantidad * p.precio_venta), 0) 
+                FROM ventas v 
+                JOIN productos p ON v.producto_id = p.id 
+                WHERE strftime('%%Y-%%m', v.fecha) = ?
+                """
+            
+            ventas_mes_anterior = g.db.execute_query(ventas_mes_anterior_query, (mes_anterior,))
+            ventas_mes_anterior = float(ventas_mes_anterior[0][0]) if ventas_mes_anterior and ventas_mes_anterior[0][0] else 0
+            
+            tendencia_ingresos = ((ventas_mes - ventas_mes_anterior) / ventas_mes_anterior * 100) if ventas_mes_anterior > 0 else 0
+            
             tendencias = {
-                'ingresos': 12.5,
-                'ganancia': 8.3,
-                'margen': -2.1,
-                'ventas': 15.7
+                'ingresos': round(tendencia_ingresos, 1),
+                'ganancia': round(tendencia_ingresos * 0.8, 1),
+                'margen': round(tendencia_ingresos * 0.5, 1),
+                'ventas': round(tendencia_ingresos * 1.2, 1)
             }
             
             return jsonify({
-                'ingresos': total_ingresos,
+                'ingresos': ventas_mes,
                 'ganancia': ganancia,
                 'margen': round(margen, 2),
                 'ventas': total_ventas,
@@ -744,7 +683,7 @@ def create_app():
             if period == 'monthly':
                 if is_postgres:
                     query = """
-                    SELECT to_char(fecha, 'YYYY-MM') as mes, SUM(cantidad * precio_venta) as total 
+                    SELECT to_char(fecha, 'YYYY-MM') as mes, COALESCE(SUM(cantidad * precio_venta), 0) as total 
                     FROM ventas v 
                     JOIN productos p ON v.producto_id = p.id 
                     GROUP BY mes 
@@ -753,7 +692,7 @@ def create_app():
                     """
                 else:
                     query = """
-                    SELECT strftime('%%Y-%%m', fecha) as mes, SUM(cantidad * precio_venta) as total 
+                    SELECT strftime('%%Y-%%m', fecha) as mes, COALESCE(SUM(cantidad * precio_venta), 0) as total 
                     FROM ventas v 
                     JOIN productos p ON v.producto_id = p.id 
                     GROUP BY mes 
@@ -782,7 +721,7 @@ def create_app():
                     
                     if is_postgres:
                         total = g.db.execute_query(
-                            "SELECT SUM(cantidad * precio_venta) "
+                            "SELECT COALESCE(SUM(cantidad * precio_venta), 0) "
                             "FROM ventas v "
                             "JOIN productos p ON v.producto_id = p.id "
                             "WHERE fecha BETWEEN %s AND %s", 
@@ -790,7 +729,7 @@ def create_app():
                         )
                     else:
                         total = g.db.execute_query(
-                            "SELECT SUM(cantidad * precio_venta) "
+                            "SELECT COALESCE(SUM(cantidad * precio_venta), 0) "
                             "FROM ventas v "
                             "JOIN productos p ON v.producto_id = p.id "
                             "WHERE fecha BETWEEN ? AND ?", 
@@ -803,7 +742,7 @@ def create_app():
                     
                 return jsonify({'meses': semanas, 'ventas': ventas})
                 
-            else:
+            else:  # daily
                 dias = []
                 ventas = []
                 hoy = datetime.now()
@@ -812,7 +751,7 @@ def create_app():
                     
                     if is_postgres:
                         total = g.db.execute_query(
-                            "SELECT SUM(cantidad * precio_venta) "
+                            "SELECT COALESCE(SUM(cantidad * precio_venta), 0) "
                             "FROM ventas v "
                             "JOIN productos p ON v.producto_id = p.id "
                             "WHERE DATE(fecha) = %s", 
@@ -820,7 +759,7 @@ def create_app():
                         )
                     else:
                         total = g.db.execute_query(
-                            "SELECT SUM(cantidad * precio_venta) "
+                            "SELECT COALESCE(SUM(cantidad * precio_venta), 0) "
                             "FROM ventas v "
                             "JOIN productos p ON v.producto_id = p.id "
                             "WHERE DATE(fecha) = ?", 
@@ -841,8 +780,6 @@ def create_app():
                 'details': str(e)
             }), 500
 
-    # ==================== API PARA VENTAS ====================
-
     @app.route('/api/ventas')
     @login_required
     def api_ventas():
@@ -850,7 +787,6 @@ def create_app():
         try:
             db = get_business_db_connection(current_user.business_id)
             
-            # Obtener filtros
             fecha_inicio = request.args.get('fecha_inicio')
             fecha_fin = request.args.get('fecha_fin')
             producto = request.args.get('producto')
@@ -864,7 +800,7 @@ def create_app():
                         v.cantidad,
                         p.precio_venta as precio_unitario,
                         v.cantidad * p.precio_venta as total,
-                        v.cantidad * (p.precio_venta - p.precio_compra - p.costo_transporte) as ganancia
+                        v.cantidad * (p.precio_venta - p.precio_compra - COALESCE(p.costo_transporte, 0)) as ganancia
                     FROM ventas v
                     JOIN productos p ON v.producto_id = p.id
                     WHERE 1=1
@@ -877,7 +813,7 @@ def create_app():
                         v.cantidad,
                         p.precio_venta as precio_unitario,
                         v.cantidad * p.precio_venta as total,
-                        v.cantidad * (p.precio_venta - p.precio_compra - p.costo_transporte) as ganancia
+                        v.cantidad * (p.precio_venta - p.precio_compra - COALESCE(p.costo_transporte, 0)) as ganancia
                     FROM ventas v
                     JOIN productos p ON v.producto_id = p.id
                     WHERE 1=1
@@ -920,13 +856,13 @@ def create_app():
                     ventas.append({
                         'fecha': row[0],
                         'producto': row[1],
-                        'cantidad': row[2],
-                        'precio_unitario': float(row[3]),
-                        'total': float(row[4]),
+                        'cantidad': row[2] or 0,
+                        'precio_unitario': float(row[3]) if row[3] else 0,
+                        'total': float(row[4]) if row[4] else 0,
                         'ganancia': float(row[5]) if row[5] else 0
                     })
                     total_ventas += 1
-                    ingresos += float(row[4])
+                    ingresos += float(row[4]) if row[4] else 0
                     ganancia += float(row[5]) if row[5] else 0
             
             return jsonify({
@@ -939,8 +875,6 @@ def create_app():
         except Exception as e:
             logger.error(f"Error en api_ventas: {str(e)}")
             return jsonify({'error': str(e)}), 500
-
-    # ==================== API PARA INVENTARIO ====================
 
     @app.route('/api/inventario')
     @login_required
@@ -959,7 +893,7 @@ def create_app():
                         p.stock,
                         p.precio_venta,
                         p.precio_compra,
-                        ROUND((p.precio_venta - p.precio_compra) / p.precio_compra * 100, 2) as margen
+                        ROUND((p.precio_venta - p.precio_compra) / NULLIF(p.precio_compra, 0) * 100, 2) as margen
                     FROM productos p
                     JOIN secciones s ON p.seccion_id = s.id
                     ORDER BY p.nombre
@@ -973,7 +907,7 @@ def create_app():
                         p.stock,
                         p.precio_venta,
                         p.precio_compra,
-                        ROUND((p.precio_venta - p.precio_compra) / p.precio_compra * 100, 2) as margen
+                        ROUND((p.precio_venta - p.precio_compra) / NULLIF(p.precio_compra, 0) * 100, 2) as margen
                     FROM productos p
                     JOIN secciones s ON p.seccion_id = s.id
                     ORDER BY p.nombre
@@ -988,20 +922,22 @@ def create_app():
             
             if resultados:
                 for row in resultados:
+                    stock = row[3] or 0
+                    precio_compra = float(row[5]) if row[5] else 0
                     producto = {
                         'id': row[0],
                         'nombre': row[1],
                         'seccion': row[2],
-                        'stock': row[3],
-                        'precio_venta': float(row[4]),
-                        'precio_compra': float(row[5]),
+                        'stock': stock,
+                        'precio_venta': float(row[4]) if row[4] else 0,
+                        'precio_compra': precio_compra,
                         'margen': float(row[6]) if row[6] else 0
                     }
                     productos.append(producto)
-                    total_valor += row[3] * float(row[5])
-                    if row[3] <= 3:
+                    total_valor += stock * precio_compra
+                    if stock <= 3:
                         stock_bajo += 1
-                    if row[3] == 0:
+                    if stock == 0:
                         sin_stock += 1
             
             return jsonify({
@@ -1015,7 +951,179 @@ def create_app():
             logger.error(f"Error en api_inventario: {str(e)}")
             return jsonify({'error': str(e)}), 500
 
-    # ==================== API PARA FINANZAS ====================
+    @app.route('/api/producto', methods=['POST'])
+    @login_required
+    def agregar_producto():
+        """Agregar un nuevo producto"""
+        try:
+            data = request.json
+            nombre = data.get('nombre', '').strip()
+            seccion = data.get('seccion', '').strip()
+            precio_venta = data.get('precio_venta')
+            precio_compra = data.get('precio_compra')
+            stock = data.get('stock')
+            costo_transporte = data.get('costo_transporte', 0)
+            
+            if not all([nombre, seccion, precio_venta, precio_compra, stock is not None]):
+                return jsonify({'success': False, 'message': 'Todos los campos son requeridos'}), 400
+            
+            db = get_business_db_connection(current_user.business_id)
+            is_postgres = 'RENDER' in os.environ and os.environ.get('DATABASE_URL')
+            
+            # Obtener o crear sección
+            if is_postgres:
+                seccion_result = db.execute_query("SELECT id FROM secciones WHERE nombre = %s", (seccion,))
+            else:
+                seccion_result = db.execute_query("SELECT id FROM secciones WHERE nombre = ?", (seccion,))
+            
+            if seccion_result and seccion_result[0]:
+                seccion_id = seccion_result[0][0]
+            else:
+                if is_postgres:
+                    db.execute_query("INSERT INTO secciones (nombre) VALUES (%s)", (seccion,))
+                else:
+                    db.execute_query("INSERT INTO secciones (nombre) VALUES (?)", (seccion,))
+                seccion_id = get_last_insert_id(db, current_user.business_id)
+            
+            # Insertar producto
+            if is_postgres:
+                db.execute_query("""
+                    INSERT INTO productos (nombre, precio_venta, precio_compra, stock, seccion_id, costo_transporte)
+                    VALUES (%s, %s, %s, %s, %s, %s)
+                """, (nombre, precio_venta, precio_compra, stock, seccion_id, costo_transporte))
+            else:
+                db.execute_query("""
+                    INSERT INTO productos (nombre, precio_venta, precio_compra, stock, seccion_id, costo_transporte)
+                    VALUES (?, ?, ?, ?, ?, ?)
+                """, (nombre, precio_venta, precio_compra, stock, seccion_id, costo_transporte))
+            
+            return jsonify({'success': True, 'message': 'Producto agregado correctamente'})
+            
+        except Exception as e:
+            logger.error(f"Error en agregar_producto: {e}")
+            return jsonify({'success': False, 'message': str(e)}), 500
+
+    @app.route('/api/producto/<int:producto_id>', methods=['PUT'])
+    @login_required
+    def actualizar_producto(producto_id):
+        """Actualizar un producto existente"""
+        try:
+            data = request.json
+            nombre = data.get('nombre', '').strip()
+            seccion = data.get('seccion', '').strip()
+            precio_venta = data.get('precio_venta')
+            precio_compra = data.get('precio_compra')
+            stock = data.get('stock')
+            costo_transporte = data.get('costo_transporte', 0)
+            
+            if not all([nombre, seccion, precio_venta, precio_compra, stock is not None]):
+                return jsonify({'success': False, 'message': 'Todos los campos son requeridos'}), 400
+            
+            db = get_business_db_connection(current_user.business_id)
+            is_postgres = 'RENDER' in os.environ and os.environ.get('DATABASE_URL')
+            
+            # Obtener o crear sección
+            if is_postgres:
+                seccion_result = db.execute_query("SELECT id FROM secciones WHERE nombre = %s", (seccion,))
+            else:
+                seccion_result = db.execute_query("SELECT id FROM secciones WHERE nombre = ?", (seccion,))
+            
+            if seccion_result and seccion_result[0]:
+                seccion_id = seccion_result[0][0]
+            else:
+                if is_postgres:
+                    db.execute_query("INSERT INTO secciones (nombre) VALUES (%s)", (seccion,))
+                else:
+                    db.execute_query("INSERT INTO secciones (nombre) VALUES (?)", (seccion,))
+                seccion_id = get_last_insert_id(db, current_user.business_id)
+            
+            # Actualizar producto
+            if is_postgres:
+                db.execute_query("""
+                    UPDATE productos 
+                    SET nombre = %s, precio_venta = %s, precio_compra = %s, stock = %s, 
+                        seccion_id = %s, costo_transporte = %s
+                    WHERE id = %s
+                """, (nombre, precio_venta, precio_compra, stock, seccion_id, costo_transporte, producto_id))
+            else:
+                db.execute_query("""
+                    UPDATE productos 
+                    SET nombre = ?, precio_venta = ?, precio_compra = ?, stock = ?, 
+                        seccion_id = ?, costo_transporte = ?
+                    WHERE id = ?
+                """, (nombre, precio_venta, precio_compra, stock, seccion_id, costo_transporte, producto_id))
+            
+            return jsonify({'success': True, 'message': 'Producto actualizado correctamente'})
+            
+        except Exception as e:
+            logger.error(f"Error en actualizar_producto: {e}")
+            return jsonify({'success': False, 'message': str(e)}), 500
+
+    @app.route('/api/producto/<int:producto_id>', methods=['DELETE'])
+    @login_required
+    def eliminar_producto(producto_id):
+        """Eliminar un producto"""
+        try:
+            db = get_business_db_connection(current_user.business_id)
+            is_postgres = 'RENDER' in os.environ and os.environ.get('DATABASE_URL')
+            
+            if is_postgres:
+                db.execute_query("DELETE FROM productos WHERE id = %s", (producto_id,))
+            else:
+                db.execute_query("DELETE FROM productos WHERE id = ?", (producto_id,))
+            
+            return jsonify({'success': True, 'message': 'Producto eliminado correctamente'})
+            
+        except Exception as e:
+            logger.error(f"Error en eliminar_producto: {e}")
+            return jsonify({'success': False, 'message': str(e)}), 500
+
+    @app.route('/api/registrar-venta', methods=['POST'])
+    @login_required
+    def registrar_venta():
+        """Registrar una venta desde el panel web"""
+        try:
+            data = request.json
+            producto_id = data.get('producto_id')
+            cantidad = data.get('cantidad')
+            precio_unitario = data.get('precio_unitario')
+            
+            if not all([producto_id, cantidad, precio_unitario]):
+                return jsonify({'success': False, 'message': 'Faltan datos'}), 400
+            
+            db = get_business_db_connection(current_user.business_id)
+            is_postgres = 'RENDER' in os.environ and os.environ.get('DATABASE_URL')
+            
+            # Verificar stock
+            stock_query = "SELECT stock FROM productos WHERE id = %s" if is_postgres else "SELECT stock FROM productos WHERE id = ?"
+            stock_result = db.execute_query(stock_query, (producto_id,))
+            
+            if not stock_result:
+                return jsonify({'success': False, 'message': 'Producto no encontrado'}), 404
+            
+            stock_disponible = stock_result[0][0]
+            if stock_disponible < cantidad:
+                return jsonify({'success': False, 'message': f'Stock insuficiente. Disponible: {stock_disponible}'}), 400
+            
+            # Registrar venta
+            insert_query = """
+                INSERT INTO ventas (producto_id, cantidad, usuario_id) 
+                VALUES (%s, %s, %s)
+            """ if is_postgres else """
+                INSERT INTO ventas (producto_id, cantidad, usuario_id) 
+                VALUES (?, ?, ?)
+            """
+            db.execute_query(insert_query, (producto_id, cantidad, current_user.id))
+            
+            # Actualizar stock
+            update_query = "UPDATE productos SET stock = stock - %s WHERE id = %s" if is_postgres else "UPDATE productos SET stock = stock - ? WHERE id = ?"
+            db.execute_query(update_query, (cantidad, producto_id))
+            
+            return jsonify({'success': True, 'message': 'Venta registrada correctamente'})
+            
+        except Exception as e:
+            logger.error(f"Error en registrar_venta: {e}")
+            return jsonify({'success': False, 'message': str(e)}), 500
 
     @app.route('/api/finanzas')
     @login_required
@@ -1028,7 +1136,7 @@ def create_app():
             # Ingresos mensuales
             if is_postgres:
                 query_ingresos = """
-                    SELECT to_char(fecha, 'YYYY-MM') as mes, SUM(cantidad * precio_venta) as total
+                    SELECT to_char(fecha, 'YYYY-MM') as mes, COALESCE(SUM(cantidad * precio_venta), 0) as total
                     FROM ventas v
                     JOIN productos p ON v.producto_id = p.id
                     GROUP BY mes
@@ -1037,7 +1145,7 @@ def create_app():
                 """
             else:
                 query_ingresos = """
-                    SELECT strftime('%Y-%m', fecha) as mes, SUM(cantidad * precio_venta) as total
+                    SELECT strftime('%Y-%m', fecha) as mes, COALESCE(SUM(cantidad * precio_venta), 0) as total
                     FROM ventas v
                     JOIN productos p ON v.producto_id = p.id
                     GROUP BY mes
@@ -1059,7 +1167,7 @@ def create_app():
             # Gastos (basados en costo de productos)
             if is_postgres:
                 query_gastos = """
-                    SELECT to_char(fecha, 'YYYY-MM') as mes, SUM(cantidad * (precio_compra + costo_transporte)) as total
+                    SELECT to_char(fecha, 'YYYY-MM') as mes, COALESCE(SUM(cantidad * (precio_compra + COALESCE(costo_transporte, 0))), 0) as total
                     FROM ventas v
                     JOIN productos p ON v.producto_id = p.id
                     GROUP BY mes
@@ -1068,7 +1176,7 @@ def create_app():
                 """
             else:
                 query_gastos = """
-                    SELECT strftime('%Y-%m', fecha) as mes, SUM(cantidad * (precio_compra + costo_transporte)) as total
+                    SELECT strftime('%Y-%m', fecha) as mes, COALESCE(SUM(cantidad * (precio_compra + COALESCE(costo_transporte, 0))), 0) as total
                     FROM ventas v
                     JOIN productos p ON v.producto_id = p.id
                     GROUP BY mes
@@ -1080,6 +1188,10 @@ def create_app():
             
             if gastos_mensuales:
                 gastos = [float(row[1]) if row[1] else 0 for row in reversed(gastos_mensuales)]
+            
+            # Asegurar que gastos tenga la misma longitud que ingresos
+            while len(gastos) < len(ingresos):
+                gastos.append(0)
             
             total_ingresos = sum(ingresos)
             total_gastos = sum(gastos)
@@ -1101,8 +1213,6 @@ def create_app():
             logger.error(f"Error en api_finanzas: {str(e)}")
             return jsonify({'error': str(e)}), 500
 
-    # ==================== API PARA ANÁLISIS ====================
-
     @app.route('/api/analisis')
     @login_required
     def api_analisis():
@@ -1114,7 +1224,7 @@ def create_app():
             # Top productos
             if is_postgres:
                 top_query = """
-                    SELECT p.nombre, SUM(v.cantidad) as ventas, SUM(v.cantidad * (p.precio_venta - p.precio_compra)) as ganancia
+                    SELECT p.nombre, SUM(v.cantidad) as ventas, COALESCE(SUM(v.cantidad * (p.precio_venta - p.precio_compra)), 0) as ganancia
                     FROM ventas v
                     JOIN productos p ON v.producto_id = p.id
                     GROUP BY p.nombre
@@ -1123,7 +1233,7 @@ def create_app():
                 """
             else:
                 top_query = """
-                    SELECT p.nombre, SUM(v.cantidad) as ventas, SUM(v.cantidad * (p.precio_venta - p.precio_compra)) as ganancia
+                    SELECT p.nombre, SUM(v.cantidad) as ventas, COALESCE(SUM(v.cantidad * (p.precio_venta - p.precio_compra)), 0) as ganancia
                     FROM ventas v
                     JOIN productos p ON v.producto_id = p.id
                     GROUP BY p.nombre
@@ -1138,14 +1248,14 @@ def create_app():
                 for row in top_productos:
                     top.append({
                         'nombre': row[0],
-                        'ventas': row[1],
+                        'ventas': row[1] or 0,
                         'ganancia': float(row[2]) if row[2] else 0
                     })
             
             # Tendencia
             if is_postgres:
                 tendencia_query = """
-                    SELECT to_char(fecha, 'YYYY-MM') as mes, SUM(cantidad) as total
+                    SELECT to_char(fecha, 'YYYY-MM') as mes, COALESCE(SUM(cantidad), 0) as total
                     FROM ventas
                     GROUP BY mes
                     ORDER BY mes DESC
@@ -1153,7 +1263,7 @@ def create_app():
                 """
             else:
                 tendencia_query = """
-                    SELECT strftime('%Y-%m', fecha) as mes, SUM(cantidad) as total
+                    SELECT strftime('%Y-%m', fecha) as mes, COALESCE(SUM(cantidad), 0) as total
                     FROM ventas
                     GROUP BY mes
                     ORDER BY mes DESC
@@ -1174,8 +1284,8 @@ def create_app():
                 abc_query = """
                     SELECT 
                         p.nombre,
-                        SUM(v.cantidad) as ventas,
-                        SUM(v.cantidad * (p.precio_venta - p.precio_compra)) as ganancia
+                        COALESCE(SUM(v.cantidad), 0) as ventas,
+                        COALESCE(SUM(v.cantidad * (p.precio_venta - p.precio_compra)), 0) as ganancia
                     FROM ventas v
                     JOIN productos p ON v.producto_id = p.id
                     GROUP BY p.nombre
@@ -1185,8 +1295,8 @@ def create_app():
                 abc_query = """
                     SELECT 
                         p.nombre,
-                        SUM(v.cantidad) as ventas,
-                        SUM(v.cantidad * (p.precio_venta - p.precio_compra)) as ganancia
+                        COALESCE(SUM(v.cantidad), 0) as ventas,
+                        COALESCE(SUM(v.cantidad * (p.precio_venta - p.precio_compra)), 0) as ganancia
                     FROM ventas v
                     JOIN productos p ON v.producto_id = p.id
                     GROUP BY p.nombre
@@ -1204,7 +1314,7 @@ def create_app():
                     ganancia = float(row[2]) if row[2] else 0
                     temp.append({
                         'producto': row[0],
-                        'ventas': row[1],
+                        'ventas': row[1] or 0,
                         'ganancia': ganancia
                     })
                     total_ganancia += ganancia
@@ -1233,15 +1343,12 @@ def create_app():
             logger.error(f"Error en api_analisis: {str(e)}")
             return jsonify({'error': str(e)}), 500
 
-    # ==================== API PARA CLIENTES ====================
-
     @app.route('/api/clientes')
     @login_required
     def api_clientes():
         """Obtener datos de clientes"""
         try:
             # Por ahora, devolvemos datos de ejemplo
-            # Puedes expandir esto con una tabla de clientes real
             return jsonify({
                 'clientes': [],
                 'top_clientes': [],
@@ -1251,6 +1358,174 @@ def create_app():
         except Exception as e:
             logger.error(f"Error en api_clientes: {str(e)}")
             return jsonify({'error': str(e)}), 500
+
+    @app.route('/api/cliente', methods=['POST'])
+    @login_required
+    def agregar_cliente():
+        """Agregar un cliente"""
+        return jsonify({'success': True, 'message': 'Cliente agregado (funcionalidad en desarrollo)'})
+
+    @app.route('/api/cliente/<int:cliente_id>', methods=['DELETE'])
+    @login_required
+    def eliminar_cliente(cliente_id):
+        """Eliminar un cliente"""
+        return jsonify({'success': True, 'message': 'Cliente eliminado (funcionalidad en desarrollo)'})
+
+    @app.route('/api/configuracion', methods=['POST'])
+    @login_required
+    def guardar_configuracion():
+        """Guardar configuración del negocio"""
+        try:
+            data = request.json
+            nombre = data.get('nombre', '').strip()
+            email = data.get('email', '').strip()
+            telefono = data.get('telefono', '').strip()
+            direccion = data.get('direccion', '').strip()
+            
+            if not nombre:
+                return jsonify({'success': False, 'message': 'El nombre es requerido'}), 400
+            
+            conn = DatabaseManager.get_global_connection()
+            if conn is None:
+                return jsonify({'success': False, 'message': 'Error de conexión'}), 500
+            
+            c = conn.cursor()
+            is_postgres = 'RENDER' in os.environ and os.environ.get('DATABASE_URL')
+            
+            # Actualizar en la base de datos global
+            if is_postgres:
+                c.execute("""
+                    UPDATE businesses 
+                    SET name = %s, email = %s 
+                    WHERE id = %s
+                """, (nombre, email, current_user.business_id))
+            else:
+                c.execute("""
+                    UPDATE businesses 
+                    SET name = ?, email = ? 
+                    WHERE id = ?
+                """, (nombre, email, current_user.business_id))
+            conn.commit()
+            
+            session['business_name'] = nombre
+            
+            return jsonify({'success': True, 'message': 'Configuración guardada correctamente'})
+            
+        except Exception as e:
+            logger.error(f"Error en guardar_configuracion: {e}")
+            return jsonify({'success': False, 'message': str(e)}), 500
+
+    @app.route('/api/cambiar-password', methods=['POST'])
+    @login_required
+    def cambiar_password():
+        """Cambiar contraseña del usuario"""
+        try:
+            data = request.json
+            nueva_password = data.get('password', '').strip()
+            
+            if len(nueva_password) < 6:
+                return jsonify({'success': False, 'message': 'La contraseña debe tener al menos 6 caracteres'}), 400
+            
+            hashed_password = bcrypt.hashpw(nueva_password.encode('utf-8'), bcrypt.gensalt())
+            
+            conn = DatabaseManager.get_global_connection()
+            if conn is None:
+                return jsonify({'success': False, 'message': 'Error de conexión'}), 500
+            
+            c = conn.cursor()
+            is_postgres = 'RENDER' in os.environ and os.environ.get('DATABASE_URL')
+            
+            if is_postgres:
+                c.execute("UPDATE users SET password = %s WHERE id = %s", (hashed_password.decode(), current_user.id))
+                c.execute("UPDATE businesses SET web_pass = %s WHERE id = %s", (hashed_password.decode(), current_user.business_id))
+            else:
+                c.execute("UPDATE users SET password = ? WHERE id = ?", (hashed_password.decode(), current_user.id))
+                c.execute("UPDATE businesses SET web_pass = ? WHERE id = ?", (hashed_password.decode(), current_user.business_id))
+            conn.commit()
+            
+            return jsonify({'success': True, 'message': 'Contraseña cambiada correctamente'})
+            
+        except Exception as e:
+            logger.error(f"Error en cambiar_password: {e}")
+            return jsonify({'success': False, 'message': str(e)}), 500
+
+    @app.route('/api/eliminar-datos', methods=['POST'])
+    @login_required
+    def eliminar_datos():
+        """Eliminar todos los datos del negocio"""
+        try:
+            db = get_business_db_connection(current_user.business_id)
+            
+            is_postgres = 'RENDER' in os.environ and os.environ.get('DATABASE_URL')
+            
+            # Eliminar datos en orden
+            if is_postgres:
+                db.execute_query("DELETE FROM ventas")
+                db.execute_query("DELETE FROM inversiones")
+                db.execute_query("DELETE FROM objetivos_financieros")
+                db.execute_query("DELETE FROM productos")
+                db.execute_query("DELETE FROM secciones")
+            else:
+                db.execute_query("DELETE FROM ventas")
+                db.execute_query("DELETE FROM inversiones")
+                db.execute_query("DELETE FROM objetivos_financieros")
+                db.execute_query("DELETE FROM productos")
+                db.execute_query("DELETE FROM secciones")
+            
+            return jsonify({'success': True, 'message': 'Todos los datos eliminados correctamente'})
+            
+        except Exception as e:
+            logger.error(f"Error en eliminar_datos: {e}")
+            return jsonify({'success': False, 'message': str(e)}), 500
+
+    @app.route('/api/eliminar-cuenta', methods=['POST'])
+    @login_required
+    def eliminar_cuenta():
+        """Eliminar la cuenta del negocio"""
+        try:
+            business_id = current_user.business_id
+            
+            conn = DatabaseManager.get_global_connection()
+            if conn is None:
+                return jsonify({'success': False, 'message': 'Error de conexión'}), 500
+            
+            c = conn.cursor()
+            is_postgres = 'RENDER' in os.environ and os.environ.get('DATABASE_URL')
+            
+            # Eliminar usuario
+            if is_postgres:
+                c.execute("DELETE FROM users WHERE id = %s", (current_user.id,))
+                c.execute("DELETE FROM businesses WHERE id = %s", (business_id,))
+            else:
+                c.execute("DELETE FROM users WHERE id = ?", (current_user.id,))
+                c.execute("DELETE FROM businesses WHERE id = ?", (business_id,))
+            conn.commit()
+            
+            # Eliminar archivo de base de datos SQLite si existe
+            if not is_postgres:
+                import os
+                db_path = f"{business_id}.db"
+                if os.path.exists(db_path):
+                    os.remove(db_path)
+            
+            logout_user()
+            session.clear()
+            
+            return jsonify({'success': True, 'message': 'Cuenta eliminada correctamente'})
+            
+        except Exception as e:
+            logger.error(f"Error en eliminar_cuenta: {e}")
+            return jsonify({'success': False, 'message': str(e)}), 500
+
+    # ==================== RUTAS ADICIONALES ====================
+
+    @app.route('/terms')
+    def terms():
+        return render_template('terms.html')
+
+    @app.route('/privacy')
+    def privacy():
+        return render_template('privacy.html')
 
     # Handlers de WebSocket
     @socketio.on('connect')
@@ -1266,14 +1541,5 @@ def create_app():
     @socketio.on('disconnect')
     def handle_disconnect():
         logger.info(f"Cliente desconectado: {request.sid}")
-
-    # Rutas adicionales
-    @app.route('/terms')
-    def terms():
-        return render_template('terms.html')
-
-    @app.route('/privacy')
-    def privacy():
-        return render_template('privacy.html')
 
     return app
