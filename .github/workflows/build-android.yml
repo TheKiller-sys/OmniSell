@@ -55,8 +55,9 @@ jobs:
           name: app-release-unsigned
           path: android-app/app/build/outputs/apk/release/*.apk
 
+      # ✅ Línea 59 CORREGIDA
       - name: Sign Release APK (if secrets configured)
-        if: github.ref == 'refs/heads/main' && secrets.KEYSTORE_BASE64 != ''
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request' && secrets.KEYSTORE_BASE64 != ''
         run: |
           echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > keystore.jks
           cd android-app
@@ -65,8 +66,9 @@ jobs:
             -Pandroid.injected.signing.key.alias=${{ secrets.KEY_ALIAS }} \
             -Pandroid.injected.signing.key.password=${{ secrets.KEY_PASSWORD }}
 
+      # ✅ Línea 69 CORREGIDA (typo fs → refs)
       - name: Upload Signed APK
-        if: github.ref == 'fs/heads/main' && secrets.KEYSTORE_BASE64 != ''
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request' && secrets.KEYSTORE_BASE64 != ''
         uses: actions/upload-artifact@v3
         with:
           name: app-release-signed
