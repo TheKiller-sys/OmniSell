@@ -39,12 +39,13 @@ jobs:
           mkdir -p android-app/app/src/main/res/mipmap-xxhdpi
           mkdir -p android-app/app/src/main/res/mipmap-xxxhdpi
           mkdir -p android-app/app/src/main/res/mipmap-anydpi-v26
+          mkdir -p android-app/app/src/main/res/menu
           mkdir -p android-app/gradle/wrapper
           
           cd android-app
           
           # ============================================
-          # 0. CREAR gradle.properties (¡NUEVO!)
+          # 0. CREAR gradle.properties
           # ============================================
           cat > gradle.properties << 'EOF'
           # AndroidX configuration
@@ -90,7 +91,7 @@ jobs:
           EOF
           
           # ============================================
-          # 3. CREAR build.gradle (app) - VERSIÓN CORREGIDA
+          # 3. CREAR build.gradle (app)
           # ============================================
           cat > app/build.gradle << 'EOF'
           plugins {
@@ -131,6 +132,8 @@ jobs:
               implementation 'androidx.appcompat:appcompat:1.6.1'
               implementation 'com.google.android.material:material:1.9.0'
               implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
+              implementation 'androidx.recyclerview:recyclerview:1.3.2'
+              implementation 'androidx.cardview:cardview:1.0.0'
               
               testImplementation 'junit:junit:4.13.2'
               androidTestImplementation 'androidx.test.ext:junit:1.1.5'
@@ -160,7 +163,7 @@ jobs:
                   tools:targetApi="31">
                   
                   <activity
-                      android:name=".MainActivity"
+                      android:name=".LoginActivity"
                       android:exported="true"
                       android:screenOrientation="portrait">
                       <intent-filter>
@@ -169,13 +172,51 @@ jobs:
                       </intent-filter>
                   </activity>
                   
+                  <activity
+                      android:name=".MainActivity"
+                      android:exported="false"
+                      android:screenOrientation="portrait" />
+                  
               </application>
           
           </manifest>
           EOF
           
           # ============================================
-          # 5. CREAR MainActivity.java
+          # 5. CREAR LoginActivity.java
+          # ============================================
+          cat > app/src/main/java/com/omniventas/app/LoginActivity.java << 'EOF'
+          package com.omniventas.app;
+          
+          import android.os.Bundle;
+          import android.widget.Button;
+          import android.widget.EditText;
+          import android.widget.Toast;
+          import androidx.appcompat.app.AppCompatActivity;
+          
+          public class LoginActivity extends AppCompatActivity {
+              private EditText etBusinessId, etUsername, etPassword;
+              private Button btnLogin;
+          
+              @Override
+              protected void onCreate(Bundle savedInstanceState) {
+                  super.onCreate(savedInstanceState);
+                  setContentView(R.layout.activity_login);
+                  
+                  etBusinessId = findViewById(R.id.et_business_id);
+                  etUsername = findViewById(R.id.et_username);
+                  etPassword = findViewById(R.id.et_password);
+                  btnLogin = findViewById(R.id.btn_login);
+                  
+                  btnLogin.setOnClickListener(v -> {
+                      Toast.makeText(this, "Login funcionando", Toast.LENGTH_SHORT).show();
+                  });
+              }
+          }
+          EOF
+          
+          # ============================================
+          # 6. CREAR MainActivity.java
           # ============================================
           cat > app/src/main/java/com/omniventas/app/MainActivity.java << 'EOF'
           package com.omniventas.app;
@@ -197,33 +238,32 @@ jobs:
           EOF
           
           # ============================================
-          # 6. CREAR activity_main.xml
+          # 7. CREAR activity_login.xml
           # ============================================
-          cat > app/src/main/res/layout/activity_main.xml << 'EOF'
+          cat > app/src/main/res/layout/activity_login.xml << 'EOF'
           <?xml version="1.0" encoding="utf-8"?>
           <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
               xmlns:app="http://schemas.android.com/apk/res-auto"
               android:layout_width="match_parent"
               android:layout_height="match_parent"
               android:orientation="vertical"
-              android:gravity="center"
               android:padding="24dp"
-              android:background="#F5F7FB">
+              android:gravity="center"
+              android:background="@color/white">
           
               <ImageView
                   android:layout_width="80dp"
                   android:layout_height="80dp"
-                  android:src="@drawable/ic_launcher_foreground"
+                  android:src="@drawable/ic_logo"
                   android:layout_marginBottom="16dp" />
           
               <TextView
-                  android:id="@+id/textView"
                   android:layout_width="wrap_content"
                   android:layout_height="wrap_content"
                   android:text="OmniVentas"
                   android:textSize="28sp"
                   android:textStyle="bold"
-                  android:textColor="#4361EE"
+                  android:textColor="@color/primary"
                   android:layout_marginBottom="8dp" />
           
               <TextView
@@ -231,13 +271,193 @@ jobs:
                   android:layout_height="wrap_content"
                   android:text="Sistema de Gestión para Vendedores"
                   android:textSize="14sp"
-                  android:textColor="#6C757D" />
+                  android:textColor="@color/gray"
+                  android:layout_marginBottom="32dp" />
+          
+              <EditText
+                  android:id="@+id/et_business_id"
+                  android:layout_width="match_parent"
+                  android:layout_height="wrap_content"
+                  android:hint="ID del Negocio"
+                  android:inputType="text"
+                  android:padding="14dp"
+                  android:background="@drawable/edit_text_background"
+                  android:layout_marginBottom="12dp" />
+          
+              <EditText
+                  android:id="@+id/et_username"
+                  android:layout_width="match_parent"
+                  android:layout_height="wrap_content"
+                  android:hint="Usuario"
+                  android:inputType="text"
+                  android:padding="14dp"
+                  android:background="@drawable/edit_text_background"
+                  android:layout_marginBottom="12dp" />
+          
+              <EditText
+                  android:id="@+id/et_password"
+                  android:layout_width="match_parent"
+                  android:layout_height="wrap_content"
+                  android:hint="Contraseña"
+                  android:inputType="textPassword"
+                  android:padding="14dp"
+                  android:background="@drawable/edit_text_background"
+                  android:layout_marginBottom="24dp" />
+          
+              <Button
+                  android:id="@+id/btn_login"
+                  android:layout_width="match_parent"
+                  android:layout_height="wrap_content"
+                  android:text="Iniciar Sesión"
+                  android:textSize="16sp"
+                  android:padding="14dp"
+                  android:backgroundTint="@color/primary"
+                  app:cornerRadius="12dp" />
           
           </LinearLayout>
           EOF
           
           # ============================================
-          # 7. CREAR strings.xml
+          # 8. CREAR activity_main.xml
+          # ============================================
+          cat > app/src/main/res/layout/activity_main.xml << 'EOF'
+          <?xml version="1.0" encoding="utf-8"?>
+          <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+              xmlns:app="http://schemas.android.com/apk/res-auto"
+              android:layout_width="match_parent"
+              android:layout_height="match_parent"
+              android:orientation="vertical">
+          
+              <FrameLayout
+                  android:id="@+id/fragment_container"
+                  android:layout_width="match_parent"
+                  android:layout_height="0dp"
+                  android:layout_weight="1" />
+          
+              <com.google.android.material.bottomnavigation.BottomNavigationView
+                  android:id="@+id/bottom_navigation"
+                  android:layout_width="match_parent"
+                  android:layout_height="wrap_content"
+                  android:background="@color/white"
+                  app:menu="@menu/bottom_nav_menu"
+                  app:itemIconTint="@color/bottom_nav_tint"
+                  app:itemTextColor="@color/bottom_nav_tint" />
+          
+          </LinearLayout>
+          EOF
+          
+          # ============================================
+          # 9. CREAR bottom_nav_menu.xml
+          # ============================================
+          cat > app/src/main/res/menu/bottom_nav_menu.xml << 'EOF'
+          <?xml version="1.0" encoding="utf-8"?>
+          <menu xmlns:android="http://schemas.android.com/apk/res/android">
+              <item
+                  android:id="@+id/nav_dashboard"
+                  android:icon="@drawable/ic_dashboard"
+                  android:title="Dashboard" />
+              <item
+                  android:id="@+id/nav_ventas"
+                  android:icon="@drawable/ic_ventas"
+                  android:title="Ventas" />
+              <item
+                  android:id="@+id/nav_inventario"
+                  android:icon="@drawable/ic_inventario"
+                  android:title="Inventario" />
+              <item
+                  android:id="@+id/nav_logout"
+                  android:icon="@drawable/ic_logout"
+                  android:title="Salir" />
+          </menu>
+          EOF
+          
+          # ============================================
+          # 10. CREAR TODOS los drawables (íconos)
+          # ============================================
+          # ic_logo
+          cat > app/src/main/res/drawable/ic_logo.xml << 'EOF'
+          <?xml version="1.0" encoding="utf-8"?>
+          <vector xmlns:android="http://schemas.android.com/apk/res/android"
+              android:width="24dp"
+              android:height="24dp"
+              android:viewportWidth="24"
+              android:viewportHeight="24">
+              <path
+                  android:fillColor="#4361EE"
+                  android:pathData="M12,2C6.48,2 2,6.48 2,12s4.48,10 10,10 10,-4.48 10,-10S17.52,2 12,2zm-2,15l-5,-5 1.41,-1.41L10,14.17l7.59,-7.59L19,8l-9,9z"/>
+          </vector>
+          EOF
+          
+          # ic_dashboard
+          cat > app/src/main/res/drawable/ic_dashboard.xml << 'EOF'
+          <?xml version="1.0" encoding="utf-8"?>
+          <vector xmlns:android="http://schemas.android.com/apk/res/android"
+              android:width="24dp"
+              android:height="24dp"
+              android:viewportWidth="24"
+              android:viewportHeight="24">
+              <path
+                  android:fillColor="#000000"
+                  android:pathData="M3,13h8L11,3L3,3v10zM3,21h8v-6L3,15v6zM13,21h8L21,11h-8v10zM13,3v6h8L21,3h-8z"/>
+          </vector>
+          EOF
+          
+          # ic_ventas
+          cat > app/src/main/res/drawable/ic_ventas.xml << 'EOF'
+          <?xml version="1.0" encoding="utf-8"?>
+          <vector xmlns:android="http://schemas.android.com/apk/res/android"
+              android:width="24dp"
+              android:height="24dp"
+              android:viewportWidth="24"
+              android:viewportHeight="24">
+              <path
+                  android:fillColor="#000000"
+                  android:pathData="M7,18c-1.1,0 -2,0.9 -2,2s0.9,2 2,2 2,-0.9 2,-2 -0.9,-2 -2,-2zM1,2v2h2l3.6,7.59 -1.35,2.45C5.16,14.9 5.78,16 7,16h12v-2L7,14l1.1,-2h7.45c0.75,0 1.41,-0.41 1.75,-1.03l3.58,-6.49A1.996,1.996 0,0 0,20.01 4L5.21,4l-0.94,-2L1,2zM17,18c-1.1,0 -2,0.9 -2,2s0.9,2 2,2 2,-0.9 2,-2 -0.9,-2 -2,-2z"/>
+          </vector>
+          EOF
+          
+          # ic_inventario
+          cat > app/src/main/res/drawable/ic_inventario.xml << 'EOF'
+          <?xml version="1.0" encoding="utf-8"?>
+          <vector xmlns:android="http://schemas.android.com/apk/res/android"
+              android:width="24dp"
+              android:height="24dp"
+              android:viewportWidth="24"
+              android:viewportHeight="24">
+              <path
+                  android:fillColor="#000000"
+                  android:pathData="M20,6h-4V4c0,-1.1 -0.9,-2 -2,-2h-4C8.9,2 8,2.9 8,4v2H4c-1.1,0 -2,0.9 -2,2v12c0,1.1 0.9,2 2,2h16c1.1,0 2,-0.9 2,-2V8c0,-1.1 -0.9,-2 -2,-2zM10,4h4v2h-4V4zM4,20V8h4v10h8V8h4v12H4z"/>
+          </vector>
+          EOF
+          
+          # ic_logout
+          cat > app/src/main/res/drawable/ic_logout.xml << 'EOF'
+          <?xml version="1.0" encoding="utf-8"?>
+          <vector xmlns:android="http://schemas.android.com/apk/res/android"
+              android:width="24dp"
+              android:height="24dp"
+              android:viewportWidth="24"
+              android:viewportHeight="24">
+              <path
+                  android:fillColor="#000000"
+                  android:pathData="M17,7l-1.41,1.41L18.17,11H8v2h10.17l-2.58,2.58L17,17l5,-5zM4,5h8V3H4c-1.1,0 -2,0.9 -2,2v14c0,1.1 0.9,2 2,2h8v-2H4V5z"/>
+          </vector>
+          EOF
+          
+          # ============================================
+          # 11. CREAR edit_text_background.xml
+          # ============================================
+          cat > app/src/main/res/drawable/edit_text_background.xml << 'EOF'
+          <?xml version="1.0" encoding="utf-8"?>
+          <shape xmlns:android="http://schemas.android.com/apk/res/android">
+              <solid android:color="@color/white" />
+              <stroke android:width="1dp" android:color="@color/gray" />
+              <corners android:radius="8dp" />
+          </shape>
+          EOF
+          
+          # ============================================
+          # 12. CREAR strings.xml
           # ============================================
           cat > app/src/main/res/values/strings.xml << 'EOF'
           <?xml version="1.0" encoding="utf-8"?>
@@ -247,7 +467,7 @@ jobs:
           EOF
           
           # ============================================
-          # 8. CREAR colors.xml
+          # 13. CREAR colors.xml
           # ============================================
           cat > app/src/main/res/values/colors.xml << 'EOF'
           <?xml version="1.0" encoding="utf-8"?>
@@ -262,11 +482,12 @@ jobs:
               <color name="light_gray">#F5F7FB</color>
               <color name="gray">#6C757D</color>
               <color name="white">#FFFFFF</color>
+              <color name="bottom_nav_tint">@color/primary</color>
           </resources>
           EOF
           
           # ============================================
-          # 9. CREAR themes.xml
+          # 14. CREAR themes.xml
           # ============================================
           cat > app/src/main/res/values/themes.xml << 'EOF'
           <?xml version="1.0" encoding="utf-8"?>
@@ -283,7 +504,7 @@ jobs:
           EOF
           
           # ============================================
-          # 10. CREAR proguard-rules.pro
+          # 15. CREAR proguard-rules.pro
           # ============================================
           cat > app/proguard-rules.pro << 'EOF'
           # Add project specific ProGuard rules here.
@@ -291,7 +512,7 @@ jobs:
           EOF
           
           # ============================================
-          # 11. CREAR ic_launcher_foreground.xml
+          # 16. CREAR ic_launcher_foreground.xml
           # ============================================
           cat > app/src/main/res/drawable/ic_launcher_foreground.xml << 'EOF'
           <?xml version="1.0" encoding="utf-8"?>
@@ -310,7 +531,7 @@ jobs:
           EOF
           
           # ============================================
-          # 12. CREAR ic_launcher.xml (adaptive icon)
+          # 17. CREAR adaptive icons
           # ============================================
           cat > app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml << 'EOF'
           <?xml version="1.0" encoding="utf-8"?>
@@ -329,18 +550,17 @@ jobs:
           EOF
           
           # ============================================
-          # 13. CREAR iconos PNG (placeholders)
+          # 18. CREAR iconos PNG (placeholders)
           # ============================================
-          # Crear un icono simple usando echo y base64 (imagen PNG de 1x1 pixel transparente)
-          # Esto es para evitar errores de compilación, aunque no se vea bien
+          # Crear PNGs transparentes para evitar errores de compilación
           for dir in mipmap-mdpi mipmap-hdpi mipmap-xhdpi mipmap-xxhdpi mipmap-xxxhdpi; do
-            # Crear un PNG simple de 1x1 píxel transparente (no ideal pero evita errores)
+            # PNG transparente de 1x1 pixel en base64
             echo -n "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==" | base64 -d > app/src/main/res/$dir/ic_launcher.png
             echo -n "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==" | base64 -d > app/src/main/res/$dir/ic_launcher_round.png
           done
           
           # ============================================
-          # 14. CREAR gradle-wrapper.properties
+          # 19. CREAR gradle-wrapper.properties
           # ============================================
           cat > gradle/wrapper/gradle-wrapper.properties << 'EOF'
           distributionBase=GRADLE_USER_HOME
@@ -351,13 +571,13 @@ jobs:
           EOF
           
           # ============================================
-          # 15. DESCARGAR gradle-wrapper.jar
+          # 20. DESCARGAR gradle-wrapper.jar
           # ============================================
           curl -L -o gradle/wrapper/gradle-wrapper.jar \
             https://raw.githubusercontent.com/gradle/gradle/v8.2.0/gradle/wrapper/gradle-wrapper.jar
           
           # ============================================
-          # 16. CREAR gradlew
+          # 21. CREAR gradlew
           # ============================================
           cat > gradlew << 'EOF'
           #!/bin/sh
@@ -369,7 +589,7 @@ jobs:
           chmod +x gradlew
           
           # ============================================
-          # 17. CREAR gradlew.bat (Windows)
+          # 22. CREAR gradlew.bat
           # ============================================
           cat > gradlew.bat << 'EOF'
           @rem Gradle startup script for Windows
@@ -381,11 +601,8 @@ jobs:
           
           echo "✅ Proyecto Android creado completamente!"
           echo ""
-          echo "📁 Archivos creados en android-app/:"
-          ls -la
-          echo ""
-          echo "📁 Archivos de configuración:"
-          cat gradle.properties
+          echo "📁 Archivos de recursos creados:"
+          find app/src/main/res -name "*.xml" -o -name "*.png" | head -20
 
       - name: Validate Gradle Wrapper
         uses: gradle/wrapper-validation-action@v1
@@ -418,9 +635,6 @@ jobs:
           name: app-release-unsigned
           path: android-app/app/build/outputs/apk/release/*.apk
 
-      # ============================================
-      # FIRMAR APK (opcional)
-      # ============================================
       - name: Check signing secrets
         id: check_secrets
         run: |
