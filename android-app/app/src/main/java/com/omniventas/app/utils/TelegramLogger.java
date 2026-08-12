@@ -1,9 +1,10 @@
 package com.omniventas.app.utils;
 
 import android.content.Context;
+import android.content.pm.PackageInfo;
+import android.content.pm.PackageManager;
 import android.os.Build;
 import android.util.Log;
-import com.omniventas.app.BuildConfig;
 import com.omniventas.app.api.ApiService;
 import com.omniventas.app.api.RetrofitClient;
 import com.google.gson.Gson;
@@ -24,7 +25,9 @@ public class TelegramLogger {
     private SessionManager sessionManager;
     private Gson gson;
     private boolean isEnabled = true;
-    private boolean isVerbose = true; // Envía logs DEBUG también
+    private boolean isVerbose = true;
+    private String appVersion = "1.0";
+    private int appCode = 1;
     
     // Niveles de log
     public static final String LEVEL_DEBUG = "DEBUG";
@@ -39,8 +42,16 @@ public class TelegramLogger {
         this.sessionManager = new SessionManager(context);
         this.gson = new Gson();
         
-        // Log inicial para verificar que el logger está activo
-        Log.d(TAG, "TelegramLogger inicializado - App v" + BuildConfig.VERSION_NAME);
+        // Obtener versión de la app desde PackageManager
+        try {
+            PackageInfo pInfo = context.getPackageManager().getPackageInfo(context.getPackageName(), 0);
+            appVersion = pInfo.versionName;
+            appCode = pInfo.versionCode;
+        } catch (PackageManager.NameNotFoundException e) {
+            Log.e(TAG, "Error obteniendo versión de la app: " + e.getMessage());
+        }
+        
+        Log.d(TAG, "TelegramLogger inicializado - App v" + appVersion);
     }
     
     public static synchronized TelegramLogger getInstance(Context context) {
@@ -118,7 +129,6 @@ public class TelegramLogger {
         String timestamp = getCurrentTimestamp();
         String deviceModel = Build.MANUFACTURER + " " + Build.MODEL;
         String androidVersion = Build.VERSION.RELEASE;
-        String appVersion = BuildConfig.VERSION_NAME;
         
         JsonObject jsonData = new JsonObject();
         jsonData.addProperty("level", level);
@@ -250,8 +260,8 @@ public class TelegramLogger {
         info.addProperty("device", Build.MANUFACTURER + " " + Build.MODEL);
         info.addProperty("android_version", Build.VERSION.RELEASE);
         info.addProperty("sdk_version", Build.VERSION.SDK_INT);
-        info.addProperty("app_version", BuildConfig.VERSION_NAME);
-        info.addProperty("app_code", BuildConfig.VERSION_CODE);
+        info.addProperty("app_version", appVersion);
+        info.addProperty("app_code", appCode);
         return info;
     }
     
