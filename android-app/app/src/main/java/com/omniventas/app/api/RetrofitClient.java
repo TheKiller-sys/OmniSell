@@ -17,7 +17,7 @@ public class RetrofitClient {
     private static final String TAG = "RetrofitClient";
     private static RetrofitClient instance;
     private ApiService apiService;
-    private static String API_URL = "https://prueba-1-omni.onrender.com/health";
+    private static String API_URL = "https://prueba-1-omni.onrender.com/";
     private Context context;
 
     private RetrofitClient(Context context) {
