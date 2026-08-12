@@ -4,22 +4,25 @@ public class LoginResponse {
     private boolean success;
     private String token;
     private String message;
-    private User user;
+    private Vendor vendor;
 
-    public static class User {
-        private int id;
-        private String username;
-        private String role;
+    public static class Vendor {
+        private String id;
+        private String name;
+        private String business_id;
         private String business_name;
+        private String role;
 
-        public int getId() { return id; }
-        public void setId(int id) { this.id = id; }
-        public String getUsername() { return username; }
-        public void setUsername(String username) { this.username = username; }
-        public String getRole() { return role; }
-        public void setRole(String role) { this.role = role; }
+        public String getId() { return id; }
+        public void setId(String id) { this.id = id; }
+        public String getName() { return name; }
+        public void setName(String name) { this.name = name; }
+        public String getBusinessId() { return business_id; }
+        public void setBusinessId(String business_id) { this.business_id = business_id; }
         public String getBusinessName() { return business_name; }
         public void setBusinessName(String business_name) { this.business_name = business_name; }
+        public String getRole() { return role; }
+        public void setRole(String role) { this.role = role; }
     }
 
     public boolean isSuccess() { return success; }
@@ -28,6 +31,6 @@ public class LoginResponse {
     public void setToken(String token) { this.token = token; }
     public String getMessage() { return message; }
     public void setMessage(String message) { this.message = message; }
-    public User getUser() { return user; }
-    public void setUser(User user) { this.user = user; }
+    public Vendor getVendor() { return vendor; }
+    public void setVendor(Vendor vendor) { this.vendor = vendor; }
 }
