@@ -1,30 +1,45 @@
 package com.omniventas.app;
 
 import android.animation.ObjectAnimator;
+import android.content.Intent;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.cardview.widget.CardView;
+import com.omniventas.app.utils.SessionManager;
 
 public class LoginActivity extends AppCompatActivity {
 
+    private static final String TAG = "LoginActivity";
     private EditText etVendorId;
     private Button btnLogin;
     private CardView cardLogin;
+    private SessionManager sessionManager;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_login);
 
+        Log.d(TAG, "=== onCreate ===");
+
+        sessionManager = new SessionManager(this);
+
+        // Limpiar sesión anterior para pruebas
+        sessionManager.clearSession();
+
         etVendorId = findViewById(R.id.et_vendor_id);
         btnLogin = findViewById(R.id.btn_login);
         cardLogin = findViewById(R.id.card_login);
 
-        // Animación de entrada de la tarjeta
+        // Poner el ID de prueba por defecto
+        etVendorId.setText("AAAA0000");
+
+        // Animación de entrada
         cardLogin.setTranslationY(100f);
         cardLogin.setAlpha(0f);
         cardLogin.animate()
@@ -33,28 +48,43 @@ public class LoginActivity extends AppCompatActivity {
             .setDuration(600)
             .start();
 
-        btnLogin.setOnClickListener(v -> performLogin());
+        // ====================================================
+        // 🔥 BOTÓN DE LOGIN - SOLO ESTO LLEVA AL DASHBOARD
+        // ====================================================
+        btnLogin.setOnClickListener(v -> {
+            Log.d(TAG, "Botón Login presionado");
+            irAlDashboard();
+        });
     }
 
-    private void performLogin() {
-        String vendorId = etVendorId.getText().toString().trim();
-
-        if (vendorId.isEmpty()) {
-            etVendorId.setError("Ingresa tu ID de vendedor");
-            etVendorId.requestFocus();
-            shakeView(etVendorId);
-            return;
+    /**
+     * Método que lleva al Dashboard
+     * Guarda una sesión de prueba y navega a MainActivity
+     */
+    private void irAlDashboard() {
+        Log.d(TAG, "irAlDashboard() - INICIANDO");
+        
+        // Guardar sesión de prueba
+        sessionManager.saveUser(
+            "token_de_prueba_123456",
+            "AAAA0000",
+            "Vendedor Prueba",
+            "Tienda de Prueba"
+        );
+        
+        Log.d(TAG, "Sesión guardada");
+        
+        // Navegar a MainActivity
+        try {
+            Intent intent = new Intent(LoginActivity.this, MainActivity.class);
+            intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+            startActivity(intent);
+            finish();
+            Log.d(TAG, "✅ MainActivity iniciada correctamente");
+        } catch (Exception e) {
+            Log.e(TAG, "❌ Error iniciando MainActivity: " + e.getMessage());
+            Toast.makeText(this, "❌ Error: " + e.getMessage(), Toast.LENGTH_LONG).show();
         }
-
-        btnLogin.setEnabled(false);
-        btnLogin.setText("Verificando...");
-
-        // Simular verificación del ID
-        btnLogin.postDelayed(() -> {
-            Toast.makeText(LoginActivity.this, "✅ ¡Bienvenido Vendedor!", Toast.LENGTH_LONG).show();
-            btnLogin.setEnabled(true);
-            btnLogin.setText("Ingresar");
-        }, 1500);
     }
 
     private void shakeView(View view) {
