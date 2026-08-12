@@ -44,7 +44,7 @@
             android:id="@+id/tv_total"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="/home/runner/work/_temp/adaa7ef8-c5cd-4250-a910-0d1e7cd6c38a.sh.00"
+            android:text="/home/runner/work/_temp/2c9bf5be-b090-4853-82c5-8754b2179a96.sh.00"
             android:textSize="14sp"
             android:textStyle="bold"
             android:textColor="@color/success" />
