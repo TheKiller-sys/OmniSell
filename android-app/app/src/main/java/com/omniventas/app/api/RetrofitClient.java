@@ -14,7 +14,7 @@ import java.util.concurrent.TimeUnit;
 public class RetrofitClient {
     private static RetrofitClient instance;
     private ApiService apiService;
-    private static String API_URL = "https://tu-api.ondigitalocean.app/"; // Cambiar por tu URL
+    private static String API_URL = "https://prueba-1-omni.onrender.com"; // Cambiar por tu URL
 
     private RetrofitClient() {
         HttpLoggingInterceptor logging = new HttpLoggingInterceptor();
