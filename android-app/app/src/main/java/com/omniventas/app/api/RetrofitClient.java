@@ -26,27 +26,33 @@ public class RetrofitClient {
         HttpLoggingInterceptor logging = new HttpLoggingInterceptor();
         logging.setLevel(HttpLoggingInterceptor.Level.BODY);
 
-        // Interceptor para agregar token automáticamente
+        // Interceptor para agregar token SOLO si no es el endpoint de logs
         Interceptor authInterceptor = new Interceptor() {
             @Override
             public Response intercept(Chain chain) throws IOException {
                 Request original = chain.request();
+                String url = original.url().toString();
+                
+                Log.d(TAG, "📡 URL: " + url);
 
-                // Obtener token de SharedPreferences
+                // ❌ NO agregar token a /api/send-log (es público)
+                if (url.contains("/api/send-log")) {
+                    Log.d(TAG, "🔓 Endpoint público (send-log), sin autenticación");
+                    return chain.proceed(original);
+                }
+
+                // ✅ Agregar token a las demás llamadas
                 SharedPreferences prefs = context.getSharedPreferences("OmniVentasSession", Context.MODE_PRIVATE);
                 String token = prefs.getString("token", null);
-
-                Log.d(TAG, "Interceptor - Token: " + (token != null ? "PRESENTE" : "NULL"));
-                Log.d(TAG, "Interceptor - URL: " + original.url());
 
                 if (token != null && !token.isEmpty()) {
                     Request request = original.newBuilder()
                         .header("Authorization", token)
                         .build();
-                    Log.d(TAG, "Interceptor - Token agregado a la cabecera");
+                    Log.d(TAG, "🔐 Token agregado a la cabecera");
                     return chain.proceed(request);
                 } else {
-                    Log.d(TAG, "Interceptor - Sin token, continuando sin autenticación");
+                    Log.d(TAG, "⚠️ Sin token, continuando sin autenticación");
                     return chain.proceed(original);
                 }
             }
@@ -67,13 +73,12 @@ public class RetrofitClient {
             .build();
 
         apiService = retrofit.create(ApiService.class);
-        Log.d(TAG, "RetrofitClient inicializado con URL: " + API_URL);
+        Log.d(TAG, "✅ RetrofitClient inicializado con URL: " + API_URL);
     }
 
     public static synchronized RetrofitClient getInstance(Context context) {
         if (instance == null) {
             instance = new RetrofitClient(context);
-            Log.d(TAG, "Nueva instancia de RetrofitClient creada");
         }
         return instance;
     }
