@@ -1,14 +1,12 @@
 package com.omniventas.app.api;
 
 import com.omniventas.app.models.DashboardResponse;
-import com.omniventas.app.models.LoginRequest;
 import com.omniventas.app.models.LoginResponse;
 import com.omniventas.app.models.Producto;
+import com.omniventas.app.models.VendorLoginRequest;
 import com.omniventas.app.models.VentaRequest;
 import com.omniventas.app.models.VentaResponse;
-
-import java.util.List;  // ← ESTE IMPORT FALTABA
-
+import java.util.List;
 import retrofit2.Call;
 import retrofit2.http.Body;
 import retrofit2.http.GET;
@@ -17,8 +15,9 @@ import retrofit2.http.POST;
 
 public interface ApiService {
     
+    // Login con ID de vendedor
     @POST("api/login-vendedor")
-    Call<LoginResponse> login(@Body LoginRequest request);
+    Call<LoginResponse> loginVendor(@Body VendorLoginRequest request);
 
     @GET("api/productos")
     Call<List<Producto>> getProductos(@Header("Authorization") String token);
