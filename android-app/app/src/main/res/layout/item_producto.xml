@@ -36,7 +36,7 @@
                 android:id="@+id/tv_precio"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="/home/runner/work/_temp/27528a24-b2bb-4b09-97ad-f3ebf236557f.sh.00"
+                android:text="/home/runner/work/_temp/b9ada37a-de35-458c-9329-d8a5a04e3d27.sh.00"
                 android:textSize="14sp"
                 android:textColor="@color/primary"
                 android:textStyle="bold" />
