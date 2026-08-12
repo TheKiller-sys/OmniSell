@@ -507,12 +507,213 @@ def perfil_vendedor():
         logger.error(f"Error en perfil_vendedor: {e}")
         return jsonify({'success': False, 'message': str(e)}), 500
 
-# ==================== ENDPOINTS PARA GESTIÓN DE VENDEDORES (ADMIN) ====================
+# ==================== ENDPOINTS PARA GESTIÓN DE VENDEDORES (PANEL WEB) ====================
 
 @app.route('/api/vendedores', methods=['GET'])
 @login_required
-def get_vendedores():
-    """Obtener lista de vendedores del negocio"""
+def get_vendedores_web():
+    """Obtener lista de vendedores del negocio (desde panel web)"""
+    try:
+        # Verificar que el usuario sea admin
+        if current_user.role != 'admin':
+            return jsonify({'success': False, 'message': 'Solo administradores pueden ver vendedores'}), 403
+        
+        from database.db_manager import DatabaseManager
+        db = DatabaseManager(current_user.business_id)
+        is_postgres = 'RENDER' in os.environ and os.environ.get('DATABASE_URL')
+        
+        if is_postgres:
+            query = """
+                SELECT id, name, role, active, created_at
+                FROM vendors
+                WHERE business_id = %s
+                ORDER BY created_at DESC
+            """
+        else:
+            query = """
+                SELECT id, name, role, active, created_at
+                FROM vendors
+                WHERE business_id = ?
+                ORDER BY created_at DESC
+            """
+        
+        resultados = db.execute_query(query, (current_user.business_id,))
+        
+        vendedores = []
+        if resultados:
+            for row in resultados:
+                vendedores.append({
+                    'id': row[0],
+                    'name': row[1],
+                    'role': row[2],
+                    'active': bool(row[3]) if row[3] is not None else True,
+                    'created_at': row[4]
+                })
+        
+        return jsonify({
+            'success': True,
+            'vendedores': vendedores,
+            'total': len(vendedores)
+        })
+        
+    except Exception as e:
+        logger.error(f"Error en get_vendedores_web: {e}")
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+@app.route('/api/vendedor', methods=['POST'])
+@login_required
+def crear_vendedor_web():
+    """Crear un nuevo vendedor (desde panel web)"""
+    try:
+        if current_user.role != 'admin':
+            return jsonify({'success': False, 'message': 'Solo administradores pueden crear vendedores'}), 403
+        
+        data = request.json
+        name = data.get('name', '').strip()
+        
+        if not name:
+            return jsonify({'success': False, 'message': 'El nombre es requerido'}), 400
+        
+        from database.db_manager import DatabaseManager
+        db = DatabaseManager(current_user.business_id)
+        is_postgres = 'RENDER' in os.environ and os.environ.get('DATABASE_URL')
+        
+        # Generar ID único de 8 caracteres
+        import random
+        import string
+        def generate_vendor_id():
+            characters = string.ascii_uppercase + string.digits
+            return ''.join(random.choices(characters, k=8))
+        
+        vendor_id = generate_vendor_id()
+        
+        # Verificar que el ID no exista ya
+        if is_postgres:
+            existing = db.execute_query("SELECT id FROM vendors WHERE id = %s", (vendor_id,))
+        else:
+            existing = db.execute_query("SELECT id FROM vendors WHERE id = ?", (vendor_id,))
+        
+        while existing and existing[0]:
+            vendor_id = generate_vendor_id()
+            if is_postgres:
+                existing = db.execute_query("SELECT id FROM vendors WHERE id = %s", (vendor_id,))
+            else:
+                existing = db.execute_query("SELECT id FROM vendors WHERE id = ?", (vendor_id,))
+        
+        # Insertar vendedor
+        if is_postgres:
+            db.execute_query("""
+                INSERT INTO vendors (id, name, business_id, role, active)
+                VALUES (%s, %s, %s, %s, %s)
+            """, (vendor_id, name, current_user.business_id, 'vendedor', True))
+        else:
+            db.execute_query("""
+                INSERT INTO vendors (id, name, business_id, role, active)
+                VALUES (?, ?, ?, ?, ?)
+            """, (vendor_id, name, current_user.business_id, 'vendedor', 1))
+        
+        return jsonify({
+            'success': True,
+            'message': 'Vendedor creado correctamente',
+            'vendor_id': vendor_id,
+            'vendor_name': name
+        })
+        
+    except Exception as e:
+        logger.error(f"Error en crear_vendedor_web: {e}")
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+@app.route('/api/vendedor/<vendor_id>', methods=['PUT'])
+@login_required
+def actualizar_vendedor_web(vendor_id):
+    """Actualizar un vendedor (desde panel web)"""
+    try:
+        if current_user.role != 'admin':
+            return jsonify({'success': False, 'message': 'Solo administradores pueden actualizar vendedores'}), 403
+        
+        data = request.json
+        active = data.get('active')
+        name = data.get('name')
+        
+        from database.db_manager import DatabaseManager
+        db = DatabaseManager(current_user.business_id)
+        is_postgres = 'RENDER' in os.environ and os.environ.get('DATABASE_URL')
+        
+        updates = []
+        params = []
+        
+        if active is not None:
+            if is_postgres:
+                updates.append("active = %s")
+                params.append(active)
+            else:
+                updates.append("active = ?")
+                params.append(1 if active else 0)
+        
+        if name:
+            if is_postgres:
+                updates.append("name = %s")
+            else:
+                updates.append("name = ?")
+            params.append(name)
+        
+        if not updates:
+            return jsonify({'success': False, 'message': 'No hay datos para actualizar'}), 400
+        
+        params.append(vendor_id)
+        params.append(current_user.business_id)
+        
+        if is_postgres:
+            query = f"UPDATE vendors SET {', '.join(updates)} WHERE id = %s AND business_id = %s"
+        else:
+            query = f"UPDATE vendors SET {', '.join(updates)} WHERE id = ? AND business_id = ?"
+        
+        db.execute_query(query, tuple(params))
+        
+        return jsonify({
+            'success': True,
+            'message': 'Vendedor actualizado correctamente'
+        })
+        
+    except Exception as e:
+        logger.error(f"Error en actualizar_vendedor_web: {e}")
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+@app.route('/api/vendedor/<vendor_id>', methods=['DELETE'])
+@login_required
+def eliminar_vendedor_web(vendor_id):
+    """Eliminar un vendedor (desde panel web)"""
+    try:
+        if current_user.role != 'admin':
+            return jsonify({'success': False, 'message': 'Solo administradores pueden eliminar vendedores'}), 403
+        
+        from database.db_manager import DatabaseManager
+        db = DatabaseManager(current_user.business_id)
+        is_postgres = 'RENDER' in os.environ and os.environ.get('DATABASE_URL')
+        
+        if is_postgres:
+            db.execute_query("DELETE FROM vendors WHERE id = %s AND business_id = %s", (vendor_id, current_user.business_id))
+        else:
+            db.execute_query("DELETE FROM vendors WHERE id = ? AND business_id = ?", (vendor_id, current_user.business_id))
+        
+        return jsonify({
+            'success': True,
+            'message': 'Vendedor eliminado correctamente'
+        })
+        
+    except Exception as e:
+        logger.error(f"Error en eliminar_vendedor_web: {e}")
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+# ==================== ENDPOINTS PARA GESTIÓN DE VENDEDORES (APP ANDROID) ====================
+
+# Estos endpoints usan token_required para la app Android
+# Nota: Los endpoints para la app usan request.role (del token JWT)
+
+@app.route('/api/vendedores-app', methods=['GET'])
+@token_required
+def get_vendedores_app():
+    """Obtener lista de vendedores del negocio (desde app Android)"""
     try:
         if request.role != 'admin':
             return jsonify({'success': False, 'message': 'Solo administradores pueden ver vendedores'}), 403
@@ -556,13 +757,13 @@ def get_vendedores():
         })
         
     except Exception as e:
-        logger.error(f"Error en get_vendedores: {e}")
+        logger.error(f"Error en get_vendedores_app: {e}")
         return jsonify({'success': False, 'message': str(e)}), 500
 
-@app.route('/api/vendedor', methods=['POST'])
+@app.route('/api/vendedor-app', methods=['POST'])
 @token_required
-def crear_vendedor():
-    """Crear un nuevo vendedor"""
+def crear_vendedor_app():
+    """Crear un nuevo vendedor (desde app Android)"""
     try:
         if request.role != 'admin':
             return jsonify({'success': False, 'message': 'Solo administradores pueden crear vendedores'}), 403
@@ -619,92 +820,11 @@ def crear_vendedor():
         })
         
     except Exception as e:
-        logger.error(f"Error en crear_vendedor: {e}")
+        logger.error(f"Error en crear_vendedor_app: {e}")
         return jsonify({'success': False, 'message': str(e)}), 500
 
-@app.route('/api/vendedor/<vendor_id>', methods=['PUT'])
-@token_required
-def actualizar_vendedor(vendor_id):
-    """Actualizar un vendedor (activar/desactivar)"""
-    try:
-        if request.role != 'admin':
-            return jsonify({'success': False, 'message': 'Solo administradores pueden actualizar vendedores'}), 403
-        
-        data = request.json
-        active = data.get('active')
-        name = data.get('name')
-        
-        from database.db_manager import DatabaseManager
-        db = DatabaseManager(request.business_id)
-        is_postgres = 'RENDER' in os.environ and os.environ.get('DATABASE_URL')
-        
-        updates = []
-        params = []
-        
-        if active is not None:
-            if is_postgres:
-                updates.append("active = %s")
-                params.append(active)
-            else:
-                updates.append("active = ?")
-                params.append(1 if active else 0)
-        
-        if name:
-            if is_postgres:
-                updates.append("name = %s")
-            else:
-                updates.append("name = ?")
-            params.append(name)
-        
-        if not updates:
-            return jsonify({'success': False, 'message': 'No hay datos para actualizar'}), 400
-        
-        params.append(vendor_id)
-        params.append(request.business_id)
-        
-        if is_postgres:
-            query = f"UPDATE vendors SET {', '.join(updates)} WHERE id = %s AND business_id = %s"
-        else:
-            query = f"UPDATE vendors SET {', '.join(updates)} WHERE id = ? AND business_id = ?"
-        
-        db.execute_query(query, tuple(params))
-        
-        return jsonify({
-            'success': True,
-            'message': 'Vendedor actualizado correctamente'
-        })
-        
-    except Exception as e:
-        logger.error(f"Error en actualizar_vendedor: {e}")
-        return jsonify({'success': False, 'message': str(e)}), 500
+# ==================== DESCARGA DE APK ====================
 
-@app.route('/api/vendedor/<vendor_id>', methods=['DELETE'])
-@token_required
-def eliminar_vendedor(vendor_id):
-    """Eliminar un vendedor"""
-    try:
-        if request.role != 'admin':
-            return jsonify({'success': False, 'message': 'Solo administradores pueden eliminar vendedores'}), 403
-        
-        from database.db_manager import DatabaseManager
-        db = DatabaseManager(request.business_id)
-        is_postgres = 'RENDER' in os.environ and os.environ.get('DATABASE_URL')
-        
-        if is_postgres:
-            db.execute_query("DELETE FROM vendors WHERE id = %s AND business_id = %s", (vendor_id, request.business_id))
-        else:
-            db.execute_query("DELETE FROM vendors WHERE id = ? AND business_id = ?", (vendor_id, request.business_id))
-        
-        return jsonify({
-            'success': True,
-            'message': 'Vendedor eliminado correctamente'
-        })
-        
-    except Exception as e:
-        logger.error(f"Error en eliminar_vendedor: {e}")
-        return jsonify({'success': False, 'message': str(e)}), 500
-
-# En app.py
 @app.route('/download-apk')
 def download_apk():
     """Servir el archivo APK para descarga"""
@@ -713,13 +833,58 @@ def download_apk():
         apk_path = os.path.join(os.path.dirname(__file__), 'static', 'app-debug.apk')
         
         if not os.path.exists(apk_path):
-            return jsonify({'error': 'APK no encontrado'}), 404
+            # Buscar cualquier .apk en static
+            import glob
+            apk_files = glob.glob(os.path.join(os.path.dirname(__file__), 'static', '*.apk'))
+            if apk_files:
+                apk_path = apk_files[0]
+            else:
+                return jsonify({'error': 'APK no encontrado'}), 404
         
-        return send_file(apk_path, as_attachment=True, download_name='app-debug.apk')
+        return send_file(apk_path, as_attachment=True, download_name='OmniVentas.apk')
         
     except Exception as e:
         logger.error(f"Error descargando APK: {e}")
         return jsonify({'error': str(e)}), 500
+
+@app.route('/download-apk-public')
+def download_apk_public():
+    """Servir el archivo APK sin requerir login"""
+    try:
+        import glob
+        apk_path = os.path.join(os.path.dirname(__file__), 'static', 'app-debug.apk')
+        
+        if not os.path.exists(apk_path):
+            apk_files = glob.glob(os.path.join(os.path.dirname(__file__), 'static', '*.apk'))
+            if apk_files:
+                apk_path = apk_files[0]
+            else:
+                return "❌ APK no encontrado. Contacta al administrador.", 404
+        
+        return send_file(apk_path, as_attachment=True, download_name='OmniVentas.apk')
+        
+    except Exception as e:
+        return f"❌ Error al descargar: {str(e)}", 500
+
+@app.route('/api/apk-status')
+def apk_status():
+    """Verificar si el APK está disponible"""
+    try:
+        import glob
+        apk_path = os.path.join(os.path.dirname(__file__), 'static', 'app-debug.apk')
+        
+        if not os.path.exists(apk_path):
+            apk_files = glob.glob(os.path.join(os.path.dirname(__file__), 'static', '*.apk'))
+            exists = len(apk_files) > 0
+        else:
+            exists = True
+        
+        return jsonify({
+            'exists': exists,
+            'message': 'APK disponible' if exists else 'APK no disponible aún'
+        })
+    except Exception as e:
+        return jsonify({'exists': False, 'error': str(e)})
 
 # ==================== INICIO ====================
 
