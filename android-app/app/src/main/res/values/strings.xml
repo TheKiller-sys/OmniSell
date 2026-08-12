@@ -1,4 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">OmniVentas</string>
+    <string name="login_title">OmniVentas</string>
+    <string name="login_subtitle">Acceso para Vendedores</string>
+    <string name="login_hint">ID de Vendedor</string>
+    <string name="login_button">Ingresar</string>
+    <string name="login_help">Contacta al administrador para obtener tu ID</string>
+    <string name="login_error_empty">Ingresa tu ID de vendedor</string>
+    <string name="login_error_length">El ID debe tener 8 caracteres</string>
+    <string name="login_error_chars">Solo letras y números</string>
 </resources>

@@ -26,7 +26,7 @@ public class MainActivity extends AppCompatActivity {
         sessionManager = new SessionManager(this);
 
         if (!sessionManager.isLoggedIn()) {
-            Toast.makeText(this, "Sesion expirada", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, "Sesión expirada", Toast.LENGTH_SHORT).show();
             finish();
             return;
         }
@@ -43,17 +43,16 @@ public class MainActivity extends AppCompatActivity {
 
     private boolean onNavigationItemSelected(@NonNull MenuItem item) {
         Fragment selectedFragment = null;
-        int id = item.getItemId();
 
-        if (id == R.id.nav_dashboard) {
+        if (item.getItemId() == R.id.nav_dashboard) {
             selectedFragment = new DashboardFragment();
-        } else if (id == R.id.nav_ventas) {
+        } else if (item.getItemId() == R.id.nav_ventas) {
             selectedFragment = new VentasFragment();
-        } else if (id == R.id.nav_inventario) {
+        } else if (item.getItemId() == R.id.nav_inventario) {
             selectedFragment = new InventarioFragment();
-        } else if (id == R.id.nav_logout) {
+        } else if (item.getItemId() == R.id.nav_logout) {
             sessionManager.clearSession();
-            Toast.makeText(this, "Sesion cerrada", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, "Sesión cerrada", Toast.LENGTH_SHORT).show();
             finish();
             return true;
         }

@@ -19,7 +19,7 @@ public class RetrofitClient {
     private static final String TAG = "RetrofitClient";
     private static RetrofitClient instance;
     private ApiService apiService;
-    private static String API_URL = "https://prueba-1-omni.onrender.com";
+    private static final String API_URL = "https://prueba-1-omni.onrender.com";
     private Context context;
 
     private RetrofitClient(Context context) {
@@ -28,29 +28,18 @@ public class RetrofitClient {
         HttpLoggingInterceptor logging = new HttpLoggingInterceptor();
         logging.setLevel(HttpLoggingInterceptor.Level.BODY);
 
-        Interceptor authInterceptor = new Interceptor() {
-            @Override
-            public Response intercept(Chain chain) throws IOException {
-                Request original = chain.request();
-                String url = original.url().toString();
+        Interceptor authInterceptor = chain -> {
+            Request original = chain.request();
+            SharedPreferences prefs = context.getSharedPreferences("OmniVentasSession", Context.MODE_PRIVATE);
+            String token = prefs.getString("token", null);
 
-                Log.d(TAG, "📡 URL: " + url);
-
-                SharedPreferences prefs = context.getSharedPreferences("OmniVentasSession", Context.MODE_PRIVATE);
-                String token = prefs.getString("token", null);
-
-                Request request;
-                if (token != null && !token.isEmpty()) {
-                    String authHeader = "Bearer " + token;
-                    request = original.newBuilder()
-                        .header("Authorization", authHeader)
-                        .build();
-                } else {
-                    request = original;
-                }
-
+            if (token != null && !token.isEmpty()) {
+                Request request = original.newBuilder()
+                    .header("Authorization", "Bearer " + token)
+                    .build();
                 return chain.proceed(request);
             }
+            return chain.proceed(original);
         };
 
         OkHttpClient client = new OkHttpClient.Builder()
@@ -68,7 +57,7 @@ public class RetrofitClient {
             .build();
 
         apiService = retrofit.create(ApiService.class);
-        Log.d(TAG, "✅ RetrofitClient inicializado con URL: " + API_URL);
+        Log.d(TAG, "✅ API URL: " + API_URL);
     }
 
     public static synchronized RetrofitClient getInstance(Context context) {

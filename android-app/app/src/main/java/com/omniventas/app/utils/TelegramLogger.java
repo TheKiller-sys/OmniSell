@@ -22,18 +22,11 @@ public class TelegramLogger {
     private static TelegramLogger instance;
     private Context context;
     private SessionManager sessionManager;
-    private Gson gson;
     private String appVersion = "1.0";
-
-    public static final String LEVEL_INFO = "INFO";
-    public static final String LEVEL_SUCCESS = "SUCCESS";
-    public static final String LEVEL_WARNING = "WARNING";
-    public static final String LEVEL_ERROR = "ERROR";
 
     private TelegramLogger(Context context) {
         this.context = context.getApplicationContext();
         this.sessionManager = new SessionManager(context);
-        this.gson = new Gson();
         try {
             PackageInfo pInfo = context.getPackageManager().getPackageInfo(context.getPackageName(), 0);
             appVersion = pInfo.versionName;
@@ -47,28 +40,16 @@ public class TelegramLogger {
         return instance;
     }
 
-    public void info(String message) { log(LEVEL_INFO, message); }
-    public void success(String message) { log(LEVEL_SUCCESS, message); }
-    public void warning(String message) { log(LEVEL_WARNING, message); }
-    public void error(String message) { log(LEVEL_ERROR, message); }
-    public void networkError(Throwable t) { error("Error de red: " + t.getMessage()); }
+    public void success(String message) { sendLog("SUCCESS", message); }
+    public void warning(String message) { sendLog("WARNING", message); }
+    public void error(String message) { sendLog("ERROR", message); }
+    public void networkError(Throwable t) { sendLog("ERROR", "Error de red: " + t.getMessage()); }
 
-    private void log(String level, String message) {
-        Log.d(TAG, level + ": " + message);
-        sendToServer(level, message);
-    }
-
-    private void sendToServer(String level, String message) {
+    private void sendLog(String level, String message) {
         try {
-            String vendorId = "DESCONOCIDO";
-            String vendorName = "DESCONOCIDO";
-            String businessName = "DESCONOCIDO";
-
-            if (sessionManager.isLoggedIn()) {
-                vendorId = sessionManager.getVendorId() != null ? sessionManager.getVendorId() : "DESCONOCIDO";
-                vendorName = sessionManager.getVendorName() != null ? sessionManager.getVendorName() : "DESCONOCIDO";
-                businessName = sessionManager.getBusinessName() != null ? sessionManager.getBusinessName() : "DESCONOCIDO";
-            }
+            String vendorId = sessionManager.isLoggedIn() ? sessionManager.getVendorId() : "DESCONOCIDO";
+            String vendorName = sessionManager.isLoggedIn() ? sessionManager.getVendorName() : "DESCONOCIDO";
+            String businessName = sessionManager.isLoggedIn() ? sessionManager.getBusinessName() : "DESCONOCIDO";
 
             JsonObject jsonData = new JsonObject();
             jsonData.addProperty("level", level);
@@ -81,21 +62,19 @@ public class TelegramLogger {
             jsonData.addProperty("device_model", Build.MANUFACTURER + " " + Build.MODEL);
             jsonData.addProperty("android_version", Build.VERSION.RELEASE);
 
-            ApiService apiService = RetrofitClient.getInstance(context).getApiService();
-            apiService.sendLog(jsonData).enqueue(new Callback<Void>() {
-                @Override
-                public void onResponse(Call<Void> call, Response<Void> response) {
-                    if (response.isSuccessful()) {
-                        Log.d(TAG, "✅ Log enviado a Telegram");
+            RetrofitClient.getInstance(context).getApiService().sendLog(jsonData)
+                .enqueue(new Callback<Void>() {
+                    @Override
+                    public void onResponse(Call<Void> call, Response<Void> response) {
+                        if (response.isSuccessful()) Log.d(TAG, "✅ Log enviado");
                     }
-                }
-                @Override
-                public void onFailure(Call<Void> call, Throwable t) {
-                    Log.e(TAG, "❌ Error enviando log: " + t.getMessage());
-                }
-            });
+                    @Override
+                    public void onFailure(Call<Void> call, Throwable t) {
+                        Log.e(TAG, "❌ Error enviando log: " + t.getMessage());
+                    }
+                });
         } catch (Exception e) {
-            Log.e(TAG, "❌ Error en sendToServer: " + e.getMessage());
+            Log.e(TAG, "❌ Error en sendLog: " + e.getMessage());
         }
     }
 

@@ -1,3 +1,6 @@
 -keep class com.omniventas.app.** { *; }
 -keep class retrofit2.** { *; }
 -keep class okhttp3.** { *; }
+-keep class com.google.gson.** { *; }
+-dontwarn okhttp3.**
+-dontwarn retrofit2.**

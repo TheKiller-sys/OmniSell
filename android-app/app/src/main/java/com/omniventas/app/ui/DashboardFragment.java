@@ -12,10 +12,13 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 import com.omniventas.app.R;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.Locale;
 
 public class DashboardFragment extends Fragment {
 
-    private TextView tvVentasHoy, tvIngresosHoy, tvVentasMes, tvIngresosMes, tvBajoStock;
+    private TextView tvVentasHoy, tvIngresosHoy, tvVentasMes, tvIngresosMes, tvBajoStock, tvFecha;
     private RecyclerView rvVentasRecientes;
     private SwipeRefreshLayout swipeRefresh;
 
@@ -29,10 +32,14 @@ public class DashboardFragment extends Fragment {
         tvVentasMes = view.findViewById(R.id.tv_ventas_mes);
         tvIngresosMes = view.findViewById(R.id.tv_ingresos_mes);
         tvBajoStock = view.findViewById(R.id.tv_bajo_stock);
+        tvFecha = view.findViewById(R.id.tv_fecha);
         rvVentasRecientes = view.findViewById(R.id.rv_ventas_recientes);
         swipeRefresh = view.findViewById(R.id.swipe_refresh);
 
         rvVentasRecientes.setLayoutManager(new LinearLayoutManager(getContext()));
+
+        String fecha = new SimpleDateFormat("EEEE, d MMM", new Locale("es", "ES")).format(new Date());
+        tvFecha.setText(fecha);
 
         tvVentasHoy.setText("5");
         tvIngresosHoy.setText("$125.50");

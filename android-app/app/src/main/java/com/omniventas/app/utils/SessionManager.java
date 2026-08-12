@@ -20,14 +20,14 @@ public class SessionManager {
     }
 
     public void saveUser(String token, String vendorId, String vendorName, String businessName) {
-        SharedPreferences.Editor editor = sharedPreferences.edit();
-        editor.putString(KEY_TOKEN, token);
-        editor.putString(KEY_VENDOR_ID, vendorId);
-        editor.putString(KEY_VENDOR_NAME, vendorName);
-        editor.putString(KEY_BUSINESS_NAME, businessName);
-        editor.putBoolean(KEY_IS_LOGGED_IN, true);
-        editor.apply();
-        Log.d(TAG, "✅ Sesion guardada");
+        sharedPreferences.edit()
+            .putString(KEY_TOKEN, token)
+            .putString(KEY_VENDOR_ID, vendorId)
+            .putString(KEY_VENDOR_NAME, vendorName)
+            .putString(KEY_BUSINESS_NAME, businessName)
+            .putBoolean(KEY_IS_LOGGED_IN, true)
+            .apply();
+        Log.d(TAG, "✅ Sesión guardada");
     }
 
     public String getToken() {
@@ -47,15 +47,11 @@ public class SessionManager {
     }
 
     public boolean isLoggedIn() {
-        boolean isLoggedIn = sharedPreferences.getBoolean(KEY_IS_LOGGED_IN, false);
-        String token = getToken();
-        return isLoggedIn && token != null && !token.isEmpty();
+        return sharedPreferences.getBoolean(KEY_IS_LOGGED_IN, false) && getToken() != null;
     }
 
     public void clearSession() {
-        SharedPreferences.Editor editor = sharedPreferences.edit();
-        editor.clear();
-        editor.apply();
-        Log.d(TAG, "🧹 Sesion limpiada");
+        sharedPreferences.edit().clear().apply();
+        Log.d(TAG, "🧹 Sesión limpiada");
     }
 }
