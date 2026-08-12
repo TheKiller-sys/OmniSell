@@ -1,3 +1,4 @@
+```yaml
 name: Build Android APK
 
 on:
@@ -28,11 +29,11 @@ jobs:
         uses: android-actions/setup-android@v3
 
       # ============================================
-      # CREAR PROYECTO ANDROID COMPLETO CON NUEVO DISEÑO DE LOGIN
+      # CREAR PROYECTO ANDROID COMPLETO CON LOGIN REAL + LOGS
       # ============================================
-      - name: Create full Android project with new login design
+      - name: Create full Android project with real login + logs
         run: |
-          echo "📱 Creando proyecto Android con nuevo diseño de login..."
+          echo "📱 Creando proyecto Android con login real y logs..."
           
           # Crear estructura de directorios
           mkdir -p android-app/app/src/main/java/com/omniventas/app
@@ -44,6 +45,7 @@ jobs:
           mkdir -p android-app/app/src/main/res/values
           mkdir -p android-app/app/src/main/res/drawable
           mkdir -p android-app/app/src/main/res/menu
+          mkdir -p android-app/app/src/main/res/xml
           mkdir -p android-app/app/src/main/res/mipmap-hdpi
           mkdir -p android-app/app/src/main/res/mipmap-mdpi
           mkdir -p android-app/app/src/main/res/mipmap-xhdpi
@@ -119,7 +121,7 @@ jobs:
             > build.gradle
           
           # ============================================
-          # BUILD.GRADLE (app) - CON TODAS LAS DEPENDENCIAS
+          # BUILD.GRADLE (app)
           # ============================================
           printf '%s\n' \
             "plugins {" \
@@ -162,15 +164,12 @@ jobs:
             "    implementation 'androidx.recyclerview:recyclerview:1.3.2'" \
             "    implementation 'androidx.cardview:cardview:1.0.0'" \
             "    implementation 'androidx.swiperefreshlayout:swiperefreshlayout:1.1.0'" \
-            "" \
+            "    implementation 'androidx.security:security-crypto:1.1.0-alpha06'" \
             "    implementation 'com.squareup.retrofit2:retrofit:2.9.0'" \
             "    implementation 'com.squareup.retrofit2:converter-gson:2.9.0'" \
             "    implementation 'com.squareup.okhttp3:logging-interceptor:4.11.0'" \
-            "" \
             "    implementation 'com.auth0:java-jwt:4.4.0'" \
-            "" \
-            "    implementation 'androidx.security:security-crypto:1.1.0-alpha06'" \
-            "" \
+            "    implementation 'com.google.code.gson:gson:2.10.1'" \
             "    testImplementation 'junit:junit:4.13.2'" \
             "    androidTestImplementation 'androidx.test.ext:junit:1.1.5'" \
             "    androidTestImplementation 'androidx.test.espresso:espresso-core:3.5.1'" \
@@ -183,6 +182,8 @@ jobs:
           printf '%s\n' \
             "# Add project specific ProGuard rules here." \
             "-keep class com.omniventas.app.** { *; }" \
+            "-keep class retrofit2.** { *; }" \
+            "-keep class okhttp3.** { *; }" \
             > app/proguard-rules.pro
           
           # ============================================
@@ -195,6 +196,12 @@ jobs:
             "" \
             "    <uses-permission android:name=\"android.permission.INTERNET\" />" \
             "    <uses-permission android:name=\"android.permission.ACCESS_NETWORK_STATE\" />" \
+            "    <uses-permission android:name=\"android.permission.ACCESS_WIFI_STATE\" />" \
+            "    <uses-permission android:name=\"android.permission.WRITE_EXTERNAL_STORAGE\"" \
+            "        android:maxSdkVersion=\"28\" />" \
+            "    <uses-permission android:name=\"android.permission.READ_EXTERNAL_STORAGE\" />" \
+            "    <uses-permission android:name=\"android.permission.MANAGE_EXTERNAL_STORAGE\"" \
+            "        tools:ignore=\"ScopedStorage\" />" \
             "" \
             "    <application" \
             "        android:allowBackup=\"true\"" \
@@ -204,12 +211,15 @@ jobs:
             "        android:supportsRtl=\"true\"" \
             "        android:theme=\"@style/Theme.OmniVentas\"" \
             "        android:usesCleartextTraffic=\"true\"" \
+            "        android:networkSecurityConfig=\"@xml/network_security_config\"" \
+            "        android:requestLegacyExternalStorage=\"true\"" \
             "        tools:targetApi=\"31\">" \
             "" \
             "        <activity" \
             "            android:name=\".LoginActivity\"" \
             "            android:exported=\"true\"" \
-            "            android:screenOrientation=\"portrait\">" \
+            "            android:screenOrientation=\"portrait\"" \
+            "            android:windowSoftInputMode=\"adjustResize\">" \
             "            <intent-filter>" \
             "                <action android:name=\"android.intent.action.MAIN\" />" \
             "                <category android:name=\"android.intent.category.LAUNCHER\" />" \
@@ -219,7 +229,18 @@ jobs:
             "        <activity" \
             "            android:name=\".MainActivity\"" \
             "            android:exported=\"false\"" \
-            "            android:screenOrientation=\"portrait\" />" \
+            "            android:screenOrientation=\"portrait\"" \
+            "            android:windowSoftInputMode=\"adjustResize\" />" \
+            "" \
+            "        <provider" \
+            "            android:name=\"androidx.core.content.FileProvider\"" \
+            "            android:authorities=\"\${applicationId}.fileprovider\"" \
+            "            android:exported=\"false\"" \
+            "            android:grantUriPermissions=\"true\">" \
+            "            <meta-data" \
+            "                android:name=\"android.support.FILE_PROVIDER_PATHS\"" \
+            "                android:resource=\"@xml/file_paths\" />" \
+            "        </provider>" \
             "" \
             "    </application>" \
             "" \
@@ -227,7 +248,35 @@ jobs:
             > app/src/main/AndroidManifest.xml
           
           # ============================================
-          # COLORS.XML - ACTUALIZADO
+          # NETWORK SECURITY CONFIG
+          # ============================================
+          printf '%s\n' \
+            "<?xml version=\"1.0\" encoding=\"utf-8\"?>" \
+            "<network-security-config>" \
+            "    <domain-config cleartextTrafficPermitted=\"true\">" \
+            "        <domain includeSubdomains=\"true\">10.0.2.2</domain>" \
+            "        <domain includeSubdomains=\"true\">localhost</domain>" \
+            "        <domain includeSubdomains=\"true\">127.0.0.1</domain>" \
+            "        <domain includeSubdomains=\"true\">prueba-1-omni.onrender.com</domain>" \
+            "        <domain includeSubdomains=\"true\">onrender.com</domain>" \
+            "    </domain-config>" \
+            "</network-security-config>" \
+            > app/src/main/res/xml/network_security_config.xml
+          
+          # ============================================
+          # FILE_PATHS.XML
+          # ============================================
+          printf '%s\n' \
+            "<?xml version=\"1.0\" encoding=\"utf-8\"?>" \
+            "<paths>" \
+            "    <external-path name=\"download\" path=\"Download/\" />" \
+            "    <external-path name=\"external_files\" path=\".\" />" \
+            "    <cache-path name=\"cache\" path=\".\" />" \
+            "</paths>" \
+            > app/src/main/res/xml/file_paths.xml
+          
+          # ============================================
+          # COLORS.XML
           # ============================================
           printf '%s\n' \
             "<?xml version=\"1.0\" encoding=\"utf-8\"?>" \
@@ -260,7 +309,7 @@ jobs:
             > app/src/main/res/values/strings.xml
           
           # ============================================
-          # THEMES.XML - ACTUALIZADO
+          # THEMES.XML
           # ============================================
           printf '%s\n' \
             "<?xml version=\"1.0\" encoding=\"utf-8\"?>" \
@@ -278,7 +327,7 @@ jobs:
             > app/src/main/res/values/themes.xml
           
           # ============================================
-          # ACTIVITY_LOGIN.XML - NUEVO DISEÑO PARA VENDEDORES
+          # ACTIVITY_LOGIN.XML
           # ============================================
           printf '%s\n' \
             "<?xml version=\"1.0\" encoding=\"utf-8\"?>" \
@@ -291,7 +340,6 @@ jobs:
             "    android:padding=\"32dp\"" \
             "    android:background=\"@color/light_gray\">" \
             "" \
-            "    <!-- Logo con animación de entrada -->" \
             "    <ImageView" \
             "        android:id=\"@+id/iv_logo\"" \
             "        android:layout_width=\"100dp\"" \
@@ -300,7 +348,6 @@ jobs:
             "        android:layout_marginBottom=\"16dp\"" \
             "        android:scaleType=\"centerInside\" />" \
             "" \
-            "    <!-- Título -->" \
             "    <TextView" \
             "        android:id=\"@+id/tv_title\"" \
             "        android:layout_width=\"wrap_content\"" \
@@ -320,7 +367,6 @@ jobs:
             "        android:textColor=\"@color/gray\"" \
             "        android:layout_marginBottom=\"32dp\" />" \
             "" \
-            "    <!-- Card contenedor -->" \
             "    <androidx.cardview.widget.CardView" \
             "        android:id=\"@+id/card_login\"" \
             "        android:layout_width=\"match_parent\"" \
@@ -335,7 +381,6 @@ jobs:
             "            android:orientation=\"vertical\"" \
             "            android:padding=\"24dp\">" \
             "" \
-            "            <!-- Icono de vendedor -->" \
             "            <ImageView" \
             "                android:layout_width=\"64dp\"" \
             "                android:layout_height=\"64dp\"" \
@@ -351,14 +396,13 @@ jobs:
             "                android:textColor=\"@color/gray\"" \
             "                android:layout_marginBottom=\"8dp\" />" \
             "" \
-            "            <!-- Campo de entrada con ícono -->" \
             "            <LinearLayout" \
             "                android:layout_width=\"match_parent\"" \
             "                android:layout_height=\"wrap_content\"" \
             "                android:orientation=\"horizontal\"" \
             "                android:background=\"@drawable/edit_text_background\"" \
             "                android:padding=\"4dp\"" \
-            "                android:layout_marginBottom=\"20dp\">" \
+            "                android:layout_marginBottom=\"16dp\">" \
             "" \
             "                <ImageView" \
             "                    android:layout_width=\"24dp\"" \
@@ -372,15 +416,35 @@ jobs:
             "                    android:layout_width=\"0dp\"" \
             "                    android:layout_height=\"wrap_content\"" \
             "                    android:layout_weight=\"1\"" \
-            "                    android:hint=\"Ej: VEN-001\"" \
+            "                    android:hint=\"Ej: AAAA0000\"" \
             "                    android:inputType=\"text\"" \
             "                    android:background=\"@android:color/transparent\"" \
             "                    android:padding=\"12dp\"" \
             "                    android:textSize=\"16dp\"" \
-            "                    android:textColor=\"@color/dark\" />" \
+            "                    android:textColor=\"@color/dark\"" \
+            "                    android:maxLength=\"8\"" \
+            "                    android:imeOptions=\"actionDone\" />" \
             "            </LinearLayout>" \
             "" \
-            "            <!-- Botón de inicio de sesión -->" \
+            "            <TextView" \
+            "                android:id=\"@+id/tv_error\"" \
+            "                android:layout_width=\"match_parent\"" \
+            "                android:layout_height=\"wrap_content\"" \
+            "                android:textColor=\"@color/danger\"" \
+            "                android:textSize=\"14sp\"" \
+            "                android:gravity=\"center\"" \
+            "                android:padding=\"8dp\"" \
+            "                android:visibility=\"gone\"" \
+            "                android:layout_marginBottom=\"8dp\" />" \
+            "" \
+            "            <ProgressBar" \
+            "                android:id=\"@+id/progressBar\"" \
+            "                android:layout_width=\"wrap_content\"" \
+            "                android:layout_height=\"wrap_content\"" \
+            "                android:layout_gravity=\"center\"" \
+            "                android:visibility=\"gone\"" \
+            "                android:layout_marginBottom=\"8dp\" />" \
+            "" \
             "            <Button" \
             "                android:id=\"@+id/btn_login\"" \
             "                android:layout_width=\"match_parent\"" \
@@ -391,7 +455,6 @@ jobs:
             "                android:backgroundTint=\"@color/primary\"" \
             "                app:cornerRadius=\"12dp\" />" \
             "" \
-            "            <!-- Texto de ayuda -->" \
             "            <TextView" \
             "                android:layout_width=\"wrap_content\"" \
             "                android:layout_height=\"wrap_content\"" \
@@ -401,210 +464,20 @@ jobs:
             "                android:layout_gravity=\"center\"" \
             "                android:layout_marginTop=\"16dp\" />" \
             "" \
+            "            <TextView" \
+            "                android:layout_width=\"wrap_content\"" \
+            "                android:layout_height=\"wrap_content\"" \
+            "                android:text=\"v1.0\"" \
+            "                android:textSize=\"11sp\"" \
+            "                android:textColor=\"@color/gray\"" \
+            "                android:layout_gravity=\"center\"" \
+            "                android:layout_marginTop=\"12dp\"" \
+            "                android:alpha=\"0.6\" />" \
+            "" \
             "        </LinearLayout>" \
             "    </androidx.cardview.widget.CardView>" \
-            "" \
             "</LinearLayout>" \
             > app/src/main/res/layout/activity_login.xml
-          
-          # ============================================
-          # LOGIN ACTIVITY - CON NUEVA LÓGICA
-          # ============================================
-          printf '%s\n' \
-            "package com.omniventas.app;" \
-            "" \
-            "import android.animation.ObjectAnimator;" \
-            "import android.os.Bundle;" \
-            "import android.view.View;" \
-            "import android.widget.Button;" \
-            "import android.widget.EditText;" \
-            "import android.widget.Toast;" \
-            "import androidx.appcompat.app.AppCompatActivity;" \
-            "import androidx.cardview.widget.CardView;" \
-            "" \
-            "public class LoginActivity extends AppCompatActivity {" \
-            "" \
-            "    private EditText etVendorId;" \
-            "    private Button btnLogin;" \
-            "    private CardView cardLogin;" \
-            "" \
-            "    @Override" \
-            "    protected void onCreate(Bundle savedInstanceState) {" \
-            "        super.onCreate(savedInstanceState);" \
-            "        setContentView(R.layout.activity_login);" \
-            "" \
-            "        etVendorId = findViewById(R.id.et_vendor_id);" \
-            "        btnLogin = findViewById(R.id.btn_login);" \
-            "        cardLogin = findViewById(R.id.card_login);" \
-            "" \
-            "        // Animación de entrada de la tarjeta" \
-            "        cardLogin.setTranslationY(100f);" \
-            "        cardLogin.setAlpha(0f);" \
-            "        cardLogin.animate()" \
-            "            .translationY(0f)" \
-            "            .alpha(1f)" \
-            "            .setDuration(600)" \
-            "            .start();" \
-            "" \
-            "        btnLogin.setOnClickListener(v -> performLogin());" \
-            "    }" \
-            "" \
-            "    private void performLogin() {" \
-            "        String vendorId = etVendorId.getText().toString().trim();" \
-            "" \
-            "        if (vendorId.isEmpty()) {" \
-            "            etVendorId.setError(\"Ingresa tu ID de vendedor\");" \
-            "            etVendorId.requestFocus();" \
-            "            shakeView(etVendorId);" \
-            "            return;" \
-            "        }" \
-            "" \
-            "        btnLogin.setEnabled(false);" \
-            "        btnLogin.setText(\"Verificando...\");" \
-            "" \
-            "        // Simular verificación del ID" \
-            "        btnLogin.postDelayed(() -> {" \
-            "            Toast.makeText(LoginActivity.this, \"✅ ¡Bienvenido Vendedor!\", Toast.LENGTH_LONG).show();" \
-            "            btnLogin.setEnabled(true);" \
-            "            btnLogin.setText(\"Ingresar\");" \
-            "        }, 1500);" \
-            "    }" \
-            "" \
-            "    private void shakeView(View view) {" \
-            "        ObjectAnimator shake = ObjectAnimator.ofFloat(view, \"translationX\", 0f, -20f, 20f, -20f, 20f, -10f, 10f, 0f);" \
-            "        shake.setDuration(500);" \
-            "        shake.start();" \
-            "    }" \
-            "}" \
-            > app/src/main/java/com/omniventas/app/LoginActivity.java
-          
-          # ============================================
-          # IC_VENDOR.XML - NUEVO ICONO DE VENDEDOR
-          # ============================================
-          printf '%s\n' \
-            "<?xml version=\"1.0\" encoding=\"utf-8\"?>" \
-            "<vector xmlns:android=\"http://schemas.android.com/apk/res/android\"" \
-            "    android:width=\"64dp\"" \
-            "    android:height=\"64dp\"" \
-            "    android:viewportWidth=\"24\"" \
-            "    android:viewportHeight=\"24\">" \
-            "    <path" \
-            "        android:fillColor=\"@color/primary\"" \
-            "        android:pathData=\"M12,12c2.21,0 4,-1.79 4,-4s-1.79,-4 -4,-4 -4,1.79 -4,4 1.79,4 4,4zM12,14c-2.67,0 -8,1.34 -8,4v2h16v-2c0,-2.66 -5.33,-4 -8,-4z\"/>" \
-            "    <path" \
-            "        android:fillColor=\"@color/white\"" \
-            "        android:pathData=\"M12,12c-0.83,0 -1.5,-0.67 -1.5,-1.5S11.17,9 12,9s1.5,0.67 1.5,1.5S12.83,12 12,12zM12,10c-0.28,0 -0.5,0.22 -0.5,0.5S11.72,11 12,11s0.5,-0.22 0.5,-0.5S12.28,10 12,10z\"/>" \
-            "</vector>" \
-            > app/src/main/res/drawable/ic_vendor.xml
-          
-          # ============================================
-          # IC_VENDOR_ID.XML - NUEVO ICONO DE ID
-          # ============================================
-          printf '%s\n' \
-            "<?xml version=\"1.0\" encoding=\"utf-8\"?>" \
-            "<vector xmlns:android=\"http://schemas.android.com/apk/res/android\"" \
-            "    android:width=\"24dp\"" \
-            "    android:height=\"24dp\"" \
-            "    android:viewportWidth=\"24\"" \
-            "    android:viewportHeight=\"24\">" \
-            "    <path" \
-            "        android:fillColor=\"@color/gray\"" \
-            "        android:pathData=\"M20,4H4c-1.1,0 -2,0.9 -2,2v12c0,1.1 0.9,2 2,2h16c1.1,0 2,-0.9 2,-2V6c0,-1.1 -0.9,-2 -2,-2zM4,6h16v2H4V6zM4,12v-2h4v2H4zM4,10V8h4v2H4zM12,12H8v-2h4v2zM12,10H8V8h4v2zM20,12h-6v-2h6v2zM20,10h-6V8h6v2zM4,16v-2h16v2H4z\"/>" \
-            "</vector>" \
-            > app/src/main/res/drawable/ic_vendor_id.xml
-          
-          # ============================================
-          # EDIT_TEXT_BACKGROUND.XML
-          # ============================================
-          printf '%s\n' \
-            "<?xml version=\"1.0\" encoding=\"utf-8\"?>" \
-            "<shape xmlns:android=\"http://schemas.android.com/apk/res/android\">" \
-            "    <solid android:color=\"@color/white\" />" \
-            "    <stroke android:width=\"1dp\" android:color=\"@color/gray_light\" />" \
-            "    <corners android:radius=\"12dp\" />" \
-            "</shape>" \
-            > app/src/main/res/drawable/edit_text_background.xml
-          
-          # ============================================
-          # ICONOS DEL MENÚ (Dashboard, Ventas, Inventario, Logout)
-          # ============================================
-          printf '%s\n' \
-            "<?xml version=\"1.0\" encoding=\"utf-8\"?>" \
-            "<vector xmlns:android=\"http://schemas.android.com/apk/res/android\"" \
-            "    android:width=\"24dp\"" \
-            "    android:height=\"24dp\"" \
-            "    android:viewportWidth=\"24\"" \
-            "    android:viewportHeight=\"24\">" \
-            "    <path" \
-            "        android:fillColor=\"#000000\"" \
-            "        android:pathData=\"M3,13h8L11,3L3,3v10zM3,21h8v-6L3,15v6zM13,21h8L21,11h-8v10zM13,3v6h8L21,3h-8z\"/>" \
-            "</vector>" \
-            > app/src/main/res/drawable/ic_dashboard.xml
-          
-          printf '%s\n' \
-            "<?xml version=\"1.0\" encoding=\"utf-8\"?>" \
-            "<vector xmlns:android=\"http://schemas.android.com/apk/res/android\"" \
-            "    android:width=\"24dp\"" \
-            "    android:height=\"24dp\"" \
-            "    android:viewportWidth=\"24\"" \
-            "    android:viewportHeight=\"24\">" \
-            "    <path" \
-            "        android:fillColor=\"#000000\"" \
-            "        android:pathData=\"M7,18c-1.1,0 -2,0.9 -2,2s0.9,2 2,2 2,-0.9 2,-2 -0.9,-2 -2,-2zM1,2v2h2l3.6,7.59 -1.35,2.45C5.16,14.9 5.78,16 7,16h12v-2L7,14l1.1,-2h7.45c0.75,0 1.41,-0.41 1.75,-1.03l3.58,-6.49A1.996,1.996 0,0 0,20.01 4L5.21,4l-0.94,-2L1,2zM17,18c-1.1,0 -2,0.9 -2,2s0.9,2 2,2 2,-0.9 2,-2 -0.9,-2 -2,-2z\"/>" \
-            "</vector>" \
-            > app/src/main/res/drawable/ic_ventas.xml
-          
-          printf '%s\n' \
-            "<?xml version=\"1.0\" encoding=\"utf-8\"?>" \
-            "<vector xmlns:android=\"http://schemas.android.com/apk/res/android\"" \
-            "    android:width=\"24dp\"" \
-            "    android:height=\"24dp\"" \
-            "    android:viewportWidth=\"24\"" \
-            "    android:viewportHeight=\"24\">" \
-            "    <path" \
-            "        android:fillColor=\"#000000\"" \
-            "        android:pathData=\"M20,6h-4V4c0,-1.1 -0.9,-2 -2,-2h-4C8.9,2 8,2.9 8,4v2H4c-1.1,0 -2,0.9 -2,2v12c0,1.1 0.9,2 2,2h16c1.1,0 2,-0.9 2,-2V8c0,-1.1 -0.9,-2 -2,-2zM10,4h4v2h-4V4zM4,20V8h4v10h8V8h4v12H4z\"/>" \
-            "</vector>" \
-            > app/src/main/res/drawable/ic_inventario.xml
-          
-          printf '%s\n' \
-            "<?xml version=\"1.0\" encoding=\"utf-8\"?>" \
-            "<vector xmlns:android=\"http://schemas.android.com/apk/res/android\"" \
-            "    android:width=\"24dp\"" \
-            "    android:height=\"24dp\"" \
-            "    android:viewportWidth=\"24\"" \
-            "    android:viewportHeight=\"24\">" \
-            "    <path" \
-            "        android:fillColor=\"#000000\"" \
-            "        android:pathData=\"M17,7l-1.41,1.41L18.17,11H8v2h10.17l-2.58,2.58L17,17l5,-5zM4,5h8V3H4c-1.1,0 -2,0.9 -2,2v14c0,1.1 0.9,2 2,2h8v-2H4V5z\"/>" \
-            "</vector>" \
-            > app/src/main/res/drawable/ic_logout.xml
-          
-          # ============================================
-          # BOTTOM NAV MENU
-          # ============================================
-          mkdir -p app/src/main/res/menu
-          printf '%s\n' \
-            "<?xml version=\"1.0\" encoding=\"utf-8\"?>" \
-            "<menu xmlns:android=\"http://schemas.android.com/apk/res/android\">" \
-            "    <item" \
-            "        android:id=\"@+id/nav_dashboard\"" \
-            "        android:icon=\"@drawable/ic_dashboard\"" \
-            "        android:title=\"Dashboard\" />" \
-            "    <item" \
-            "        android:id=\"@+id/nav_ventas\"" \
-            "        android:icon=\"@drawable/ic_ventas\"" \
-            "        android:title=\"Ventas\" />" \
-            "    <item" \
-            "        android:id=\"@+id/nav_inventario\"" \
-            "        android:icon=\"@drawable/ic_inventario\"" \
-            "        android:title=\"Inventario\" />" \
-            "    <item" \
-            "        android:id=\"@+id/nav_logout\"" \
-            "        android:icon=\"@drawable/ic_logout\"" \
-            "        android:title=\"Salir\" />" \
-            "</menu>" \
-            > app/src/main/res/menu/bottom_nav_menu.xml
           
           # ============================================
           # ACTIVITY_MAIN.XML
@@ -1134,8 +1007,509 @@ jobs:
             > app/src/main/res/layout/item_venta_reciente.xml
           
           # ============================================
-          # MAIN ACTIVITY
+          # BOTTOM NAV MENU
           # ============================================
+          printf '%s\n' \
+            "<?xml version=\"1.0\" encoding=\"utf-8\"?>" \
+            "<menu xmlns:android=\"http://schemas.android.com/apk/res/android\">" \
+            "    <item" \
+            "        android:id=\"@+id/nav_dashboard\"" \
+            "        android:icon=\"@drawable/ic_dashboard\"" \
+            "        android:title=\"Dashboard\" />" \
+            "    <item" \
+            "        android:id=\"@+id/nav_ventas\"" \
+            "        android:icon=\"@drawable/ic_ventas\"" \
+            "        android:title=\"Ventas\" />" \
+            "    <item" \
+            "        android:id=\"@+id/nav_inventario\"" \
+            "        android:icon=\"@drawable/ic_inventario\"" \
+            "        android:title=\"Inventario\" />" \
+            "    <item" \
+            "        android:id=\"@+id/nav_logout\"" \
+            "        android:icon=\"@drawable/ic_logout\"" \
+            "        android:title=\"Salir\" />" \
+            "</menu>" \
+            > app/src/main/res/menu/bottom_nav_menu.xml
+          
+          # ============================================
+          # DRAWABLES
+          # ============================================
+          printf '%s\n' \
+            "<?xml version=\"1.0\" encoding=\"utf-8\"?>" \
+            "<shape xmlns:android=\"http://schemas.android.com/apk/res/android\">" \
+            "    <solid android:color=\"@color/white\" />" \
+            "    <stroke android:width=\"1dp\" android:color=\"@color/gray_light\" />" \
+            "    <corners android:radius=\"12dp\" />" \
+            "</shape>" \
+            > app/src/main/res/drawable/edit_text_background.xml
+          
+          printf '%s\n' \
+            "<?xml version=\"1.0\" encoding=\"utf-8\"?>" \
+            "<shape xmlns:android=\"http://schemas.android.com/apk/res/android\">" \
+            "    <solid android:color=\"@color/white\" />" \
+            "    <stroke android:width=\"1dp\" android:color=\"@color/gray_light\" />" \
+            "    <corners android:radius=\"12dp\" />" \
+            "</shape>" \
+            > app/src/main/res/drawable/spinner_background.xml
+          
+          printf '%s\n' \
+            "<?xml version=\"1.0\" encoding=\"utf-8\"?>" \
+            "<vector xmlns:android=\"http://schemas.android.com/apk/res/android\"" \
+            "    android:width=\"24dp\"" \
+            "    android:height=\"24dp\"" \
+            "    android:viewportWidth=\"24\"" \
+            "    android:viewportHeight=\"24\">" \
+            "    <path" \
+            "        android:fillColor=\"#000000\"" \
+            "        android:pathData=\"M3,13h8L11,3L3,3v10zM3,21h8v-6L3,15v6zM13,21h8L21,11h-8v10zM13,3v6h8L21,3h-8z\"/>" \
+            "</vector>" \
+            > app/src/main/res/drawable/ic_dashboard.xml
+          
+          printf '%s\n' \
+            "<?xml version=\"1.0\" encoding=\"utf-8\"?>" \
+            "<vector xmlns:android=\"http://schemas.android.com/apk/res/android\"" \
+            "    android:width=\"24dp\"" \
+            "    android:height=\"24dp\"" \
+            "    android:viewportWidth=\"24\"" \
+            "    android:viewportHeight=\"24\">" \
+            "    <path" \
+            "        android:fillColor=\"#000000\"" \
+            "        android:pathData=\"M7,18c-1.1,0 -2,0.9 -2,2s0.9,2 2,2 2,-0.9 2,-2 -0.9,-2 -2,-2zM1,2v2h2l3.6,7.59 -1.35,2.45C5.16,14.9 5.78,16 7,16h12v-2L7,14l1.1,-2h7.45c0.75,0 1.41,-0.41 1.75,-1.03l3.58,-6.49A1.996,1.996 0,0 0,20.01 4L5.21,4l-0.94,-2L1,2zM17,18c-1.1,0 -2,0.9 -2,2s0.9,2 2,2 2,-0.9 2,-2 -0.9,-2 -2,-2z\"/>" \
+            "</vector>" \
+            > app/src/main/res/drawable/ic_ventas.xml
+          
+          printf '%s\n' \
+            "<?xml version=\"1.0\" encoding=\"utf-8\"?>" \
+            "<vector xmlns:android=\"http://schemas.android.com/apk/res/android\"" \
+            "    android:width=\"24dp\"" \
+            "    android:height=\"24dp\"" \
+            "    android:viewportWidth=\"24\"" \
+            "    android:viewportHeight=\"24\">" \
+            "    <path" \
+            "        android:fillColor=\"#000000\"" \
+            "        android:pathData=\"M20,6h-4V4c0,-1.1 -0.9,-2 -2,-2h-4C8.9,2 8,2.9 8,4v2H4c-1.1,0 -2,0.9 -2,2v12c0,1.1 0.9,2 2,2h16c1.1,0 2,-0.9 2,-2V8c0,-1.1 -0.9,-2 -2,-2zM10,4h4v2h-4V4zM4,20V8h4v10h8V8h4v12H4z\"/>" \
+            "</vector>" \
+            > app/src/main/res/drawable/ic_inventario.xml
+          
+          printf '%s\n' \
+            "<?xml version=\"1.0\" encoding=\"utf-8\"?>" \
+            "<vector xmlns:android=\"http://schemas.android.com/apk/res/android\"" \
+            "    android:width=\"24dp\"" \
+            "    android:height=\"24dp\"" \
+            "    android:viewportWidth=\"24\"" \
+            "    android:viewportHeight=\"24\">" \
+            "    <path" \
+            "        android:fillColor=\"#000000\"" \
+            "        android:pathData=\"M17,7l-1.41,1.41L18.17,11H8v2h10.17l-2.58,2.58L17,17l5,-5zM4,5h8V3H4c-1.1,0 -2,0.9 -2,2v14c0,1.1 0.9,2 2,2h8v-2H4V5z\"/>" \
+            "</vector>" \
+            > app/src/main/res/drawable/ic_logout.xml
+          
+          printf '%s\n' \
+            "<?xml version=\"1.0\" encoding=\"utf-8\"?>" \
+            "<vector xmlns:android=\"http://schemas.android.com/apk/res/android\"" \
+            "    android:width=\"64dp\"" \
+            "    android:height=\"64dp\"" \
+            "    android:viewportWidth=\"24\"" \
+            "    android:viewportHeight=\"24\">" \
+            "    <path" \
+            "        android:fillColor=\"@color/primary\"" \
+            "        android:pathData=\"M12,12c2.21,0 4,-1.79 4,-4s-1.79,-4 -4,-4 -4,1.79 -4,4 1.79,4 4,4zM12,14c-2.67,0 -8,1.34 -8,4v2h16v-2c0,-2.66 -5.33,-4 -8,-4z\"/>" \
+            "    <path" \
+            "        android:fillColor=\"@color/white\"" \
+            "        android:pathData=\"M12,12c-0.83,0 -1.5,-0.67 -1.5,-1.5S11.17,9 12,9s1.5,0.67 1.5,1.5S12.83,12 12,12zM12,10c-0.28,0 -0.5,0.22 -0.5,0.5S11.72,11 12,11s0.5,-0.22 0.5,-0.5S12.28,10 12,10z\"/>" \
+            "</vector>" \
+            > app/src/main/res/drawable/ic_vendor.xml
+          
+          printf '%s\n' \
+            "<?xml version=\"1.0\" encoding=\"utf-8\"?>" \
+            "<vector xmlns:android=\"http://schemas.android.com/apk/res/android\"" \
+            "    android:width=\"24dp\"" \
+            "    android:height=\"24dp\"" \
+            "    android:viewportWidth=\"24\"" \
+            "    android:viewportHeight=\"24\">" \
+            "    <path" \
+            "        android:fillColor=\"@color/gray\"" \
+            "        android:pathData=\"M20,4H4c-1.1,0 -2,0.9 -2,2v12c0,1.1 0.9,2 2,2h16c1.1,0 2,-0.9 2,-2V6c0,-1.1 -0.9,-2 -2,-2zM4,6h16v2H4V6zM4,12v-2h4v2H4zM4,10V8h4v2H4zM12,12H8v-2h4v2zM12,10H8V8h4v2zM20,12h-6v-2h6v2zM20,10h-6V8h6v2zM4,16v-2h16v2H4z\"/>" \
+            "</vector>" \
+            > app/src/main/res/drawable/ic_vendor_id.xml
+          
+          printf '%s\n' \
+            '<?xml version="1.0" encoding="utf-8"?>' \
+            '<vector xmlns:android="http://schemas.android.com/apk/res/android"' \
+            '    android:width="108dp"' \
+            '    android:height="108dp"' \
+            '    android:viewportWidth="108"' \
+            '    android:viewportHeight="108">' \
+            '    <path' \
+            '        android:fillColor="#4361EE"' \
+            '        android:pathData="M54,27C40.5,27 30,37.5 30,51C30,64.5 40.5,75 54,75C67.5,75 78,64.5 78,51C78,37.5 67.5,27 54,27ZM54,69C44.1,69 36,60.9 36,51C36,41.1 44.1,33 54,33C63.9,33 72,41.1 72,51C72,60.9 63.9,69 54,69ZM54,39C47.4,39 42,44.4 42,51C42,57.6 47.4,63 54,63C60.6,63 66,57.6 66,51C66,44.4 60.6,39 54,39Z"/>' \
+            '    <path' \
+            '        android:fillColor="#FFFFFF"' \
+            '        android:pathData="M54,45C50.7,45 48,47.7 48,51C48,54.3 50.7,57 54,57C57.3,57 60,54.3 60,51C60,47.7 57.3,45 54,45Z"/>' \
+            '</vector>' \
+            > app/src/main/res/drawable/ic_launcher_foreground.xml
+          
+          # Adaptive icons
+          printf '%s\n' \
+            '<?xml version="1.0" encoding="utf-8"?>' \
+            '<adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">' \
+            '    <background android:drawable="@color/white"/>' \
+            '    <foreground android:drawable="@drawable/ic_launcher_foreground"/>' \
+            '</adaptive-icon>' \
+            > app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml
+          
+          cp app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml \
+             app/src/main/res/mipmap-anydpi-v26/ic_launcher_round.xml
+          
+          # PNG placeholder icons
+          for dir in mipmap-mdpi mipmap-hdpi mipmap-xhdpi mipmap-xxhdpi mipmap-xxxhdpi; do
+            echo -n "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==" | base64 -d > app/src/main/res/$dir/ic_launcher.png
+            echo -n "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==" | base64 -d > app/src/main/res/$dir/ic_launcher_round.png
+          done
+          
+          # ============================================
+          # JAVA SOURCE FILES
+          # ============================================
+          
+          # ----- LoginActivity.java (REAL - CON API Y LOGS) -----
+          printf '%s\n' \
+            "package com.omniventas.app;" \
+            "" \
+            "import android.animation.ObjectAnimator;" \
+            "import android.content.Intent;" \
+            "import android.os.Build;" \
+            "import android.os.Bundle;" \
+            "import android.os.Environment;" \
+            "import android.util.Log;" \
+            "import android.view.View;" \
+            "import android.view.inputmethod.EditorInfo;" \
+            "import android.widget.Button;" \
+            "import android.widget.EditText;" \
+            "import android.widget.ProgressBar;" \
+            "import android.widget.TextView;" \
+            "import android.widget.Toast;" \
+            "import androidx.appcompat.app.AppCompatActivity;" \
+            "import androidx.cardview.widget.CardView;" \
+            "import androidx.core.content.FileProvider;" \
+            "" \
+            "import com.omniventas.app.api.ApiService;" \
+            "import com.omniventas.app.api.RetrofitClient;" \
+            "import com.omniventas.app.models.LoginResponse;" \
+            "import com.omniventas.app.models.VendorLoginRequest;" \
+            "import com.omniventas.app.utils.SessionManager;" \
+            "import com.omniventas.app.utils.TelegramLogger;" \
+            "" \
+            "import java.io.BufferedWriter;" \
+            "import java.io.File;" \
+            "import java.io.FileWriter;" \
+            "import java.io.IOException;" \
+            "import java.text.SimpleDateFormat;" \
+            "import java.util.Date;" \
+            "import java.util.Locale;" \
+            "" \
+            "import retrofit2.Call;" \
+            "import retrofit2.Callback;" \
+            "import retrofit2.Response;" \
+            "" \
+            "public class LoginActivity extends AppCompatActivity {" \
+            "" \
+            "    private static final String TAG = \"LoginActivity\";" \
+            "" \
+            "    private EditText etVendorId;" \
+            "    private Button btnLogin;" \
+            "    private CardView cardLogin;" \
+            "    private ProgressBar progressBar;" \
+            "    private TextView tvError;" \
+            "    private SessionManager sessionManager;" \
+            "    private TelegramLogger logger;" \
+            "    private StringBuilder logBuilder = new StringBuilder();" \
+            "" \
+            "    @Override" \
+            "    protected void onCreate(Bundle savedInstanceState) {" \
+            "        super.onCreate(savedInstanceState);" \
+            "        setContentView(R.layout.activity_login);" \
+            "" \
+            "        Log.d(TAG, \"=== onCreate ===\");" \
+            "" \
+            "        sessionManager = new SessionManager(this);" \
+            "        logger = TelegramLogger.getInstance(this);" \
+            "        sessionManager.clearSession();" \
+            "" \
+            "        etVendorId = findViewById(R.id.et_vendor_id);" \
+            "        btnLogin = findViewById(R.id.btn_login);" \
+            "        cardLogin = findViewById(R.id.card_login);" \
+            "        progressBar = findViewById(R.id.progressBar);" \
+            "        tvError = findViewById(R.id.tv_error);" \
+            "" \
+            "        if (etVendorId != null) {" \
+            "            etVendorId.setText(\"AAAA0000\");" \
+            "        }" \
+            "" \
+            "        if (tvError != null) tvError.setVisibility(View.GONE);" \
+            "        if (progressBar != null) progressBar.setVisibility(View.GONE);" \
+            "" \
+            "        if (cardLogin != null) {" \
+            "            cardLogin.setTranslationY(100f);" \
+            "            cardLogin.setAlpha(0f);" \
+            "            cardLogin.animate()" \
+            "                    .translationY(0f)" \
+            "                    .alpha(1f)" \
+            "                    .setDuration(600)" \
+            "                    .start();" \
+            "        }" \
+            "" \
+            "        btnLogin.setOnClickListener(v -> {" \
+            "            Log.d(TAG, \"🔥 Botón presionado\");" \
+            "            iniciarCapturaLogs();" \
+            "            realizarLogin();" \
+            "        });" \
+            "" \
+            "        if (etVendorId != null) {" \
+            "            etVendorId.setOnEditorActionListener((v, actionId, event) -> {" \
+            "                if (actionId == EditorInfo.IME_ACTION_DONE) {" \
+            "                    iniciarCapturaLogs();" \
+            "                    realizarLogin();" \
+            "                    return true;" \
+            "                }" \
+            "                return false;" \
+            "            });" \
+            "        }" \
+            "    }" \
+            "" \
+            "    private void iniciarCapturaLogs() {" \
+            "        logBuilder = new StringBuilder();" \
+            "        String timestamp = new SimpleDateFormat(\"yyyy-MM-dd HH:mm:ss\", Locale.getDefault()).format(new Date());" \
+            "" \
+            "        logBuilder.append(\"========================================\\n\");" \
+            "        logBuilder.append(\"📱 OMNIVENTAS - LOG DE DEPURACIÓN\\n\");" \
+            "        logBuilder.append(\"========================================\\n\");" \
+            "        logBuilder.append(\"📅 Fecha: \").append(timestamp).append(\"\\n\");" \
+            "        logBuilder.append(\"📱 Dispositivo: \").append(Build.MANUFACTURER)" \
+            "                .append(\" \").append(Build.MODEL).append(\"\\n\");" \
+            "        logBuilder.append(\"🤖 Android: \").append(Build.VERSION.RELEASE)" \
+            "                .append(\" (API \").append(Build.VERSION.SDK_INT).append(\")\\n\");" \
+            "        logBuilder.append(\"📦 App Version: \").append(getAppVersion()).append(\"\\n\");" \
+            "        logBuilder.append(\"========================================\\n\\n\");" \
+            "" \
+            "        agregarLog(\"🚀 Iniciando proceso de login...\");" \
+            "        String vendorId = etVendorId != null ? etVendorId.getText().toString().trim().toUpperCase() : \"DESCONOCIDO\";" \
+            "        agregarLog(\"📝 Vendor ID: \" + vendorId);" \
+            "    }" \
+            "" \
+            "    private void agregarLog(String mensaje) {" \
+            "        String timestamp = new SimpleDateFormat(\"HH:mm:ss\", Locale.getDefault()).format(new Date());" \
+            "        logBuilder.append(\"[\").append(timestamp).append(\"] \").append(mensaje).append(\"\\n\");" \
+            "        Log.d(TAG, mensaje);" \
+            "    }" \
+            "" \
+            "    private String getAppVersion() {" \
+            "        try {" \
+            "            return getPackageManager().getPackageInfo(getPackageName(), 0).versionName;" \
+            "        } catch (Exception e) {" \
+            "            return \"1.0\";" \
+            "        }" \
+            "    }" \
+            "" \
+            "    private void guardarYDescargarLogs() {" \
+            "        try {" \
+            "            agregarLog(\"💾 Guardando archivo de logs en Download...\");" \
+            "" \
+            "            File downloadDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS);" \
+            "            if (!downloadDir.exists()) {" \
+            "                downloadDir.mkdirs();" \
+            "            }" \
+            "" \
+            "            String fileName = \"omniventas_login_\" +" \
+            "                    new SimpleDateFormat(\"yyyyMMdd_HHmmss\", Locale.getDefault()).format(new Date()) + \".txt\";" \
+            "            File logFile = new File(downloadDir, fileName);" \
+            "" \
+            "            BufferedWriter writer = new BufferedWriter(new FileWriter(logFile));" \
+            "            writer.write(logBuilder.toString());" \
+            "            writer.close();" \
+            "" \
+            "            agregarLog(\"✅ Archivo guardado en Download: \" + logFile.getAbsolutePath());" \
+            "            Toast.makeText(this, \"✅ Logs guardados en Download\", Toast.LENGTH_LONG).show();" \
+            "" \
+            "            abrirArchivoLogs(logFile);" \
+            "" \
+            "        } catch (IOException e) {" \
+            "            Log.e(TAG, \"❌ Error guardando logs: \" + e.getMessage());" \
+            "            Toast.makeText(this, \"❌ Error guardando logs: \" + e.getMessage(), Toast.LENGTH_LONG).show();" \
+            "        }" \
+            "    }" \
+            "" \
+            "    private void abrirArchivoLogs(File logFile) {" \
+            "        try {" \
+            "            Intent intent = new Intent(Intent.ACTION_VIEW);" \
+            "            intent.setDataAndType(" \
+            "                    FileProvider.getUriForFile(this, getPackageName() + \".fileprovider\", logFile)," \
+            "                    \"text/plain\"" \
+            "            );" \
+            "            intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);" \
+            "            startActivity(Intent.createChooser(intent, \"📄 Abrir logs con...\"));" \
+            "        } catch (Exception e) {" \
+            "            Log.e(TAG, \"Error abriendo archivo: \" + e.getMessage());" \
+            "        }" \
+            "    }" \
+            "" \
+            "    private void realizarLogin() {" \
+            "        agregarLog(\"=== Iniciando login ===\");" \
+            "" \
+            "        String vendorId = etVendorId.getText().toString().trim().toUpperCase();" \
+            "        agregarLog(\"📝 Vendor ID ingresado: '\" + vendorId + \"'\");" \
+            "" \
+            "        if (vendorId.isEmpty()) {" \
+            "            agregarLog(\"❌ Error: ID vacío\");" \
+            "            mostrarError(\"Ingresa tu ID de vendedor\");" \
+            "            shakeView(etVendorId);" \
+            "            guardarYDescargarLogs();" \
+            "            return;" \
+            "        }" \
+            "" \
+            "        if (vendorId.length() != 8) {" \
+            "            agregarLog(\"❌ Error: ID tiene \" + vendorId.length() + \" caracteres\");" \
+            "            mostrarError(\"El ID debe tener 8 caracteres\");" \
+            "            shakeView(etVendorId);" \
+            "            guardarYDescargarLogs();" \
+            "            return;" \
+            "        }" \
+            "" \
+            "        if (!vendorId.matches(\"[A-Z0-9]+\")) {" \
+            "            agregarLog(\"❌ Error: ID contiene caracteres inválidos\");" \
+            "            mostrarError(\"Solo letras y números\");" \
+            "            shakeView(etVendorId);" \
+            "            guardarYDescargarLogs();" \
+            "            return;" \
+            "        }" \
+            "" \
+            "        agregarLog(\"✅ Validaciones pasadas\");" \
+            "        setLoading(true);" \
+            "        ocultarError();" \
+            "" \
+            "        agregarLog(\"🔄 Llamando a la API: \" + RetrofitClient.getApiUrl());" \
+            "" \
+            "        ApiService apiService = RetrofitClient.getInstance(this).getApiService();" \
+            "        VendorLoginRequest request = new VendorLoginRequest(vendorId);" \
+            "" \
+            "        apiService.loginVendor(request).enqueue(new Callback<LoginResponse>() {" \
+            "            @Override" \
+            "            public void onResponse(Call<LoginResponse> call, Response<LoginResponse> response) {" \
+            "                setLoading(false);" \
+            "                agregarLog(\"📡 Respuesta recibida - Código: \" + response.code());" \
+            "" \
+            "                if (response.isSuccessful() && response.body() != null) {" \
+            "                    LoginResponse loginResponse = response.body();" \
+            "                    agregarLog(\"   loginResponse.success: \" + loginResponse.isSuccess());" \
+            "" \
+            "                    if (loginResponse.isSuccess()) {" \
+            "                        String token = loginResponse.getToken();" \
+            "                        LoginResponse.Vendor vendor = loginResponse.getVendor();" \
+            "" \
+            "                        agregarLog(\"✅ LOGIN EXITOSO!\");" \
+            "                        agregarLog(\"   Token: \" + (token != null ? \"PRESENTE\" : \"NULL\"));" \
+            "                        agregarLog(\"   Vendor: \" + (vendor != null ? vendor.getName() : \"NULL\"));" \
+            "" \
+            "                        if (vendor != null && token != null && !token.isEmpty()) {" \
+            "                            sessionManager.saveUser(token, vendor.getId(), vendor.getName(), vendor.getBusinessName());" \
+            "                            agregarLog(\"✅ Sesión guardada\");" \
+            "" \
+            "                            logger.success(\"Login exitoso: \" + vendor.getName());" \
+            "                            guardarYDescargarLogs();" \
+            "                            irAlDashboard();" \
+            "                        } else {" \
+            "                            agregarLog(\"❌ Error: Token o Vendor es NULL\");" \
+            "                            mostrarError(\"Error: datos de login incompletos\");" \
+            "                            guardarYDescargarLogs();" \
+            "                        }" \
+            "" \
+            "                    } else {" \
+            "                        String mensaje = loginResponse.getMessage() != null ? loginResponse.getMessage() : \"ID inválido\";" \
+            "                        agregarLog(\"❌ Login fallido: \" + mensaje);" \
+            "                        mostrarError(mensaje);" \
+            "                        shakeView(cardLogin);" \
+            "                        guardarYDescargarLogs();" \
+            "                    }" \
+            "" \
+            "                } else {" \
+            "                    String mensaje = \"Error del servidor. Código: \" + response.code();" \
+            "                    agregarLog(\"❌ \" + mensaje);" \
+            "                    mostrarError(mensaje);" \
+            "                    shakeView(cardLogin);" \
+            "                    guardarYDescargarLogs();" \
+            "                }" \
+            "            }" \
+            "" \
+            "            @Override" \
+            "            public void onFailure(Call<LoginResponse> call, Throwable t) {" \
+            "                setLoading(false);" \
+            "                agregarLog(\"❌ ERROR DE RED: \" + t.getMessage());" \
+            "                mostrarError(\"Error de conexión. Verifica tu internet.\");" \
+            "                shakeView(cardLogin);" \
+            "                guardarYDescargarLogs();" \
+            "            }" \
+            "        });" \
+            "    }" \
+            "" \
+            "    private void irAlDashboard() {" \
+            "        agregarLog(\"🚀 Navegando al Dashboard\");" \
+            "        try {" \
+            "            Intent intent = new Intent(LoginActivity.this, MainActivity.class);" \
+            "            intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);" \
+            "            startActivity(intent);" \
+            "            finish();" \
+            "            agregarLog(\"✅ Dashboard iniciado\");" \
+            "        } catch (Exception e) {" \
+            "            agregarLog(\"❌ Error navegando: \" + e.getMessage());" \
+            "            Toast.makeText(this, \"Error: \" + e.getMessage(), Toast.LENGTH_LONG).show();" \
+            "        }" \
+            "    }" \
+            "" \
+            "    private void setLoading(boolean loading) {" \
+            "        if (btnLogin != null) {" \
+            "            btnLogin.setEnabled(!loading);" \
+            "            btnLogin.setText(loading ? \"Verificando...\" : \"Ingresar\");" \
+            "        }" \
+            "        if (progressBar != null) {" \
+            "            progressBar.setVisibility(loading ? View.VISIBLE : View.GONE);" \
+            "        }" \
+            "    }" \
+            "" \
+            "    private void mostrarError(String mensaje) {" \
+            "        if (tvError != null) {" \
+            "            tvError.setText(mensaje);" \
+            "            tvError.setVisibility(View.VISIBLE);" \
+            "        } else {" \
+            "            Toast.makeText(this, \"❌ \" + mensaje, Toast.LENGTH_LONG).show();" \
+            "        }" \
+            "    }" \
+            "" \
+            "    private void ocultarError() {" \
+            "        if (tvError != null) {" \
+            "            tvError.setVisibility(View.GONE);" \
+            "        }" \
+            "    }" \
+            "" \
+            "    private void shakeView(View view) {" \
+            "        if (view != null) {" \
+            "            ObjectAnimator shake = ObjectAnimator.ofFloat(" \
+            "                    view, \"translationX\", 0f, -20f, 20f, -20f, 20f, -10f, 10f, 0f" \
+            "            );" \
+            "            shake.setDuration(500);" \
+            "            shake.start();" \
+            "        }" \
+            "    }" \
+            "" \
+            "    @Override" \
+            "    protected void onResume() {" \
+            "        super.onResume();" \
+            "        if (sessionManager.isLoggedIn()) {" \
+            "            irAlDashboard();" \
+            "        }" \
+            "    }" \
+            "}" \
+            > app/src/main/java/com/omniventas/app/LoginActivity.java
+          
+          # ----- MainActivity.java -----
           printf '%s\n' \
             "package com.omniventas.app;" \
             "" \
@@ -1149,16 +1523,26 @@ jobs:
             "import com.omniventas.app.ui.DashboardFragment;" \
             "import com.omniventas.app.ui.VentasFragment;" \
             "import com.omniventas.app.ui.InventarioFragment;" \
+            "import com.omniventas.app.utils.SessionManager;" \
             "" \
             "public class MainActivity extends AppCompatActivity {" \
             "" \
             "    private BottomNavigationView bottomNav;" \
             "    private long backPressedTime = 0;" \
+            "    private SessionManager sessionManager;" \
             "" \
             "    @Override" \
             "    protected void onCreate(Bundle savedInstanceState) {" \
             "        super.onCreate(savedInstanceState);" \
             "        setContentView(R.layout.activity_main);" \
+            "" \
+            "        sessionManager = new SessionManager(this);" \
+            "" \
+            "        if (!sessionManager.isLoggedIn()) {" \
+            "            Toast.makeText(this, \"Sesión expirada\", Toast.LENGTH_SHORT).show();" \
+            "            finish();" \
+            "            return;" \
+            "        }" \
             "" \
             "        bottomNav = findViewById(R.id.bottom_navigation);" \
             "        bottomNav.setOnItemSelectedListener(this::onNavigationItemSelected);" \
@@ -1181,7 +1565,9 @@ jobs:
             "        } else if (id == R.id.nav_inventario) {" \
             "            selectedFragment = new InventarioFragment();" \
             "        } else if (id == R.id.nav_logout) {" \
-            "            Toast.makeText(this, \"Cerrando sesión...\", Toast.LENGTH_SHORT).show();" \
+            "            sessionManager.clearSession();" \
+            "            Toast.makeText(this, \"Sesión cerrada\", Toast.LENGTH_SHORT).show();" \
+            "            finish();" \
             "            return true;" \
             "        }" \
             "" \
@@ -1207,9 +1593,7 @@ jobs:
             "}" \
             > app/src/main/java/com/omniventas/app/MainActivity.java
           
-          # ============================================
-          # DASHBOARD FRAGMENT
-          # ============================================
+          # ----- UI Fragments -----
           printf '%s\n' \
             "package com.omniventas.app.ui;" \
             "" \
@@ -1247,7 +1631,6 @@ jobs:
             "" \
             "        rvVentasRecientes.setLayoutManager(new LinearLayoutManager(getContext()));" \
             "" \
-            "        // Datos de ejemplo" \
             "        tvVentasHoy.setText(\"5\");" \
             "        tvIngresosHoy.setText(\"$125.50\");" \
             "        tvVentasMes.setText(\"42\");" \
@@ -1259,9 +1642,6 @@ jobs:
             "}" \
             > app/src/main/java/com/omniventas/app/ui/DashboardFragment.java
           
-          # ============================================
-          # VENTAS FRAGMENT
-          # ============================================
           printf '%s\n' \
             "package com.omniventas.app.ui;" \
             "" \
@@ -1354,9 +1734,6 @@ jobs:
             "}" \
             > app/src/main/java/com/omniventas/app/ui/VentasFragment.java
           
-          # ============================================
-          # INVENTARIO FRAGMENT
-          # ============================================
           printf '%s\n' \
             "package com.omniventas.app.ui;" \
             "" \
@@ -1399,58 +1776,379 @@ jobs:
             > app/src/main/java/com/omniventas/app/ui/InventarioFragment.java
           
           # ============================================
-          # SPINNER_BACKGROUND.XML
+          # API PACKAGE
           # ============================================
+          
+          # ----- RetrofitClient.java -----
+          mkdir -p app/src/main/java/com/omniventas/app/api
           printf '%s\n' \
-            "<?xml version=\"1.0\" encoding=\"utf-8\"?>" \
-            "<shape xmlns:android=\"http://schemas.android.com/apk/res/android\">" \
-            "    <solid android:color=\"@color/white\" />" \
-            "    <stroke android:width=\"1dp\" android:color=\"@color/gray_light\" />" \
-            "    <corners android:radius=\"12dp\" />" \
-            "</shape>" \
-            > app/src/main/res/drawable/spinner_background.xml
+            "package com.omniventas.app.api;" \
+            "" \
+            "import android.content.Context;" \
+            "import android.content.SharedPreferences;" \
+            "import android.util.Log;" \
+            "" \
+            "import java.io.IOException;" \
+            "import java.util.concurrent.TimeUnit;" \
+            "" \
+            "import okhttp3.Interceptor;" \
+            "import okhttp3.OkHttpClient;" \
+            "import okhttp3.Request;" \
+            "import okhttp3.Response;" \
+            "import okhttp3.logging.HttpLoggingInterceptor;" \
+            "import retrofit2.Retrofit;" \
+            "import retrofit2.converter.gson.GsonConverterFactory;" \
+            "" \
+            "public class RetrofitClient {" \
+            "    private static final String TAG = \"RetrofitClient\";" \
+            "    private static RetrofitClient instance;" \
+            "    private ApiService apiService;" \
+            "    private static String API_URL = \"https://prueba-1-omni.onrender.com\";" \
+            "    private Context context;" \
+            "" \
+            "    private RetrofitClient(Context context) {" \
+            "        this.context = context.getApplicationContext();" \
+            "" \
+            "        HttpLoggingInterceptor logging = new HttpLoggingInterceptor();" \
+            "        logging.setLevel(HttpLoggingInterceptor.Level.BODY);" \
+            "" \
+            "        Interceptor authInterceptor = new Interceptor() {" \
+            "            @Override" \
+            "            public Response intercept(Chain chain) throws IOException {" \
+            "                Request original = chain.request();" \
+            "                String url = original.url().toString();" \
+            "" \
+            "                Log.d(TAG, \"📡 URL: \" + url);" \
+            "" \
+            "                SharedPreferences prefs = context.getSharedPreferences(\"OmniVentasSession\", Context.MODE_PRIVATE);" \
+            "                String token = prefs.getString(\"token\", null);" \
+            "" \
+            "                Request request;" \
+            "                if (token != null && !token.isEmpty()) {" \
+            "                    String authHeader = \"Bearer \" + token;" \
+            "                    request = original.newBuilder()" \
+            "                        .header(\"Authorization\", authHeader)" \
+            "                        .build();" \
+            "                } else {" \
+            "                    request = original;" \
+            "                }" \
+            "" \
+            "                return chain.proceed(request);" \
+            "            }" \
+            "        };" \
+            "" \
+            "        OkHttpClient client = new OkHttpClient.Builder()" \
+            "            .addInterceptor(logging)" \
+            "            .addInterceptor(authInterceptor)" \
+            "            .connectTimeout(30, TimeUnit.SECONDS)" \
+            "            .readTimeout(30, TimeUnit.SECONDS)" \
+            "            .writeTimeout(30, TimeUnit.SECONDS)" \
+            "            .build();" \
+            "" \
+            "        Retrofit retrofit = new Retrofit.Builder()" \
+            "            .baseUrl(API_URL)" \
+            "            .addConverterFactory(GsonConverterFactory.create())" \
+            "            .client(client)" \
+            "            .build();" \
+            "" \
+            "        apiService = retrofit.create(ApiService.class);" \
+            "        Log.d(TAG, \"✅ RetrofitClient inicializado con URL: \" + API_URL);" \
+            "    }" \
+            "" \
+            "    public static synchronized RetrofitClient getInstance(Context context) {" \
+            "        if (instance == null) {" \
+            "            instance = new RetrofitClient(context);" \
+            "        }" \
+            "        return instance;" \
+            "    }" \
+            "" \
+            "    public ApiService getApiService() {" \
+            "        return apiService;" \
+            "    }" \
+            "" \
+            "    public static String getApiUrl() {" \
+            "        return API_URL;" \
+            "    }" \
+            "}" \
+            > app/src/main/java/com/omniventas/app/api/RetrofitClient.java
+          
+          # ----- ApiService.java -----
+          printf '%s\n' \
+            "package com.omniventas.app.api;" \
+            "" \
+            "import com.omniventas.app.models.LoginResponse;" \
+            "import com.omniventas.app.models.VendorLoginRequest;" \
+            "import com.google.gson.JsonObject;" \
+            "import retrofit2.Call;" \
+            "import retrofit2.http.Body;" \
+            "import retrofit2.http.POST;" \
+            "" \
+            "public interface ApiService {" \
+            "    @POST(\"api/login-vendedor\")" \
+            "    Call<LoginResponse> loginVendor(@Body VendorLoginRequest request);" \
+            "" \
+            "    @POST(\"api/send-log\")" \
+            "    Call<Void> sendLog(@Body JsonObject logData);" \
+            "}" \
+            > app/src/main/java/com/omniventas/app/api/ApiService.java
           
           # ============================================
-          # ICONOS DE LAUNCHER
+          # MODELS PACKAGE
           # ============================================
+          mkdir -p app/src/main/java/com/omniventas/app/models
+          
           printf '%s\n' \
-            '<?xml version="1.0" encoding="utf-8"?>' \
-            '<vector xmlns:android="http://schemas.android.com/apk/res/android"' \
-            '    android:width="108dp"' \
-            '    android:height="108dp"' \
-            '    android:viewportWidth="108"' \
-            '    android:viewportHeight="108">' \
-            '    <path' \
-            '        android:fillColor="#4361EE"' \
-            '        android:pathData="M54,27C40.5,27 30,37.5 30,51C30,64.5 40.5,75 54,75C67.5,75 78,64.5 78,51C78,37.5 67.5,27 54,27ZM54,69C44.1,69 36,60.9 36,51C36,41.1 44.1,33 54,33C63.9,33 72,41.1 72,51C72,60.9 63.9,69 54,69ZM54,39C47.4,39 42,44.4 42,51C42,57.6 47.4,63 54,63C60.6,63 66,57.6 66,51C66,44.4 60.6,39 54,39Z"/>' \
-            '    <path' \
-            '        android:fillColor="#FFFFFF"' \
-            '        android:pathData="M54,45C50.7,45 48,47.7 48,51C48,54.3 50.7,57 54,57C57.3,57 60,54.3 60,51C60,47.7 57.3,45 54,45Z"/>' \
-            '</vector>' \
-            > app/src/main/res/drawable/ic_launcher_foreground.xml
+            "package com.omniventas.app.models;" \
+            "" \
+            "public class LoginResponse {" \
+            "    private boolean success;" \
+            "    private String token;" \
+            "    private String message;" \
+            "    private Vendor vendor;" \
+            "" \
+            "    public static class Vendor {" \
+            "        private String id;" \
+            "        private String name;" \
+            "        private String business_id;" \
+            "        private String business_name;" \
+            "        private String role;" \
+            "        public String getId() { return id; }" \
+            "        public void setId(String id) { this.id = id; }" \
+            "        public String getName() { return name; }" \
+            "        public void setName(String name) { this.name = name; }" \
+            "        public String getBusinessId() { return business_id; }" \
+            "        public void setBusinessId(String business_id) { this.business_id = business_id; }" \
+            "        public String getBusinessName() { return business_name; }" \
+            "        public void setBusinessName(String business_name) { this.business_name = business_name; }" \
+            "        public String getRole() { return role; }" \
+            "        public void setRole(String role) { this.role = role; }" \
+            "    }" \
+            "" \
+            "    public boolean isSuccess() { return success; }" \
+            "    public void setSuccess(boolean success) { this.success = success; }" \
+            "    public String getToken() { return token; }" \
+            "    public void setToken(String token) { this.token = token; }" \
+            "    public String getMessage() { return message; }" \
+            "    public void setMessage(String message) { this.message = message; }" \
+            "    public Vendor getVendor() { return vendor; }" \
+            "    public void setVendor(Vendor vendor) { this.vendor = vendor; }" \
+            "}" \
+            > app/src/main/java/com/omniventas/app/models/LoginResponse.java
           
-          # Adaptive icons
           printf '%s\n' \
-            '<?xml version="1.0" encoding="utf-8"?>' \
-            '<adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">' \
-            '    <background android:drawable="@color/white"/>' \
-            '    <foreground android:drawable="@drawable/ic_launcher_foreground"/>' \
-            '</adaptive-icon>' \
-            > app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml
+            "package com.omniventas.app.models;" \
+            "" \
+            "public class VendorLoginRequest {" \
+            "    private String vendor_id;" \
+            "" \
+            "    public VendorLoginRequest(String vendor_id) {" \
+            "        this.vendor_id = vendor_id;" \
+            "    }" \
+            "" \
+            "    public String getVendorId() { return vendor_id; }" \
+            "    public void setVendorId(String vendor_id) { this.vendor_id = vendor_id; }" \
+            "}" \
+            > app/src/main/java/com/omniventas/app/models/VendorLoginRequest.java
           
-          cp app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml \
-             app/src/main/res/mipmap-anydpi-v26/ic_launcher_round.xml
+          # ============================================
+          # UTILS PACKAGE
+          # ============================================
+          mkdir -p app/src/main/java/com/omniventas/app/utils
           
-          # PNG placeholder icons
-          for dir in mipmap-mdpi mipmap-hdpi mipmap-xhdpi mipmap-xxhdpi mipmap-xxxhdpi; do
-            echo -n "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==" | base64 -d > app/src/main/res/$dir/ic_launcher.png
-            echo -n "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==" | base64 -d > app/src/main/res/$dir/ic_launcher_round.png
-          done
+          # ----- SessionManager.java -----
+          printf '%s\n' \
+            "package com.omniventas.app.utils;" \
+            "" \
+            "import android.content.Context;" \
+            "import android.content.SharedPreferences;" \
+            "import android.util.Log;" \
+            "" \
+            "public class SessionManager {" \
+            "    private static final String TAG = \"SessionManager\";" \
+            "    private static final String PREF_NAME = \"OmniVentasSession\";" \
+            "    private static final String KEY_TOKEN = \"token\";" \
+            "    private static final String KEY_VENDOR_ID = \"vendor_id\";" \
+            "    private static final String KEY_VENDOR_NAME = \"vendor_name\";" \
+            "    private static final String KEY_BUSINESS_NAME = \"business_name\";" \
+            "    private static final String KEY_IS_LOGGED_IN = \"is_logged_in\";" \
+            "" \
+            "    private SharedPreferences sharedPreferences;" \
+            "" \
+            "    public SessionManager(Context context) {" \
+            "        sharedPreferences = context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE);" \
+            "    }" \
+            "" \
+            "    public void saveUser(String token, String vendorId, String vendorName, String businessName) {" \
+            "        SharedPreferences.Editor editor = sharedPreferences.edit();" \
+            "        editor.putString(KEY_TOKEN, token);" \
+            "        editor.putString(KEY_VENDOR_ID, vendorId);" \
+            "        editor.putString(KEY_VENDOR_NAME, vendorName);" \
+            "        editor.putString(KEY_BUSINESS_NAME, businessName);" \
+            "        editor.putBoolean(KEY_IS_LOGGED_IN, true);" \
+            "        editor.apply();" \
+            "        Log.d(TAG, \"✅ Sesión guardada\");" \
+            "    }" \
+            "" \
+            "    public String getToken() {" \
+            "        return sharedPreferences.getString(KEY_TOKEN, null);" \
+            "    }" \
+            "" \
+            "    public String getVendorId() {" \
+            "        return sharedPreferences.getString(KEY_VENDOR_ID, null);" \
+            "    }" \
+            "" \
+            "    public String getVendorName() {" \
+            "        return sharedPreferences.getString(KEY_VENDOR_NAME, null);" \
+            "    }" \
+            "" \
+            "    public String getBusinessName() {" \
+            "        return sharedPreferences.getString(KEY_BUSINESS_NAME, null);" \
+            "    }" \
+            "" \
+            "    public boolean isLoggedIn() {" \
+            "        boolean isLoggedIn = sharedPreferences.getBoolean(KEY_IS_LOGGED_IN, false);" \
+            "        String token = getToken();" \
+            "        return isLoggedIn && token != null && !token.isEmpty();" \
+            "    }" \
+            "" \
+            "    public void clearSession() {" \
+            "        SharedPreferences.Editor editor = sharedPreferences.edit();" \
+            "        editor.clear();" \
+            "        editor.apply();" \
+            "        Log.d(TAG, \"🧹 Sesión limpiada\");" \
+            "    }" \
+            "}" \
+            > app/src/main/java/com/omniventas/app/utils/SessionManager.java
           
-          echo "✅ Proyecto Android completo creado con nuevo diseño de login!"
-          echo "📁 Archivos de recursos creados:"
-          find app/src/main/res -type f -name "*.xml" | wc -l
-          echo " archivos XML de recursos"
+          # ----- TelegramLogger.java -----
+          printf '%s\n' \
+            "package com.omniventas.app.utils;" \
+            "" \
+            "import android.content.Context;" \
+            "import android.content.pm.PackageInfo;" \
+            "import android.content.pm.PackageManager;" \
+            "import android.os.Build;" \
+            "import android.util.Log;" \
+            "import com.omniventas.app.api.ApiService;" \
+            "import com.omniventas.app.api.RetrofitClient;" \
+            "import com.google.gson.Gson;" \
+            "import com.google.gson.JsonObject;" \
+            "import java.text.SimpleDateFormat;" \
+            "import java.util.Date;" \
+            "import java.util.Locale;" \
+            "import java.util.TimeZone;" \
+            "import retrofit2.Call;" \
+            "import retrofit2.Callback;" \
+            "import retrofit2.Response;" \
+            "" \
+            "public class TelegramLogger {" \
+            "    private static final String TAG = \"TelegramLogger\";" \
+            "    private static TelegramLogger instance;" \
+            "    private Context context;" \
+            "    private SessionManager sessionManager;" \
+            "    private Gson gson;" \
+            "    private String appVersion = \"1.0\";" \
+            "" \
+            "    public static final String LEVEL_INFO = \"INFO\";" \
+            "    public static final String LEVEL_SUCCESS = \"SUCCESS\";" \
+            "    public static final String LEVEL_WARNING = \"WARNING\";" \
+            "    public static final String LEVEL_ERROR = \"ERROR\";" \
+            "" \
+            "    private TelegramLogger(Context context) {" \
+            "        this.context = context.getApplicationContext();" \
+            "        this.sessionManager = new SessionManager(context);" \
+            "        this.gson = new Gson();" \
+            "        try {" \
+            "            PackageInfo pInfo = context.getPackageManager().getPackageInfo(context.getPackageName(), 0);" \
+            "            appVersion = pInfo.versionName;" \
+            "        } catch (PackageManager.NameNotFoundException e) {}" \
+            "    }" \
+            "" \
+            "    public static synchronized TelegramLogger getInstance(Context context) {" \
+            "        if (instance == null) {" \
+            "            instance = new TelegramLogger(context);" \
+            "        }" \
+            "        return instance;" \
+            "    }" \
+            "" \
+            "    public void info(String message) {" \
+            "        log(LEVEL_INFO, message);" \
+            "    }" \
+            "" \
+            "    public void success(String message) {" \
+            "        log(LEVEL_SUCCESS, message);" \
+            "    }" \
+            "" \
+            "    public void warning(String message) {" \
+            "        log(LEVEL_WARNING, message);" \
+            "    }" \
+            "" \
+            "    public void error(String message) {" \
+            "        log(LEVEL_ERROR, message);" \
+            "    }" \
+            "" \
+            "    public void networkError(Throwable t) {" \
+            "        error(\"Error de red: \" + t.getMessage());" \
+            "    }" \
+            "" \
+            "    private void log(String level, String message) {" \
+            "        Log.d(TAG, level + \": \" + message);" \
+            "        sendToServer(level, message);" \
+            "    }" \
+            "" \
+            "    private void sendToServer(String level, String message) {" \
+            "        try {" \
+            "            String vendorId = \"DESCONOCIDO\";" \
+            "            String vendorName = \"DESCONOCIDO\";" \
+            "            String businessName = \"DESCONOCIDO\";" \
+            "" \
+            "            if (sessionManager.isLoggedIn()) {" \
+            "                vendorId = sessionManager.getVendorId() != null ? sessionManager.getVendorId() : \"DESCONOCIDO\";" \
+            "                vendorName = sessionManager.getVendorName() != null ? sessionManager.getVendorName() : \"DESCONOCIDO\";" \
+            "                businessName = sessionManager.getBusinessName() != null ? sessionManager.getBusinessName() : \"DESCONOCIDO\";" \
+            "            }" \
+            "" \
+            "            JsonObject jsonData = new JsonObject();" \
+            "            jsonData.addProperty(\"level\", level);" \
+            "            jsonData.addProperty(\"message\", message);" \
+            "            jsonData.addProperty(\"timestamp\", getCurrentTimestamp());" \
+            "            jsonData.addProperty(\"vendor_id\", vendorId);" \
+            "            jsonData.addProperty(\"vendor_name\", vendorName);" \
+            "            jsonData.addProperty(\"business_name\", businessName);" \
+            "            jsonData.addProperty(\"app_version\", appVersion);" \
+            "            jsonData.addProperty(\"device_model\", Build.MANUFACTURER + \" \" + Build.MODEL);" \
+            "            jsonData.addProperty(\"android_version\", Build.VERSION.RELEASE);" \
+            "" \
+            "            ApiService apiService = RetrofitClient.getInstance(context).getApiService();" \
+            "            apiService.sendLog(jsonData).enqueue(new Callback<Void>() {" \
+            "                @Override" \
+            "                public void onResponse(Call<Void> call, Response<Void> response) {" \
+            "                    if (response.isSuccessful()) {" \
+            "                        Log.d(TAG, \"✅ Log enviado a Telegram\");" \
+            "                    }" \
+            "                }" \
+            "                @Override" \
+            "                public void onFailure(Call<Void> call, Throwable t) {" \
+            "                    Log.e(TAG, \"❌ Error enviando log: \" + t.getMessage());" \
+            "                }" \
+            "            });" \
+            "        } catch (Exception e) {" \
+            "            Log.e(TAG, \"❌ Error en sendToServer: \" + e.getMessage());" \
+            "        }" \
+            "    }" \
+            "" \
+            "    private String getCurrentTimestamp() {" \
+            "        SimpleDateFormat sdf = new SimpleDateFormat(\"yyyy-MM-dd HH:mm:ss\", Locale.getDefault());" \
+            "        sdf.setTimeZone(TimeZone.getTimeZone(\"UTC\"));" \
+            "        return sdf.format(new Date());" \
+            "    }" \
+            "}" \
+            > app/src/main/java/com/omniventas/app/utils/TelegramLogger.java
+          
+          echo "✅ Proyecto Android completo creado con login real y logs!"
+          echo "📁 Archivos Java creados:"
+          find app/src/main/java -type f -name "*.java" | wc -l
+          echo " archivos Java"
 
       # ============================================
       # SUBIR LOS ARCHIVOS FUENTE AL REPOSITORIO
@@ -1458,19 +2156,13 @@ jobs:
       - name: Push source files to repository
         run: |
           echo "📤 Subiendo archivos fuente al repositorio..."
-          
-          # Configurar git
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          
-          # Agregar los archivos de android-app
           git add android-app/
-          
-          # Verificar si hay cambios
           if git diff --staged --quiet; then
             echo "✅ No hay cambios nuevos en android-app/"
           else
-            git commit -m "🤖 Update Android app source files [skip ci]"
+            git commit -m "🤖 Update Android app with real login and logs [skip ci]"
             git push
             echo "✅ Archivos subidos al repositorio"
           fi
@@ -1541,3 +2233,10 @@ jobs:
           echo "✅ APK compilados exitosamente!"
           echo "📱 Descarga los APKs desde los artifacts"
           echo "📂 Los archivos fuente están en tu repositorio en android-app/"
+          echo ""
+          echo "🔑 Credenciales de prueba:"
+          echo "   Vendor ID: AAAA0000"
+          echo "   Admin: admin / admin123"
+          echo ""
+          echo "📝 Los logs se guardan en: /storage/emulated/0/Download/omniventas_login_*.txt"
+```
