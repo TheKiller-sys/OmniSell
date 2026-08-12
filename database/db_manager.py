@@ -266,6 +266,50 @@ class DatabaseManager:
                         c.execute("ALTER TABLE users ADD COLUMN role TEXT DEFAULT 'admin'")
                     logger.info("Columna role agregada exitosamente")
             
+            # ==================== NUEVA TABLA: VENDORS ====================
+            if is_postgres:
+                c.execute("""
+                    SELECT EXISTS (
+                        SELECT FROM information_schema.tables 
+                        WHERE table_name = 'vendors'
+                    )
+                """)
+                vendors_exists = c.fetchone()[0]
+            else:
+                c.execute("""
+                    SELECT name FROM sqlite_master 
+                    WHERE type='table' AND name='vendors'
+                """)
+                vendors_exists = c.fetchone() is not None
+            
+            if not vendors_exists:
+                logger.warning("Tabla vendors no existe, creándola...")
+                if is_postgres:
+                    c.execute('''
+                        CREATE TABLE vendors (
+                            id TEXT PRIMARY KEY,
+                            name TEXT NOT NULL,
+                            business_id TEXT NOT NULL,
+                            role TEXT DEFAULT 'vendedor',
+                            active BOOLEAN DEFAULT TRUE,
+                            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                            FOREIGN KEY (business_id) REFERENCES businesses(id) ON DELETE CASCADE
+                        )
+                    ''')
+                else:
+                    c.execute('''
+                        CREATE TABLE vendors (
+                            id TEXT PRIMARY KEY,
+                            name TEXT NOT NULL,
+                            business_id TEXT NOT NULL,
+                            role TEXT DEFAULT 'vendedor',
+                            active INTEGER DEFAULT 1,
+                            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                            FOREIGN KEY (business_id) REFERENCES businesses(id) ON DELETE CASCADE
+                        )
+                    ''')
+                logger.info("Tabla vendors creada exitosamente")
+            
             conn.commit()
             logger.info("Estructura de tablas globales verificada y corregida correctamente")
             
@@ -412,16 +456,31 @@ class DatabaseManager:
                 )
             ''')
             
-            # Tabla vendedores
-            self.c.execute(f'''
-                CREATE TABLE IF NOT EXISTS vendedores (
-                    id {serial_type},
-                    telegram_id TEXT UNIQUE NOT NULL,
-                    nombre TEXT NOT NULL,
-                    activo {boolean_type},
-                    fecha_registro {timestamp_type}
-                )
-            ''')
+            # Tabla vendedores (NUEVA)
+            if is_postgres:
+                self.c.execute(f'''
+                    CREATE TABLE IF NOT EXISTS vendors (
+                        id TEXT PRIMARY KEY,
+                        name TEXT NOT NULL,
+                        business_id TEXT NOT NULL,
+                        role TEXT DEFAULT 'vendedor',
+                        active {boolean_type},
+                        created_at {timestamp_type},
+                        FOREIGN KEY (business_id) REFERENCES businesses(id) ON DELETE CASCADE
+                    )
+                ''')
+            else:
+                self.c.execute(f'''
+                    CREATE TABLE IF NOT EXISTS vendors (
+                        id TEXT PRIMARY KEY,
+                        name TEXT NOT NULL,
+                        business_id TEXT NOT NULL,
+                        role TEXT DEFAULT 'vendedor',
+                        active INTEGER DEFAULT 1,
+                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        FOREIGN KEY (business_id) REFERENCES businesses(id) ON DELETE CASCADE
+                    )
+                ''')
             
             # Crear índices para mejorar rendimiento
             if is_postgres:
@@ -429,11 +488,15 @@ class DatabaseManager:
                 self.c.execute("CREATE INDEX IF NOT EXISTS idx_ventas_producto ON ventas(producto_id)")
                 self.c.execute("CREATE INDEX IF NOT EXISTS idx_ventas_fecha ON ventas(fecha)")
                 self.c.execute("CREATE INDEX IF NOT EXISTS idx_inversiones_producto ON inversiones(producto_id)")
+                self.c.execute("CREATE INDEX IF NOT EXISTS idx_vendors_business ON vendors(business_id)")
+                self.c.execute("CREATE INDEX IF NOT EXISTS idx_vendors_active ON vendors(active)")
             else:
                 self.c.execute("CREATE INDEX IF NOT EXISTS idx_productos_seccion ON productos(seccion_id)")
                 self.c.execute("CREATE INDEX IF NOT EXISTS idx_ventas_producto ON ventas(producto_id)")
                 self.c.execute("CREATE INDEX IF NOT EXISTS idx_ventas_fecha ON ventas(fecha)")
                 self.c.execute("CREATE INDEX IF NOT EXISTS idx_inversiones_producto ON inversiones(producto_id)")
+                self.c.execute("CREATE INDEX IF NOT EXISTS idx_vendors_business ON vendors(business_id)")
+                self.c.execute("CREATE INDEX IF NOT EXISTS idx_vendors_active ON vendors(active)")
             
             self.conn.commit()
             logger.info(f"Tablas creadas/verificadas para el negocio {self.business_id}")
