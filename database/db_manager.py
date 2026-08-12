@@ -29,6 +29,9 @@ class DatabaseManager:
                         for i in range(max_retries):
                             try:
                                 cls._global_conn = psycopg2.connect(db_url, sslmode='require')
+                                # Asegurar que usamos el esquema public para tablas globales
+                                with cls._global_conn.cursor() as cur:
+                                    cur.execute("SET search_path TO public")
                                 logger.info("Conectado a PostgreSQL para base de datos global")
                                 break
                             except psycopg2.OperationalError as e:
@@ -82,7 +85,7 @@ class DatabaseManager:
                             with conn.cursor() as cur:
                                 schema_name = f"business_{business_id.replace('-', '_').replace('.', '_')}"
                                 cur.execute(f"CREATE SCHEMA IF NOT EXISTS {schema_name}")
-                                cur.execute(f"SET search_path TO {schema_name}")
+                                cur.execute(f"SET search_path TO {schema_name}, public")
                             logger.info(f"Conexión creada para negocio: {business_id} (PostgreSQL)")
                             return conn
                         except psycopg2.OperationalError as e:
@@ -130,6 +133,9 @@ class DatabaseManager:
             
             # Detectar si estamos en PostgreSQL o SQLite
             is_postgres = 'RENDER' in os.environ and os.environ.get('DATABASE_URL')
+            
+            if is_postgres:
+                c.execute("SET search_path TO public")
             
             # Verificar si la tabla businesses existe
             if is_postgres:
@@ -329,7 +335,7 @@ class DatabaseManager:
         self.c = None
         self._get_connection()
         self._create_tables()
-        self._create_test_data()  # ✅ NUEVA LÍNEA: Crear datos de prueba
+        self._create_test_data()
         logger.info(f"Conexión establecida para negocio: {business_id}")
 
     def _get_connection(self):
@@ -349,8 +355,9 @@ class DatabaseManager:
                             with self.conn.cursor() as cur:
                                 schema_name = f"business_{self.business_id.replace('-', '_').replace('.', '_')}"
                                 cur.execute(f"CREATE SCHEMA IF NOT EXISTS {schema_name}")
-                                cur.execute(f"SET search_path TO {schema_name}")
+                                cur.execute(f"SET search_path TO {schema_name}, public")
                             self.c = self.conn.cursor()
+                            logger.info(f"Conexión establecida para negocio: {self.business_id} (PostgreSQL)")
                             return self.conn
                         except psycopg2.OperationalError as e:
                             if i < max_retries - 1:
@@ -368,6 +375,7 @@ class DatabaseManager:
                     self.conn = sqlite3.connect(db_path, timeout=30, check_same_thread=False)
                     self.conn.execute("PRAGMA foreign_keys = ON")
                     self.c = self.conn.cursor()
+                    logger.info(f"Conexión creada para negocio: {self.business_id} (SQLite - fallback)")
                     return self.conn
             else:
                 db_path = f"{self.business_id}.db"
@@ -375,6 +383,7 @@ class DatabaseManager:
                 self.conn = sqlite3.connect(db_path, timeout=30, check_same_thread=False)
                 self.conn.execute("PRAGMA foreign_keys = ON")
                 self.c = self.conn.cursor()
+                logger.info(f"Conexión creada para negocio: {self.business_id} (SQLite)")
                 return self.conn
                 
         except Exception as e:
@@ -390,6 +399,23 @@ class DatabaseManager:
             is_postgres = 'RENDER' in os.environ and os.environ.get('DATABASE_URL')
             
             if is_postgres:
+                # Configurar search_path para usar el esquema del negocio
+                schema_name = f"business_{self.business_id.replace('-', '_').replace('.', '_')}"
+                self.c.execute(f"SET search_path TO {schema_name}, public")
+                
+                # Verificar si las tablas ya existen en este esquema
+                self.c.execute("""
+                    SELECT EXISTS (
+                        SELECT FROM information_schema.tables 
+                        WHERE table_schema = %s AND table_name = 'secciones'
+                    )
+                """, (schema_name,))
+                tables_exist = self.c.fetchone()[0]
+                
+                if tables_exist:
+                    logger.info(f"Las tablas ya existen para el negocio {self.business_id}")
+                    return
+                
                 serial_type = "SERIAL PRIMARY KEY"
                 foreign_key = "REFERENCES"
                 timestamp_type = "TIMESTAMP DEFAULT CURRENT_TIMESTAMP"
@@ -467,8 +493,7 @@ class DatabaseManager:
                         business_id TEXT NOT NULL,
                         role TEXT DEFAULT 'vendedor',
                         active {boolean_type},
-                        created_at {timestamp_type},
-                        FOREIGN KEY (business_id) REFERENCES businesses(id) ON DELETE CASCADE
+                        created_at {timestamp_type}
                     )
                 ''')
             else:
@@ -479,8 +504,7 @@ class DatabaseManager:
                         business_id TEXT NOT NULL,
                         role TEXT DEFAULT 'vendedor',
                         active INTEGER DEFAULT 1,
-                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                        FOREIGN KEY (business_id) REFERENCES businesses(id) ON DELETE CASCADE
+                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                     )
                 ''')
             
@@ -503,7 +527,7 @@ class DatabaseManager:
             self.conn.commit()
             logger.info(f"Tablas creadas/verificadas para el negocio {self.business_id}")
         except Exception as e:
-            logger.error(f"Error al crear tablas para el negocio: {e}")
+            logger.error(f"Error al crear tablas para el negocio {self.business_id}: {e}")
             if self.conn:
                 self.conn.rollback()
 
@@ -522,6 +546,9 @@ class DatabaseManager:
                 return
             
             c = conn.cursor()
+            
+            if is_postgres:
+                c.execute("SET search_path TO public")
             
             # Verificar si ya existe el admin
             if is_postgres:
@@ -659,6 +686,9 @@ class DatabaseManager:
             is_postgres = 'RENDER' in os.environ and os.environ.get('DATABASE_URL')
             
             if is_postgres:
+                # Asegurar que el search_path esté configurado
+                schema_name = f"business_{self.business_id.replace('-', '_').replace('.', '_')}"
+                self.c.execute(f"SET search_path TO {schema_name}, public")
                 formatted_query = query
             else:
                 formatted_query = query.replace('%s', '?')
@@ -692,7 +722,7 @@ class DatabaseManager:
                 conn = psycopg2.connect(os.environ.get('DATABASE_URL'), sslmode='require')
                 with conn.cursor() as cur:
                     schema_name = f"business_{self.business_id.replace('-', '_').replace('.', '_')}"
-                    cur.execute(f"SET search_path TO {schema_name}")
+                    cur.execute(f"SET search_path TO {schema_name}, public")
                 return pd.read_sql_query(query, conn, params=params)
             else:
                 return pd.read_sql_query(query, self.conn, params=params)
