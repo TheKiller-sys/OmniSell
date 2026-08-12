@@ -7,11 +7,6 @@ public class VendorLoginRequest {
         this.vendor_id = vendor_id;
     }
 
-    public String getVendorId() {
-        return vendor_id;
-    }
-
-    public void setVendorId(String vendor_id) {
-        this.vendor_id = vendor_id;
-    }
+    public String getVendorId() { return vendor_id; }
+    public void setVendorId(String vendor_id) { this.vendor_id = vendor_id; }
 }

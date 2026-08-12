@@ -41,9 +41,9 @@ public class VentasFragment extends Fragment {
 
         List<String> productos = new ArrayList<>();
         productos.add("Seleccionar producto...");
-        productos.add("Producto A - 0.00");
-        productos.add("Producto B - 5.00");
-        productos.add("Producto C - 0.00");
+        productos.add("Producto A - $10.00");
+        productos.add("Producto B - $15.00");
+        productos.add("Producto C - $20.00");
 
         ArrayAdapter<String> adapter = new ArrayAdapter<>(getContext(), android.R.layout.simple_spinner_item, productos);
         adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
@@ -53,7 +53,7 @@ public class VentasFragment extends Fragment {
             @Override
             public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
                 if (position > 0) {
-                    tvPrecio.setText("0.00");
+                    tvPrecio.setText("$10.00");
                     actualizarTotal();
                 }
             }
@@ -71,8 +71,8 @@ public class VentasFragment extends Fragment {
             Toast.makeText(getContext(), "✅ Venta registrada!", Toast.LENGTH_SHORT).show();
         });
 
-        tvPrecio.setText("/home/runner/work/_temp/50f6177f-024a-47ef-ab18-f6dfe22504ae.sh.00");
-        tvTotal.setText("Total: /home/runner/work/_temp/50f6177f-024a-47ef-ab18-f6dfe22504ae.sh.00");
+        tvPrecio.setText("$0.00");
+        tvTotal.setText("Total: $0.00");
 
         return view;
     }
@@ -83,7 +83,7 @@ public class VentasFragment extends Fragment {
             double total = cantidad * 10.00;
             tvTotal.setText(String.format("Total: $%.2f", total));
         } catch (NumberFormatException e) {
-            tvTotal.setText("Total: /home/runner/work/_temp/50f6177f-024a-47ef-ab18-f6dfe22504ae.sh.00");
+            tvTotal.setText("Total: $0.00");
         }
     }
 }

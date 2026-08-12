@@ -12,7 +12,6 @@ public class LoginResponse {
         private String business_id;
         private String business_name;
         private String role;
-
         public String getId() { return id; }
         public void setId(String id) { this.id = id; }
         public String getName() { return name; }

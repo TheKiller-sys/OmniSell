@@ -34,11 +34,10 @@ public class DashboardFragment extends Fragment {
 
         rvVentasRecientes.setLayoutManager(new LinearLayoutManager(getContext()));
 
-        // Datos de ejemplo
         tvVentasHoy.setText("5");
-        tvIngresosHoy.setText("25.50");
+        tvIngresosHoy.setText("$125.50");
         tvVentasMes.setText("42");
-        tvIngresosMes.setText(",250.00");
+        tvIngresosMes.setText("$1,250.00");
         tvBajoStock.setText("3");
 
         return view;

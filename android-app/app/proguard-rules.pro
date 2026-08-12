@@ -1,2 +1,3 @@
-# Add project specific ProGuard rules here.
 -keep class com.omniventas.app.** { *; }
+-keep class retrofit2.** { *; }
+-keep class okhttp3.** { *; }
