@@ -10,11 +10,10 @@ import java.security.GeneralSecurityException;
 public class SessionManager {
     private static final String PREF_NAME = "OmniVentasSession";
     private static final String KEY_TOKEN = "token";
-    private static final String KEY_USERNAME = "username";
+    private static final String KEY_VENDOR_ID = "vendor_id";
+    private static final String KEY_VENDOR_NAME = "vendor_name";
     private static final String KEY_BUSINESS_NAME = "business_name";
     private static final String KEY_IS_LOGGED_IN = "is_logged_in";
-    private static final String KEY_USER_ID = "user_id";
-    private static final String KEY_ROLE = "role";
 
     private SharedPreferences sharedPreferences;
 
@@ -33,22 +32,13 @@ public class SessionManager {
         }
     }
 
-    public void saveUser(String token, String username, String businessName) {
+    // Guardar usuario vendedor
+    public void saveUser(String token, String vendorId, String vendorName, String businessName) {
         SharedPreferences.Editor editor = sharedPreferences.edit();
         editor.putString(KEY_TOKEN, token);
-        editor.putString(KEY_USERNAME, username);
+        editor.putString(KEY_VENDOR_ID, vendorId);
+        editor.putString(KEY_VENDOR_NAME, vendorName);
         editor.putString(KEY_BUSINESS_NAME, businessName);
-        editor.putBoolean(KEY_IS_LOGGED_IN, true);
-        editor.apply();
-    }
-
-    public void saveFullUser(String token, String username, String businessName, int userId, String role) {
-        SharedPreferences.Editor editor = sharedPreferences.edit();
-        editor.putString(KEY_TOKEN, token);
-        editor.putString(KEY_USERNAME, username);
-        editor.putString(KEY_BUSINESS_NAME, businessName);
-        editor.putInt(KEY_USER_ID, userId);
-        editor.putString(KEY_ROLE, role);
         editor.putBoolean(KEY_IS_LOGGED_IN, true);
         editor.apply();
     }
@@ -57,20 +47,16 @@ public class SessionManager {
         return sharedPreferences.getString(KEY_TOKEN, null);
     }
 
-    public String getUsername() {
-        return sharedPreferences.getString(KEY_USERNAME, null);
+    public String getVendorId() {
+        return sharedPreferences.getString(KEY_VENDOR_ID, null);
+    }
+
+    public String getVendorName() {
+        return sharedPreferences.getString(KEY_VENDOR_NAME, null);
     }
 
     public String getBusinessName() {
         return sharedPreferences.getString(KEY_BUSINESS_NAME, null);
-    }
-
-    public int getUserId() {
-        return sharedPreferences.getInt(KEY_USER_ID, -1);
-    }
-
-    public String getRole() {
-        return sharedPreferences.getString(KEY_ROLE, "vendedor");
     }
 
     public boolean isLoggedIn() {
