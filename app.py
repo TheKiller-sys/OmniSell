@@ -702,13 +702,6 @@ def eliminar_vendedor(vendor_id):
         logger.error(f"Error en eliminar_vendedor: {e}")
         return jsonify({'success': False, 'message': str(e)}), 500
 
-# ==================== LOGOUT ====================
-
-@app.route('/logout')
-def logout():
-    session.clear()
-    return jsonify({'success': True, 'message': 'Sesión cerrada'})
-
 # ==================== INICIO ====================
 
 if __name__ == '__main__':
