@@ -81,8 +81,6 @@ public class VentasFragment extends Fragment {
     }
 
     private void cargarVentasHoy() {
-        // Aquí se cargarían las ventas reales desde la API
-        // Por ahora usamos datos de ejemplo
         ventasHoy.clear();
         actualizarUI();
         swipeRefresh.setRefreshing(false);
@@ -130,7 +128,6 @@ public class VentasFragment extends Fragment {
         Button btnCancelar = dialog.findViewById(R.id.btn_cancelar_venta);
         Button btnRegistrar = dialog.findViewById(R.id.btn_registrar_venta_dialog);
 
-        // Cargar productos si no están cargados
         if (productosGlobales.isEmpty()) {
             cargarProductos();
         }
@@ -181,40 +178,50 @@ public class VentasFragment extends Fragment {
 
         btnCancelar.setOnClickListener(v -> dialog.dismiss());
 
-        btnRegistrar.setOnClickListener(v -> {
-            Object tag = tvTotalVenta.getTag();
-            if (tag instanceof Producto) {
-                Producto p = (Producto) tag;
-                int cantidad = 1;
-                try {
-                    cantidad = Integer.parseInt(etCantidad.getText().toString());
-                } catch (NumberFormatException e) {}
-                
-                String token = sessionManager.getToken();
-                if (token != null && !token.isEmpty()) {
-                    VentaRequest request = new VentaRequest(p.getId(), cantidad, p.getPrecio());
-                    ApiService apiService = RetrofitClient.getInstance(getContext()).getApiService();
-                    apiService.registrarVenta("Bearer " + token, request).enqueue(new Callback<VentaResponse>() {
-                        @Override
-                        public void onResponse(Call<VentaResponse> call, Response<VentaResponse> response) {
-                            if (response.isSuccessful() && response.body() != null && response.body().isSuccess()) {
-                                Toast.makeText(getContext(), "✅ Venta registrada: " + p.getNombre() + " x" + cantidad, Toast.LENGTH_SHORT).show();
-                                logger.success("Venta registrada: " + p.getNombre() + " x" + cantidad);
-                                dialog.dismiss();
-                                cargarVentasHoy();
-                            } else {
-                                Toast.makeText(getContext(), "Error al registrar venta", Toast.LENGTH_SHORT).show();
+        btnRegistrar.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Object tag = tvTotalVenta.getTag();
+                if (tag instanceof Producto) {
+                    final Producto productoSeleccionado = (Producto) tag;
+                    int cantidad = 1;
+                    try {
+                        cantidad = Integer.parseInt(etCantidad.getText().toString());
+                    } catch (NumberFormatException e) {}
+                    final int cantidadFinal = cantidad;
+
+                    String token = sessionManager.getToken();
+                    if (token != null && !token.isEmpty()) {
+                        VentaRequest request = new VentaRequest(
+                            productoSeleccionado.getId(),
+                            cantidadFinal,
+                            productoSeleccionado.getPrecio()
+                        );
+                        ApiService apiService = RetrofitClient.getInstance(getContext()).getApiService();
+                        apiService.registrarVenta("Bearer " + token, request).enqueue(new Callback<VentaResponse>() {
+                            @Override
+                            public void onResponse(Call<VentaResponse> call, Response<VentaResponse> response) {
+                                if (response.isSuccessful() && response.body() != null && response.body().isSuccess()) {
+                                    Toast.makeText(getContext(), "✅ Venta registrada: " + productoSeleccionado.getNombre() + " x" + cantidadFinal, Toast.LENGTH_SHORT).show();
+                                    logger.success("Venta registrada: " + productoSeleccionado.getNombre() + " x" + cantidadFinal);
+                                    dialog.dismiss();
+                                    cargarVentasHoy();
+                                } else {
+                                    Toast.makeText(getContext(), "Error al registrar venta", Toast.LENGTH_SHORT).show();
+                                }
                             }
-                        }
-                        @Override
-                        public void onFailure(Call<VentaResponse> call, Throwable t) {
-                            Toast.makeText(getContext(), "Error de conexión", Toast.LENGTH_SHORT).show();
-                            logger.networkError(t);
-                        }
-                    });
+                            @Override
+                            public void onFailure(Call<VentaResponse> call, Throwable t) {
+                                Toast.makeText(getContext(), "Error de conexión", Toast.LENGTH_SHORT).show();
+                                logger.networkError(t);
+                            }
+                        });
+                    } else {
+                        Toast.makeText(getContext(), "Sesión expirada", Toast.LENGTH_SHORT).show();
+                    }
+                } else {
+                    Toast.makeText(getContext(), "Selecciona un producto", Toast.LENGTH_SHORT).show();
                 }
-            } else {
-                Toast.makeText(getContext(), "Selecciona un producto", Toast.LENGTH_SHORT).show();
             }
         });
 
