@@ -8,7 +8,7 @@
     android:padding="32dp"
     android:background="@color/light_gray">
 
-    <!-- Logo con animación de entrada -->
+    <!-- Logo -->
     <ImageView
         android:id="@+id/iv_logo"
         android:layout_width="100dp"
@@ -68,7 +68,7 @@
                 android:textColor="@color/gray"
                 android:layout_marginBottom="8dp" />
 
-            <!-- Campo de entrada con ícono -->
+            <!-- Campo de entrada -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -94,15 +94,16 @@
                     android:background="@android:color/transparent"
                     android:padding="12dp"
                     android:textSize="16dp"
-                    android:textColor="@color/dark" />
+                    android:textColor="@color/dark"
+                    android:text="AAAA0000" />
             </LinearLayout>
 
-            <!-- Botón de inicio de sesión -->
+            <!-- ⭐ BOTÓN DE LOGIN - VERIFICAR QUE EL ID ES CORRECTO -->
             <Button
                 android:id="@+id/btn_login"
                 android:layout_width="match_parent"
                 android:layout_height="56dp"
-                android:text="Ingresar"
+                android:text="🚀 Ingresar"
                 android:textSize="16sp"
                 android:textStyle="bold"
                 android:backgroundTint="@color/primary"
@@ -112,11 +113,11 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Contacta al administrador para obtener tu ID"
+                android:text="🔧 MODO PRUEBA - ID: AAAA0000"
                 android:textSize="12sp"
-                android:textColor="@color/gray"
+                android:textColor="@color/warning"
                 android:layout_gravity="center"
-                android:layout_marginTop="16dp" />
+                android:layout_marginTop="12dp" />
 
         </LinearLayout>
     </androidx.cardview.widget.CardView>
