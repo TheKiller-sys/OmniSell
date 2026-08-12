@@ -1213,6 +1213,20 @@ def create_app():
             logger.error(f"Error en api_finanzas: {str(e)}")
             return jsonify({'error': str(e)}), 500
 
+    # En web/dashboard.py - Agregar esta ruta
+
+    @app.route('/vendedores')
+    @login_required
+    def vendedores_page():
+        """Página de gestión de vendedores"""
+    # Verificar que el usuario sea admin
+        if current_user.role != 'admin':
+            flash('No tienes permisos para acceder a esta página', 'danger')
+            return redirect(url_for('dashboard'))
+    
+        business_name = session.get('business_name', 'Negocio')
+        return render_template('vendedores.html', business_name=business_name)
+    
     @app.route('/api/analisis')
     @login_required
     def api_analisis():
