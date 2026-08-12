@@ -163,7 +163,6 @@ jobs:
               implementation 'com.auth0:java-jwt:4.4.0'
               implementation 'com.google.code.gson:gson:2.10.1'
               implementation 'com.github.bumptech.glide:glide:4.16.0'
-              implementation 'com.github.lecho:hellocharts-library:1.5.8@aar'
               testImplementation 'junit:junit:4.13.2'
               androidTestImplementation 'androidx.test.ext:junit:1.1.5'
               androidTestImplementation 'androidx.test.espresso:espresso-core:3.5.1'
@@ -177,7 +176,6 @@ jobs:
           -keep class com.google.gson.** { *; }
           -dontwarn okhttp3.**
           -dontwarn retrofit2.**
-          -keep class lecho.lib.hellocharts.** { *; }
           EOF
 
       - name: Create AndroidManifest
@@ -662,6 +660,45 @@ jobs:
                   android:pathData="M20,4H4c-1.1,0 -2,0.9 -2,2v12c0,1.1 0.9,2 2,2h16c1.1,0 2,-0.9 2,-2V6c0,-1.1 -0.9,-2 -2,-2zM4,6h16v2H4V6zM4,12h4v2H4v-2zM10,12h4v2h-4v-2zM16,12h4v2h-4v-2zM4,10V8h4v2H4zM10,10V8h4v2h-4zM16,10V8h4v2h-4z"/>
           </vector>
           EOF
+          
+          cat > app/src/main/res/drawable/ic_search.xml << 'EOF'
+          <?xml version="1.0" encoding="utf-8"?>
+          <vector xmlns:android="http://schemas.android.com/apk/res/android"
+              android:width="24dp"
+              android:height="24dp"
+              android:viewportWidth="24"
+              android:viewportHeight="24">
+              <path
+                  android:fillColor="@color/gray"
+                  android:pathData="M15.5,14h-0.79l-0.28,-0.27C15.41,12.59 16,11.11 16,9.5 16,5.91 13.09,3 9.5,3S3,5.91 3,9.5 5.91,16 9.5,16c1.61,0 3.09,-0.59 4.23,-1.57l0.27,0.28v0.79l5,4.99L20.49,19l-4.99,-5zM9.5,14C7.01,14 5,11.99 5,9.5S7.01,5 9.5,5 14,7.01 14,9.5 11.99,14 9.5,14z"/>
+          </vector>
+          EOF
+          
+          cat > app/src/main/res/drawable/ic_warning.xml << 'EOF'
+          <?xml version="1.0" encoding="utf-8"?>
+          <vector xmlns:android="http://schemas.android.com/apk/res/android"
+              android:width="24dp"
+              android:height="24dp"
+              android:viewportWidth="24"
+              android:viewportHeight="24">
+              <path
+                  android:fillColor="#F59E0B"
+                  android:pathData="M1,21h22L12,2 1,21zM13,18h-2v-2h2v2zM13,14h-2v-4h2v4z"/>
+          </vector>
+          EOF
+          
+          cat > app/src/main/res/drawable/ic_danger.xml << 'EOF'
+          <?xml version="1.0" encoding="utf-8"?>
+          <vector xmlns:android="http://schemas.android.com/apk/res/android"
+              android:width="24dp"
+              android:height="24dp"
+              android:viewportWidth="24"
+              android:viewportHeight="24">
+              <path
+                  android:fillColor="#EF4444"
+                  android:pathData="M12,2C6.48,2 2,6.48 2,12s4.48,10 10,10 10,-4.48 10,-10S17.52,2 12,2zM13,17h-2v-2h2v2zM13,13h-2L11,7h2v6z"/>
+          </vector>
+          EOF
 
       - name: Create menu
         run: |
@@ -901,8 +938,7 @@ jobs:
               <androidx.swiperefreshlayout.widget.SwipeRefreshLayout
                   android:id="@+id/swipe_refresh"
                   android:layout_width="match_parent"
-                  android:layout_height="match_parent"
-                  app:colorSchemeColors="@color/primary">
+                  android:layout_height="match_parent">
           
                   <ScrollView
                       android:layout_width="match_parent"
@@ -920,7 +956,7 @@ jobs:
                               android:textSize="24sp"
                               android:textStyle="bold"
                               android:textColor="@color/dark"
-                              android:layout_marginBottom="16dp" />
+                              android:layout_marginBottom="8dp" />
           
                           <TextView
                               android:id="@+id/tv_fecha"
@@ -1170,8 +1206,7 @@ jobs:
               <androidx.swiperefreshlayout.widget.SwipeRefreshLayout
                   android:id="@+id/swipe_refresh"
                   android:layout_width="match_parent"
-                  android:layout_height="match_parent"
-                  app:colorSchemeColors="@color/primary">
+                  android:layout_height="match_parent">
           
                   <LinearLayout
                       android:layout_width="match_parent"
@@ -1380,8 +1415,7 @@ jobs:
               <androidx.swiperefreshlayout.widget.SwipeRefreshLayout
                   android:id="@+id/swipe_refresh"
                   android:layout_width="match_parent"
-                  android:layout_height="match_parent"
-                  app:colorSchemeColors="@color/primary">
+                  android:layout_height="match_parent">
           
                   <LinearLayout
                       android:layout_width="match_parent"
@@ -1747,49 +1781,6 @@ jobs:
           </LinearLayout>
           EOF
 
-      - name: Create additional drawables
-        run: |
-          cd android-app
-          
-          cat > app/src/main/res/drawable/ic_search.xml << 'EOF'
-          <?xml version="1.0" encoding="utf-8"?>
-          <vector xmlns:android="http://schemas.android.com/apk/res/android"
-              android:width="24dp"
-              android:height="24dp"
-              android:viewportWidth="24"
-              android:viewportHeight="24">
-              <path
-                  android:fillColor="@color/gray"
-                  android:pathData="M15.5,14h-0.79l-0.28,-0.27C15.41,12.59 16,11.11 16,9.5 16,5.91 13.09,3 9.5,3S3,5.91 3,9.5 5.91,16 9.5,16c1.61,0 3.09,-0.59 4.23,-1.57l0.27,0.28v0.79l5,4.99L20.49,19l-4.99,-5zM9.5,14C7.01,14 5,11.99 5,9.5S7.01,5 9.5,5 14,7.01 14,9.5 11.99,14 9.5,14z"/>
-          </vector>
-          EOF
-          
-          cat > app/src/main/res/drawable/ic_warning.xml << 'EOF'
-          <?xml version="1.0" encoding="utf-8"?>
-          <vector xmlns:android="http://schemas.android.com/apk/res/android"
-              android:width="24dp"
-              android:height="24dp"
-              android:viewportWidth="24"
-              android:viewportHeight="24">
-              <path
-                  android:fillColor="#F59E0B"
-                  android:pathData="M1,21h22L12,2 1,21zM13,18h-2v-2h2v2zM13,14h-2v-4h2v4z"/>
-          </vector>
-          EOF
-          
-          cat > app/src/main/res/drawable/ic_danger.xml << 'EOF'
-          <?xml version="1.0" encoding="utf-8"?>
-          <vector xmlns:android="http://schemas.android.com/apk/res/android"
-              android:width="24dp"
-              android:height="24dp"
-              android:viewportWidth="24"
-              android:viewportHeight="24">
-              <path
-                  android:fillColor="#EF4444"
-                  android:pathData="M12,2C6.48,2 2,6.48 2,12s4.48,10 10,10 10,-4.48 10,-10S17.52,2 12,2zM13,17h-2v-2h2v2zM13,13h-2L11,7h2v6z"/>
-          </vector>
-          EOF
-
       - name: Create Adapters
         run: |
           cd android-app
@@ -1848,10 +1839,6 @@ jobs:
               public void setProductos(List<Producto> productos) {
                   this.productos = productos != null ? productos : new ArrayList<>();
                   notifyDataSetChanged();
-              }
-
-              public void filter(String query) {
-                  // El filtrado se maneja desde el fragmento
               }
 
               static class ViewHolder extends RecyclerView.ViewHolder {
@@ -2663,6 +2650,7 @@ jobs:
               private TelegramLogger logger;
               private VentaAdapter ventaAdapter;
               private List<Venta> ventasHoy = new ArrayList<>();
+              private List<Producto> productosGlobales = new ArrayList<>();
 
               @Nullable
               @Override
@@ -2694,10 +2682,9 @@ jobs:
               }
 
               private void cargarVentasHoy() {
-                  // Simulación de carga de ventas del día
-                  // En producción, se conectaría a la API
-                  ventasHoy.clear();
                   // Aquí se cargarían las ventas reales desde la API
+                  // Por ahora usamos datos de ejemplo
+                  ventasHoy.clear();
                   actualizarUI();
                   swipeRefresh.setRefreshing(false);
               }
@@ -2713,6 +2700,25 @@ jobs:
                   }
               }
 
+              private void cargarProductos() {
+                  String token = sessionManager.getToken();
+                  if (token == null || token.isEmpty()) return;
+
+                  ApiService apiService = RetrofitClient.getInstance(getContext()).getApiService();
+                  apiService.getProductos("Bearer " + token).enqueue(new Callback<List<Producto>>() {
+                      @Override
+                      public void onResponse(Call<List<Producto>> call, Response<List<Producto>> response) {
+                          if (response.isSuccessful() && response.body() != null) {
+                              productosGlobales = response.body();
+                          }
+                      }
+                      @Override
+                      public void onFailure(Call<List<Producto>> call, Throwable t) {
+                          logger.networkError(t);
+                      }
+                  });
+              }
+
               private void mostrarDialogoRegistrarVenta() {
                   Dialog dialog = new Dialog(getContext(), R.style.DialogStyle);
                   dialog.requestWindowFeature(Window.FEATURE_NO_TITLE);
@@ -2725,11 +2731,12 @@ jobs:
                   Button btnCancelar = dialog.findViewById(R.id.btn_cancelar_venta);
                   Button btnRegistrar = dialog.findViewById(R.id.btn_registrar_venta_dialog);
 
-                  List<Producto> productos = new ArrayList<>();
-                  // Simulación de productos desde API
-                  // En producción, se cargarían desde la API
+                  // Cargar productos si no están cargados
+                  if (productosGlobales.isEmpty()) {
+                      cargarProductos();
+                  }
+
                   ProductoAdapter productoAdapter = new ProductoAdapter(producto -> {
-                      // Seleccionar producto
                       tvTotalVenta.setTag(producto);
                       double precio = producto.getPrecio();
                       int cantidad = 1;
@@ -2740,13 +2747,20 @@ jobs:
                   });
                   rvProductosBusqueda.setLayoutManager(new LinearLayoutManager(getContext()));
                   rvProductosBusqueda.setAdapter(productoAdapter);
+                  productoAdapter.setProductos(productosGlobales);
 
                   etBuscarProducto.addTextChangedListener(new TextWatcher() {
                       @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
                       @Override public void onTextChanged(CharSequence s, int start, int before, int count) {}
                       @Override public void afterTextChanged(Editable s) {
-                          // Filtrar productos
-                          productoAdapter.setProductos(productos);
+                          String query = s.toString().toLowerCase().trim();
+                          List<Producto> filtrados = new ArrayList<>();
+                          for (Producto p : productosGlobales) {
+                              if (p.getNombre().toLowerCase().contains(query)) {
+                                  filtrados.add(p);
+                              }
+                          }
+                          productoAdapter.setProductos(filtrados);
                       }
                   });
 
@@ -2777,11 +2791,29 @@ jobs:
                               cantidad = Integer.parseInt(etCantidad.getText().toString());
                           } catch (NumberFormatException e) {}
                           
-                          // Registrar venta
-                          Toast.makeText(getContext(), "✅ Venta registrada: " + p.getNombre() + " x" + cantidad, Toast.LENGTH_SHORT).show();
-                          logger.success("Venta registrada: " + p.getNombre() + " x" + cantidad);
-                          dialog.dismiss();
-                          cargarVentasHoy();
+                          String token = sessionManager.getToken();
+                          if (token != null && !token.isEmpty()) {
+                              VentaRequest request = new VentaRequest(p.getId(), cantidad, p.getPrecio());
+                              ApiService apiService = RetrofitClient.getInstance(getContext()).getApiService();
+                              apiService.registrarVenta("Bearer " + token, request).enqueue(new Callback<VentaResponse>() {
+                                  @Override
+                                  public void onResponse(Call<VentaResponse> call, Response<VentaResponse> response) {
+                                      if (response.isSuccessful() && response.body() != null && response.body().isSuccess()) {
+                                          Toast.makeText(getContext(), "✅ Venta registrada: " + p.getNombre() + " x" + cantidad, Toast.LENGTH_SHORT).show();
+                                          logger.success("Venta registrada: " + p.getNombre() + " x" + cantidad);
+                                          dialog.dismiss();
+                                          cargarVentasHoy();
+                                      } else {
+                                          Toast.makeText(getContext(), "Error al registrar venta", Toast.LENGTH_SHORT).show();
+                                      }
+                                  }
+                                  @Override
+                                  public void onFailure(Call<VentaResponse> call, Throwable t) {
+                                      Toast.makeText(getContext(), "Error de conexión", Toast.LENGTH_SHORT).show();
+                                      logger.networkError(t);
+                                  }
+                              });
+                          }
                       } else {
                           Toast.makeText(getContext(), "Selecciona un producto", Toast.LENGTH_SHORT).show();
                       }
@@ -3238,6 +3270,7 @@ jobs:
           echo "   - Ventas con modal de registro (búsqueda de productos)"
           echo "   - Inventario con cards de estado de stock"
           echo "   - Conexión API en todos los fragments"
+          echo "   - Eliminados atributos colorSchemeColors (no válidos)"
           echo ""
           echo "🔑 Credenciales de prueba:"
           echo "   Vendor ID: AAAA0000"
