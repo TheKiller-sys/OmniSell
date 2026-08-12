@@ -1,6 +1,7 @@
 package com.omniventas.app;
 
 import android.animation.ObjectAnimator;
+import android.content.Intent;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.Button;
@@ -8,17 +9,35 @@ import android.widget.EditText;
 import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.cardview.widget.CardView;
+import com.omniventas.app.api.ApiService;
+import com.omniventas.app.api.RetrofitClient;
+import com.omniventas.app.models.LoginResponse;
+import com.omniventas.app.models.VendorLoginRequest;
+import com.omniventas.app.utils.SessionManager;
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.Response;
 
 public class LoginActivity extends AppCompatActivity {
 
     private EditText etVendorId;
     private Button btnLogin;
     private CardView cardLogin;
+    private SessionManager sessionManager;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_login);
+
+        sessionManager = new SessionManager(this);
+
+        // Verificar si ya hay sesión activa
+        if (sessionManager.isLoggedIn()) {
+            startActivity(new Intent(this, MainActivity.class));
+            finish();
+            return;
+        }
 
         etVendorId = findViewById(R.id.et_vendor_id);
         btnLogin = findViewById(R.id.btn_login);
@@ -46,15 +65,60 @@ public class LoginActivity extends AppCompatActivity {
             return;
         }
 
+        if (vendorId.length() != 8) {
+            etVendorId.setError("El ID debe tener 8 caracteres");
+            etVendorId.requestFocus();
+            shakeView(etVendorId);
+            return;
+        }
+
         btnLogin.setEnabled(false);
         btnLogin.setText("Verificando...");
 
-        // Simular verificación del ID
-        btnLogin.postDelayed(() -> {
-            Toast.makeText(LoginActivity.this, "✅ ¡Bienvenido Vendedor!", Toast.LENGTH_LONG).show();
-            btnLogin.setEnabled(true);
-            btnLogin.setText("Ingresar");
-        }, 1500);
+        VendorLoginRequest request = new VendorLoginRequest(vendorId);
+        ApiService apiService = RetrofitClient.getInstance(this).getApiService();
+
+        apiService.loginVendor(request).enqueue(new Callback<LoginResponse>() {
+            @Override
+            public void onResponse(Call<LoginResponse> call, Response<LoginResponse> response) {
+                btnLogin.setEnabled(true);
+                btnLogin.setText("Ingresar");
+
+                if (response.isSuccessful() && response.body() != null && response.body().isSuccess()) {
+                    LoginResponse data = response.body();
+
+                    // Guardar sesión
+                    sessionManager.saveUser(
+                        data.getToken(),
+                        data.getVendor().getId(),
+                        data.getVendor().getName(),
+                        data.getVendor().getBusinessName()
+                    );
+
+                    Toast.makeText(LoginActivity.this,
+                        "✅ ¡Bienvenido " + data.getVendor().getName() + "!",
+                        Toast.LENGTH_LONG).show();
+
+                    startActivity(new Intent(LoginActivity.this, MainActivity.class));
+                    finish();
+                } else {
+                    String msg = "Error de autenticación";
+                    if (response.body() != null && response.body().getMessage() != null) {
+                        msg = response.body().getMessage();
+                    }
+                    Toast.makeText(LoginActivity.this, "❌ " + msg, Toast.LENGTH_LONG).show();
+                }
+            }
+
+            @Override
+            public void onFailure(Call<LoginResponse> call, Throwable t) {
+                btnLogin.setEnabled(true);
+                btnLogin.setText("Ingresar");
+                Toast.makeText(LoginActivity.this,
+                    "❌ Error de conexión: " + t.getMessage(),
+                    Toast.LENGTH_LONG).show();
+            }
+        });
     }
 
     private void shakeView(View view) {
