@@ -71,8 +71,8 @@ public class VentasFragment extends Fragment {
             Toast.makeText(getContext(), "✅ Venta registrada!", Toast.LENGTH_SHORT).show();
         });
 
-        tvPrecio.setText("/home/runner/work/_temp/2c9bf5be-b090-4853-82c5-8754b2179a96.sh.00");
-        tvTotal.setText("Total: /home/runner/work/_temp/2c9bf5be-b090-4853-82c5-8754b2179a96.sh.00");
+        tvPrecio.setText("/home/runner/work/_temp/4b007c85-cf9a-4f4e-8ef8-f333a968dbcd.sh.00");
+        tvTotal.setText("Total: /home/runner/work/_temp/4b007c85-cf9a-4f4e-8ef8-f333a968dbcd.sh.00");
 
         return view;
     }
@@ -83,7 +83,7 @@ public class VentasFragment extends Fragment {
             double total = cantidad * 10.00;
             tvTotal.setText(String.format("Total: $%.2f", total));
         } catch (NumberFormatException e) {
-            tvTotal.setText("Total: /home/runner/work/_temp/2c9bf5be-b090-4853-82c5-8754b2179a96.sh.00");
+            tvTotal.setText("Total: /home/runner/work/_temp/4b007c85-cf9a-4f4e-8ef8-f333a968dbcd.sh.00");
         }
     }
 }
