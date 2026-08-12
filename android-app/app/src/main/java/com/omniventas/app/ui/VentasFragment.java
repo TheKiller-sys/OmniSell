@@ -49,6 +49,7 @@ public class VentasFragment extends Fragment {
     private TelegramLogger logger;
     private VentaAdapter ventaAdapter;
     private List<Venta> ventasHoy = new ArrayList<>();
+    private List<Producto> productosGlobales = new ArrayList<>();
 
     @Nullable
     @Override
@@ -80,10 +81,9 @@ public class VentasFragment extends Fragment {
     }
 
     private void cargarVentasHoy() {
-        // Simulación de carga de ventas del día
-        // En producción, se conectaría a la API
-        ventasHoy.clear();
         // Aquí se cargarían las ventas reales desde la API
+        // Por ahora usamos datos de ejemplo
+        ventasHoy.clear();
         actualizarUI();
         swipeRefresh.setRefreshing(false);
     }
@@ -99,6 +99,25 @@ public class VentasFragment extends Fragment {
         }
     }
 
+    private void cargarProductos() {
+        String token = sessionManager.getToken();
+        if (token == null || token.isEmpty()) return;
+
+        ApiService apiService = RetrofitClient.getInstance(getContext()).getApiService();
+        apiService.getProductos("Bearer " + token).enqueue(new Callback<List<Producto>>() {
+            @Override
+            public void onResponse(Call<List<Producto>> call, Response<List<Producto>> response) {
+                if (response.isSuccessful() && response.body() != null) {
+                    productosGlobales = response.body();
+                }
+            }
+            @Override
+            public void onFailure(Call<List<Producto>> call, Throwable t) {
+                logger.networkError(t);
+            }
+        });
+    }
+
     private void mostrarDialogoRegistrarVenta() {
         Dialog dialog = new Dialog(getContext(), R.style.DialogStyle);
         dialog.requestWindowFeature(Window.FEATURE_NO_TITLE);
@@ -111,11 +130,12 @@ public class VentasFragment extends Fragment {
         Button btnCancelar = dialog.findViewById(R.id.btn_cancelar_venta);
         Button btnRegistrar = dialog.findViewById(R.id.btn_registrar_venta_dialog);
 
-        List<Producto> productos = new ArrayList<>();
-        // Simulación de productos desde API
-        // En producción, se cargarían desde la API
+        // Cargar productos si no están cargados
+        if (productosGlobales.isEmpty()) {
+            cargarProductos();
+        }
+
         ProductoAdapter productoAdapter = new ProductoAdapter(producto -> {
-            // Seleccionar producto
             tvTotalVenta.setTag(producto);
             double precio = producto.getPrecio();
             int cantidad = 1;
@@ -126,13 +146,20 @@ public class VentasFragment extends Fragment {
         });
         rvProductosBusqueda.setLayoutManager(new LinearLayoutManager(getContext()));
         rvProductosBusqueda.setAdapter(productoAdapter);
+        productoAdapter.setProductos(productosGlobales);
 
         etBuscarProducto.addTextChangedListener(new TextWatcher() {
             @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
             @Override public void onTextChanged(CharSequence s, int start, int before, int count) {}
             @Override public void afterTextChanged(Editable s) {
-                // Filtrar productos
-                productoAdapter.setProductos(productos);
+                String query = s.toString().toLowerCase().trim();
+                List<Producto> filtrados = new ArrayList<>();
+                for (Producto p : productosGlobales) {
+                    if (p.getNombre().toLowerCase().contains(query)) {
+                        filtrados.add(p);
+                    }
+                }
+                productoAdapter.setProductos(filtrados);
             }
         });
 
@@ -163,11 +190,29 @@ public class VentasFragment extends Fragment {
                     cantidad = Integer.parseInt(etCantidad.getText().toString());
                 } catch (NumberFormatException e) {}
                 
-                // Registrar venta
-                Toast.makeText(getContext(), "✅ Venta registrada: " + p.getNombre() + " x" + cantidad, Toast.LENGTH_SHORT).show();
-                logger.success("Venta registrada: " + p.getNombre() + " x" + cantidad);
-                dialog.dismiss();
-                cargarVentasHoy();
+                String token = sessionManager.getToken();
+                if (token != null && !token.isEmpty()) {
+                    VentaRequest request = new VentaRequest(p.getId(), cantidad, p.getPrecio());
+                    ApiService apiService = RetrofitClient.getInstance(getContext()).getApiService();
+                    apiService.registrarVenta("Bearer " + token, request).enqueue(new Callback<VentaResponse>() {
+                        @Override
+                        public void onResponse(Call<VentaResponse> call, Response<VentaResponse> response) {
+                            if (response.isSuccessful() && response.body() != null && response.body().isSuccess()) {
+                                Toast.makeText(getContext(), "✅ Venta registrada: " + p.getNombre() + " x" + cantidad, Toast.LENGTH_SHORT).show();
+                                logger.success("Venta registrada: " + p.getNombre() + " x" + cantidad);
+                                dialog.dismiss();
+                                cargarVentasHoy();
+                            } else {
+                                Toast.makeText(getContext(), "Error al registrar venta", Toast.LENGTH_SHORT).show();
+                            }
+                        }
+                        @Override
+                        public void onFailure(Call<VentaResponse> call, Throwable t) {
+                            Toast.makeText(getContext(), "Error de conexión", Toast.LENGTH_SHORT).show();
+                            logger.networkError(t);
+                        }
+                    });
+                }
             } else {
                 Toast.makeText(getContext(), "Selecciona un producto", Toast.LENGTH_SHORT).show();
             }

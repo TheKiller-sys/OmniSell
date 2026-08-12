@@ -10,8 +10,7 @@
     <androidx.swiperefreshlayout.widget.SwipeRefreshLayout
         android:id="@+id/swipe_refresh"
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        app:colorSchemeColors="@color/primary">
+        android:layout_height="match_parent">
 
         <ScrollView
             android:layout_width="match_parent"
@@ -29,7 +28,7 @@
                     android:textSize="24sp"
                     android:textStyle="bold"
                     android:textColor="@color/dark"
-                    android:layout_marginBottom="16dp" />
+                    android:layout_marginBottom="8dp" />
 
                 <TextView
                     android:id="@+id/tv_fecha"

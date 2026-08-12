@@ -53,10 +53,6 @@ public class ProductoAdapter extends RecyclerView.Adapter<ProductoAdapter.ViewHo
         notifyDataSetChanged();
     }
 
-    public void filter(String query) {
-        // El filtrado se maneja desde el fragmento
-    }
-
     static class ViewHolder extends RecyclerView.ViewHolder {
         TextView tvNombre, tvSeccion, tvPrecio;
         ViewHolder(@NonNull View itemView) {

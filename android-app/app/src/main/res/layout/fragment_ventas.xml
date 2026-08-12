@@ -10,8 +10,7 @@
     <androidx.swiperefreshlayout.widget.SwipeRefreshLayout
         android:id="@+id/swipe_refresh"
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        app:colorSchemeColors="@color/primary">
+        android:layout_height="match_parent">
 
         <LinearLayout
             android:layout_width="match_parent"
