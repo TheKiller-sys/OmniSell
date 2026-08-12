@@ -1,0 +1,666 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OmniVentas - Vendedores</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary: #4361ee;
+            --primary-dark: #3a56d4;
+            --secondary: #3f37c9;
+            --success: #4CC9F0;
+            --warning: #FFD166;
+            --danger: #EF476F;
+            --dark: #212529;
+            --light: #f8f9fc;
+            --gray: #6c757d;
+            --sidebar-width: 250px;
+            --header-height: 70px;
+        }
+        
+        * { margin: 0; padding: 0; box-sizing: border-box; transition: all 0.3s ease; }
+        
+        body {
+            background-color: #f5f7fb;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            height: 100vh;
+            overflow-x: hidden;
+        }
+        
+        .header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: var(--header-height);
+            background: white;
+            box-shadow: 0 2px 20px rgba(0,0,0,0.08);
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            padding: 0 25px;
+        }
+        
+        .header-title {
+            font-weight: 700;
+            color: var(--dark);
+            margin-bottom: 0;
+            font-size: 1.8rem;
+            background: linear-gradient(45deg, var(--primary), var(--secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            letter-spacing: -0.5px;
+        }
+        
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-left: auto;
+        }
+        
+        .business-name { font-weight: 600; color: var(--dark); font-size: 0.95rem; }
+        
+        .sidebar {
+            position: fixed;
+            top: var(--header-height);
+            left: 0;
+            height: calc(100vh - var(--header-height));
+            width: var(--sidebar-width);
+            background: linear-gradient(180deg, var(--dark) 0%, #1a1e21 100%);
+            color: white;
+            overflow-y: auto;
+            transform: translateX(-100%);
+            z-index: 999;
+            opacity: 0;
+            visibility: hidden;
+            border-top-right-radius: 20px;
+            box-shadow: 5px 0 25px rgba(0,0,0,0.1);
+        }
+        
+        .sidebar-open .sidebar { transform: translateX(0); opacity: 1; visibility: visible; }
+        
+        .sidebar .nav-link {
+            color: rgba(255,255,255,0.8);
+            padding: 0.9rem 1.5rem;
+            border-radius: 0;
+            margin: 0.1rem 0;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            text-decoration: none;
+            transition: all 0.3s;
+        }
+        
+        .sidebar .nav-link:hover, .sidebar .nav-link.active {
+            color: white;
+            border-left: 4px solid var(--primary);
+            background: rgba(255,255,255,0.05);
+        }
+        
+        .sidebar .nav-link i { width: 28px; text-align: center; margin-right: 15px; font-size: 1.2rem; }
+        
+        .sidebar-logo {
+            padding: 25px 20px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.4rem;
+            font-weight: 700;
+        }
+        
+        .sidebar-logo i { margin-right: 10px; color: var(--primary); }
+        
+        .sidebar-footer {
+            padding: 20px;
+            border-top: 1px solid rgba(255,255,255,0.1);
+            margin-top: 20px;
+        }
+        
+        .sidebar-footer .btn { width: 100%; border-radius: 10px; padding: 10px; font-weight: 500; }
+        
+        .main-content {
+            margin-top: var(--header-height);
+            padding: 30px;
+            min-height: calc(100vh - var(--header-height));
+        }
+        
+        .section-title {
+            font-weight: 700;
+            color: var(--dark);
+            margin-bottom: 1.8rem;
+            position: relative;
+            padding-bottom: 0.8rem;
+            font-size: 1.8rem;
+        }
+        
+        .section-title::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 60px;
+            height: 4px;
+            background: var(--primary);
+            border-radius: 3px;
+            box-shadow: 0 2px 8px rgba(67, 97, 238, 0.3);
+        }
+        
+        .card {
+            border: none;
+            border-radius: 16px;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.05);
+            margin-bottom: 30px;
+            overflow: hidden;
+            transition: transform 0.4s, box-shadow 0.4s;
+        }
+        
+        .card:hover { transform: translateY(-5px); box-shadow: 0 12px 30px rgba(0,0,0,0.1); }
+        
+        .card-header {
+            background: white;
+            border-bottom: 1px solid #e3e6f0;
+            font-weight: 600;
+            padding: 1.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 1.1rem;
+        }
+        
+        .table-container {
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.05);
+        }
+        
+        .table thead {
+            background: linear-gradient(90deg, var(--primary), var(--secondary));
+            color: white;
+        }
+        
+        .table th { padding: 1rem 1.5rem; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.5px; }
+        .table td { padding: 0.9rem 1.5rem; vertical-align: middle; }
+        .table-hover tbody tr:hover { background-color: rgba(67, 97, 238, 0.05); transform: translateX(5px); }
+        
+        .status-badge {
+            padding: 0.3rem 1rem;
+            border-radius: 20px;
+            font-weight: 600;
+            display: inline-block;
+            font-size: 0.8rem;
+        }
+        .status-active { background: rgba(40, 167, 69, 0.15); color: #28a745; }
+        .status-inactive { background: rgba(220, 53, 69, 0.15); color: #dc3545; }
+        
+        .empty-state { text-align: center; padding: 40px 20px; color: #6c757d; }
+        .empty-state i { font-size: 3rem; margin-bottom: 15px; opacity: 0.5; }
+        .empty-state h5 { font-weight: 600; color: #2c3e50; }
+        
+        .toggle-sidebar {
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--primary);
+            color: white;
+            border-radius: 10px;
+            margin-right: 15px;
+            cursor: pointer;
+            border: none;
+            box-shadow: 0 4px 10px rgba(67, 97, 238, 0.3);
+        }
+        
+        .toggle-sidebar:hover { background: var(--primary-dark); transform: rotate(90deg); }
+        
+        .btn-action { border-radius: 12px; padding: 10px 25px; font-weight: 600; transition: all 0.3s; }
+        .btn-action:hover { transform: translateY(-2px); }
+        
+        .back-link { color: var(--primary); text-decoration: none; font-weight: 500; }
+        .back-link:hover { text-decoration: underline; }
+        
+        .modal-content { border-radius: 16px; }
+        .modal-header { border-radius: 16px 16px 0 0; }
+        
+        .vendor-id-display {
+            font-family: monospace;
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: var(--primary);
+            background: #f0f2ff;
+            padding: 4px 12px;
+            border-radius: 8px;
+        }
+        
+        @media (max-width: 992px) {
+            .header-title { font-size: 1.3rem; }
+            .sidebar { width: 280px; }
+        }
+        
+        @media (max-width: 768px) {
+            .main-content { padding: 15px; }
+            .header { padding: 0 15px; }
+            .business-name { display: none; }
+            .card-header { flex-direction: column; align-items: flex-start; gap: 10px; }
+        }
+    </style>
+</head>
+<body>
+    <!-- HEADER -->
+    <header class="header">
+        <button class="toggle-sidebar" onclick="toggleSidebar()">
+            <i class="fas fa-bars"></i>
+        </button>
+        <h1 class="header-title">OmniVentas</h1>
+        <div class="header-actions">
+            <span class="business-name"><i class="fas fa-store me-1"></i>{{ business_name }}</span>
+            <a href="/bot-diagnostic" class="btn btn-outline-primary btn-sm">
+                <i class="fas fa-robot me-1"></i>Diagnóstico
+            </a>
+            <a href="/logout" class="btn btn-outline-danger btn-sm">
+                <i class="fas fa-sign-out-alt me-1"></i>Salir
+            </a>
+        </div>
+    </header>
+    
+    <!-- SIDEBAR -->
+    <nav class="sidebar" id="sidebar">
+        <div class="sidebar-logo">
+            <i class="fas fa-chart-line"></i>
+            <span>Panel Admin</span>
+        </div>
+        <ul class="nav flex-column mt-3">
+            <li class="nav-item"><a class="nav-link" href="/dashboard"><i class="fas fa-tachometer-alt"></i><span>Dashboard</span></a></li>
+            <li class="nav-item"><a class="nav-link" href="/ventas"><i class="fas fa-shopping-cart"></i><span>Ventas</span></a></li>
+            <li class="nav-item"><a class="nav-link" href="/inventario"><i class="fas fa-boxes"></i><span>Inventario</span></a></li>
+            <li class="nav-item"><a class="nav-link" href="/finanzas"><i class="fas fa-chart-pie"></i><span>Finanzas</span></a></li>
+            <li class="nav-item"><a class="nav-link" href="/analisis"><i class="fas fa-chart-line"></i><span>Análisis</span></a></li>
+            <li class="nav-item"><a class="nav-link" href="/clientes"><i class="fas fa-users"></i><span>Clientes</span></a></li>
+            <li class="nav-item"><a class="nav-link active" href="/vendedores"><i class="fas fa-user-tie"></i><span>Vendedores</span></a></li>
+            <li class="nav-item mt-4 pt-2 border-top border-white-10">
+                <a class="nav-link" href="/configuracion"><i class="fas fa-cog"></i><span>Configuración</span></a>
+            </li>
+        </ul>
+        <div class="sidebar-footer">
+            <a href="/bot-diagnostic" class="btn btn-outline-light"><i class="fas fa-robot me-2"></i>Diagnóstico Bot</a>
+            <a href="/logout" class="btn btn-outline-danger mt-2"><i class="fas fa-sign-out-alt me-2"></i>Cerrar Sesión</a>
+        </div>
+    </nav>
+    
+    <!-- MAIN CONTENT -->
+    <main class="main-content">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h2 class="section-title"><i class="fas fa-user-tie me-2"></i>Gestión de Vendedores</h2>
+            <a href="/dashboard" class="back-link"><i class="fas fa-arrow-left me-1"></i>Volver al Dashboard</a>
+        </div>
+
+        <!-- Stats -->
+        <div class="row mb-4">
+            <div class="col-md-3">
+                <div class="card stat-card h-100">
+                    <div class="card-body">
+                        <div class="stat-label">Total Vendedores</div>
+                        <div class="stat-value text-primary" id="total-vendedores">0</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card stat-card h-100">
+                    <div class="card-body">
+                        <div class="stat-label">Activos</div>
+                        <div class="stat-value text-success" id="vendedores-activos">0</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card stat-card h-100">
+                    <div class="card-body">
+                        <div class="stat-label">Inactivos</div>
+                        <div class="stat-value text-danger" id="vendedores-inactivos">0</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card stat-card h-100">
+                    <div class="card-body">
+                        <div class="stat-label">Último creado</div>
+                        <div class="stat-value text-info" id="ultimo-vendedor" style="font-size: 1.2rem;">-</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tabla de vendedores -->
+        <div class="card">
+            <div class="card-header">
+                <h6 class="m-0"><i class="fas fa-list me-2"></i>Lista de Vendedores</h6>
+                <div>
+                    <button class="btn btn-sm btn-primary" id="btn-agregar-vendedor">
+                        <i class="fas fa-plus me-1"></i>Agregar Vendedor
+                    </button>
+                    <button class="btn btn-sm btn-secondary" id="btn-actualizar">
+                        <i class="fas fa-sync me-1"></i>Actualizar
+                    </button>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="table-container">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Nombre</th>
+                                <th>Rol</th>
+                                <th>Estado</th>
+                                <th>Fecha Registro</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody id="vendedores-body"></tbody>
+                    </table>
+                    <div id="vendedores-empty" class="empty-state" style="display: none;">
+                        <i class="fas fa-user-slash"></i>
+                        <h5>No hay vendedores registrados</h5>
+                        <p class="text-muted">Agrega tu primer vendedor para empezar</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- MODAL AGREGAR VENDEDOR -->
+    <div class="modal fade" id="modalVendedor" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title"><i class="fas fa-user-plus me-2"></i>Agregar Vendedor</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="form-vendedor">
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">Nombre del Vendedor *</label>
+                            <input type="text" class="form-control" id="vendedor-nombre" placeholder="Ej: Juan Pérez" required>
+                            <div class="form-text">El ID se generará automáticamente (8 caracteres alfanuméricos)</div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-primary" id="btn-guardar-vendedor">
+                        <i class="fas fa-save me-2"></i>Crear Vendedor
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL EDITAR VENDEDOR -->
+    <div class="modal fade" id="modalEditarVendedor" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header bg-warning text-dark">
+                    <h5 class="modal-title"><i class="fas fa-edit me-2"></i>Editar Vendedor</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="form-editar-vendedor">
+                        <input type="hidden" id="edit-vendor-id">
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">Nombre</label>
+                            <input type="text" class="form-control" id="edit-vendor-nombre" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">Estado</label>
+                            <select class="form-select" id="edit-vendor-estado">
+                                <option value="true">Activo</option>
+                                <option value="false">Inactivo</option>
+                            </select>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-warning" id="btn-actualizar-vendedor">
+                        <i class="fas fa-save me-2"></i>Actualizar Vendedor
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        function toggleSidebar() {
+            document.body.classList.toggle('sidebar-open');
+        }
+
+        const modalVendedor = new bootstrap.Modal(document.getElementById('modalVendedor'));
+        const modalEditarVendedor = new bootstrap.Modal(document.getElementById('modalEditarVendedor'));
+        let vendedorEditandoId = null;
+
+        // ============== CARGAR VENDEDORES ==============
+        function cargarVendedores() {
+            fetch('/api/vendedores')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.error) {
+                        console.error('Error:', data.error);
+                        return;
+                    }
+                    actualizarVendedores(data);
+                })
+                .catch(error => console.error('Error:', error));
+        }
+
+        function actualizarVendedores(data) {
+            // Actualizar stats
+            document.getElementById('total-vendedores').textContent = data.total || 0;
+            
+            const vendedores = data.vendedores || [];
+            const activos = vendedores.filter(v => v.active).length;
+            const inactivos = vendedores.filter(v => !v.active).length;
+            
+            document.getElementById('vendedores-activos').textContent = activos;
+            document.getElementById('vendedores-inactivos').textContent = inactivos;
+            
+            if (vendedores.length > 0) {
+                document.getElementById('ultimo-vendedor').textContent = vendedores[0].name;
+            }
+
+            // Actualizar tabla
+            const body = document.getElementById('vendedores-body');
+            const empty = document.getElementById('vendedores-empty');
+            body.innerHTML = '';
+
+            if (vendedores.length > 0) {
+                empty.style.display = 'none';
+                vendedores.forEach(v => {
+                    const statusClass = v.active ? 'status-active' : 'status-inactive';
+                    const statusText = v.active ? 'Activo' : 'Inactivo';
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td><span class="vendor-id-display">${v.id}</span></td>
+                        <td><strong>${v.name}</strong></td>
+                        <td>${v.role || 'vendedor'}</td>
+                        <td><span class="status-badge ${statusClass}">${statusText}</span></td>
+                        <td>${v.created_at ? new Date(v.created_at).toLocaleDateString() : '-'}</td>
+                        <td>
+                            <button class="btn btn-sm btn-outline-primary" onclick="editarVendedor('${v.id}')">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button class="btn btn-sm btn-outline-danger" onclick="toggleVendedor('${v.id}', ${!v.active})">
+                                <i class="fas ${v.active ? 'fa-pause' : 'fa-play'}"></i>
+                            </button>
+                            <button class="btn btn-sm btn-outline-danger" onclick="eliminarVendedor('${v.id}')">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </td>
+                    `;
+                    body.appendChild(row);
+                });
+            } else {
+                empty.style.display = 'block';
+            }
+        }
+
+        // ============== AGREGAR VENDEDOR ==============
+        document.getElementById('btn-agregar-vendedor').addEventListener('click', function() {
+            document.getElementById('form-vendedor').reset();
+            modalVendedor.show();
+        });
+
+        document.getElementById('btn-guardar-vendedor').addEventListener('click', function() {
+            const nombre = document.getElementById('vendedor-nombre').value.trim();
+
+            if (!nombre) {
+                alert('Por favor ingresa el nombre del vendedor');
+                return;
+            }
+
+            this.disabled = true;
+            this.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Creando...';
+
+            fetch('/api/vendedor', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name: nombre })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert(`✅ Vendedor creado correctamente!\n\nID: ${data.vendor_id}\nNombre: ${data.vendor_name}`);
+                    modalVendedor.hide();
+                    cargarVendedores();
+                } else {
+                    alert('❌ Error: ' + data.message);
+                }
+            })
+            .catch(error => {
+                alert('❌ Error de conexión: ' + error.message);
+            })
+            .finally(() => {
+                this.disabled = false;
+                this.innerHTML = '<i class="fas fa-save me-2"></i>Crear Vendedor';
+            });
+        });
+
+        // ============== EDITAR VENDEDOR ==============
+        function editarVendedor(id) {
+            fetch('/api/vendedores')
+                .then(response => response.json())
+                .then(data => {
+                    const vendedor = data.vendedores.find(v => v.id === id);
+                    if (!vendedor) {
+                        alert('Vendedor no encontrado');
+                        return;
+                    }
+                    document.getElementById('edit-vendor-id').value = id;
+                    document.getElementById('edit-vendor-nombre').value = vendedor.name;
+                    document.getElementById('edit-vendor-estado').value = vendedor.active ? 'true' : 'false';
+                    modalEditarVendedor.show();
+                })
+                .catch(error => console.error('Error:', error));
+        }
+
+        document.getElementById('btn-actualizar-vendedor').addEventListener('click', function() {
+            const id = document.getElementById('edit-vendor-id').value;
+            const nombre = document.getElementById('edit-vendor-nombre').value.trim();
+            const active = document.getElementById('edit-vendor-estado').value === 'true';
+
+            if (!nombre) {
+                alert('Por favor ingresa el nombre');
+                return;
+            }
+
+            this.disabled = true;
+            this.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Actualizando...';
+
+            fetch(`/api/vendedor/${id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name: nombre, active: active })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('✅ Vendedor actualizado correctamente');
+                    modalEditarVendedor.hide();
+                    cargarVendedores();
+                } else {
+                    alert('❌ Error: ' + data.message);
+                }
+            })
+            .catch(error => {
+                alert('❌ Error de conexión: ' + error.message);
+            })
+            .finally(() => {
+                this.disabled = false;
+                this.innerHTML = '<i class="fas fa-save me-2"></i>Actualizar Vendedor';
+            });
+        });
+
+        // ============== TOGGLE VENDEDOR (Activar/Desactivar) ==============
+        function toggleVendedor(id, nuevoEstado) {
+            const estadoTexto = nuevoEstado ? 'activar' : 'desactivar';
+            if (!confirm(`¿Estás seguro de ${estadoTexto} este vendedor?`)) {
+                return;
+            }
+
+            fetch(`/api/vendedor/${id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ active: nuevoEstado })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert(`✅ Vendedor ${estadoTexto}do correctamente`);
+                    cargarVendedores();
+                } else {
+                    alert('❌ Error: ' + data.message);
+                }
+            })
+            .catch(error => {
+                alert('❌ Error de conexión: ' + error.message);
+            });
+        }
+
+        // ============== ELIMINAR VENDEDOR ==============
+        function eliminarVendedor(id) {
+            if (!confirm('⚠️ ¿Estás seguro de eliminar este vendedor? Esta acción no se puede deshacer.')) {
+                return;
+            }
+
+            fetch(`/api/vendedor/${id}`, {
+                method: 'DELETE'
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('✅ Vendedor eliminado correctamente');
+                    cargarVendedores();
+                } else {
+                    alert('❌ Error: ' + data.message);
+                }
+            })
+            .catch(error => {
+                alert('❌ Error de conexión: ' + error.message);
+            });
+        }
+
+        // ============== ACTUALIZAR ==============
+        document.getElementById('btn-actualizar').addEventListener('click', cargarVendedores);
+
+        // ============== INICIALIZACIÓN ==============
+        document.addEventListener('DOMContentLoaded', function() {
+            cargarVendedores();
+        });
+    </script>
+</body>
+</html>
