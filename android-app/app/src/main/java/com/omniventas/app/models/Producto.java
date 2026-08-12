@@ -1,16 +1,13 @@
 package com.omniventas.app.models;
 
-import com.google.gson.annotations.SerializedName;
-
 public class Producto {
-    @SerializedName("id") private int id;
-    @SerializedName("nombre") private String nombre;
-    @SerializedName("seccion") private String seccion;
-    @SerializedName("precio") private double precio;
-    @SerializedName("stock") private int stock;
-    @SerializedName("descripcion") private String descripcion;
+    private int id;
+    private String nombre;
+    private String seccion;
+    private double precio;
+    private int stock;
+    private String descripcion;
 
-    // Getters y setters
     public int getId() { return id; }
     public void setId(int id) { this.id = id; }
     public String getNombre() { return nombre; }

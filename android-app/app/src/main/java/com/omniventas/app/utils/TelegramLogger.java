@@ -7,7 +7,6 @@ import android.os.Build;
 import android.util.Log;
 import com.omniventas.app.api.ApiService;
 import com.omniventas.app.api.RetrofitClient;
-import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -22,7 +21,7 @@ public class TelegramLogger {
     private static TelegramLogger instance;
     private Context context;
     private SessionManager sessionManager;
-    private String appVersion = "1.0";
+    private String appVersion = "3.0.0";
 
     private TelegramLogger(Context context) {
         this.context = context.getApplicationContext();

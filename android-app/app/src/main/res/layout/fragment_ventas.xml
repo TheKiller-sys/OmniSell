@@ -10,122 +10,86 @@
     <androidx.swiperefreshlayout.widget.SwipeRefreshLayout
         android:id="@+id/swipe_refresh"
         android:layout_width="match_parent"
-        android:layout_height="match_parent">
+        android:layout_height="match_parent"
+        app:colorSchemeColors="@color/primary">
 
-        <ScrollView
+        <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="match_parent">
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
 
-            <LinearLayout
+            <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:orientation="vertical">
+                android:text="Ventas"
+                android:textSize="24sp"
+                android:textStyle="bold"
+                android:textColor="@color/dark"
+                android:layout_marginBottom="8dp" />
 
-                <TextView
+            <TextView
+                android:id="@+id/tv_ventas_hoy_titulo"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Ventas de Hoy"
+                android:textSize="16sp"
+                android:textColor="@color/gray"
+                android:layout_marginBottom="16dp" />
+
+            <Button
+                android:id="@+id/btn_registrar_venta"
+                android:layout_width="match_parent"
+                android:layout_height="56dp"
+                android:text="+ Registrar Venta"
+                android:textSize="16sp"
+                android:textStyle="bold"
+                android:textColor="@color/white"
+                android:background="@drawable/bg_rounded_button"
+                android:layout_marginBottom="16dp"
+                android:elevation="4dp" />
+
+            <androidx.cardview.widget.CardView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                app:cardCornerRadius="12dp"
+                app:cardElevation="2dp"
+                app:cardBackgroundColor="@color/white">
+
+                <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="🧾 Registrar Venta"
-                    android:textSize="24sp"
-                    android:textStyle="bold"
-                    android:textColor="@color/dark"
-                    android:layout_marginBottom="16dp" />
+                    android:orientation="vertical"
+                    android:padding="16dp">
 
-                <androidx.cardview.widget.CardView
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    app:cardCornerRadius="16dp"
-                    app:cardElevation="4dp"
-                    app:cardBackgroundColor="@color/white"
-                    android:layout_marginBottom="16dp">
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Ventas del Día"
+                        android:textSize="16sp"
+                        android:textStyle="bold"
+                        android:textColor="@color/dark"
+                        android:layout_marginBottom="12dp" />
 
-                    <LinearLayout
+                    <androidx.recyclerview.widget.RecyclerView
+                        android:id="@+id/rv_ventas_hoy"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:orientation="vertical"
-                        android:padding="20dp">
+                        android:nestedScrollingEnabled="false" />
 
-                        <com.google.android.material.textfield.TextInputLayout
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:layout_marginBottom="12dp"
-                            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
-                            app:boxBackgroundMode="outline">
+                    <TextView
+                        android:id="@+id/tv_sin_ventas"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="@string/sin_ventas_hoy"
+                        android:textSize="14sp"
+                        android:textColor="@color/gray"
+                        android:gravity="center"
+                        android:padding="32dp"
+                        android:visibility="gone" />
 
-                            <com.google.android.material.textfield.TextInputEditText
-                                android:id="@+id/et_producto"
-                                android:layout_width="match_parent"
-                                android:layout_height="wrap_content"
-                                android:hint="Producto"
-                                android:textSize="16sp" />
-                        </com.google.android.material.textfield.TextInputLayout>
+                </LinearLayout>
+            </androidx.cardview.widget.CardView>
 
-                        <LinearLayout
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:orientation="horizontal">
-
-                            <com.google.android.material.textfield.TextInputLayout
-                                android:layout_width="0dp"
-                                android:layout_height="wrap_content"
-                                android:layout_weight="1"
-                                android:layout_marginEnd="8dp"
-                                style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
-                                app:boxBackgroundMode="outline">
-
-                                <com.google.android.material.textfield.TextInputEditText
-                                    android:id="@+id/et_cantidad"
-                                    android:layout_width="match_parent"
-                                    android:layout_height="wrap_content"
-                                    android:hint="Cantidad"
-                                    android:inputType="number"
-                                    android:text="1"
-                                    android:textSize="16sp" />
-                            </com.google.android.material.textfield.TextInputLayout>
-
-                            <com.google.android.material.textfield.TextInputLayout
-                                android:layout_width="0dp"
-                                android:layout_height="wrap_content"
-                                android:layout_weight="1"
-                                android:layout_marginStart="8dp"
-                                style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
-                                app:boxBackgroundMode="outline">
-
-                                <com.google.android.material.textfield.TextInputEditText
-                                    android:id="@+id/et_precio"
-                                    android:layout_width="match_parent"
-                                    android:layout_height="wrap_content"
-                                    android:hint="Precio"
-                                    android:inputType="numberDecimal"
-                                    android:textSize="16sp" />
-                            </com.google.android.material.textfield.TextInputLayout>
-                        </LinearLayout>
-
-                        <TextView
-                            android:id="@+id/tv_total"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:text="Total: $0.00"
-                            android:textSize="22sp"
-                            android:textStyle="bold"
-                            android:textColor="@color/primary"
-                            android:gravity="center"
-                            android:padding="16dp"
-                            android:layout_marginVertical="12dp" />
-
-                        <Button
-                            android:id="@+id/btn_registrar_venta"
-                            android:layout_width="match_parent"
-                            android:layout_height="56dp"
-                            android:text="✅ Registrar Venta"
-                            android:textSize="16sp"
-                            android:textStyle="bold"
-                            android:backgroundTint="@color/primary"
-                            app:cornerRadius="12dp" />
-
-                    </LinearLayout>
-                </androidx.cardview.widget.CardView>
-
-            </LinearLayout>
-        </ScrollView>
+        </LinearLayout>
     </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
 </LinearLayout>

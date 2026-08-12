@@ -4,49 +4,74 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:layout_marginBottom="8dp"
-    app:cardCornerRadius="8dp"
-    app:cardElevation="2dp">
+    app:cardCornerRadius="12dp"
+    app:cardElevation="2dp"
+    app:cardBackgroundColor="@color/white">
+
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="vertical"
-        android:padding="12dp">
-        <TextView
-            android:id="@+id/tv_nombre"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="Nombre del Producto"
-            android:textSize="16sp"
-            android:textStyle="bold"
-            android:textColor="@color/dark" />
+        android:orientation="horizontal"
+        android:padding="16dp"
+        android:gravity="center_vertical">
+
         <LinearLayout
-            android:layout_width="match_parent"
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:layout_marginTop="4dp">
+            android:layout_weight="1"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/tv_nombre"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Nombre"
+                android:textSize="16sp"
+                android:textStyle="bold"
+                android:textColor="@color/dark" />
+
             <TextView
                 android:id="@+id/tv_seccion"
-                android:layout_width="0dp"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_weight="1"
                 android:text="Sección"
-                android:textSize="14sp"
+                android:textSize="12sp"
                 android:textColor="@color/gray" />
-            <TextView
-                android:id="@+id/tv_precio"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="/home/runner/work/_temp/50f6177f-024a-47ef-ab18-f6dfe22504ae.sh.00"
-                android:textSize="14sp"
-                android:textColor="@color/primary"
-                android:textStyle="bold" />
+
         </LinearLayout>
+
         <TextView
-            android:id="@+id/tv_stock"
+            android:id="@+id/tv_precio"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Stock: 0"
-            android:textSize="14sp"
-            android:layout_marginTop="4dp" />
+            android:text="$0.00"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            android:textColor="@color/primary"
+            android:layout_marginEnd="16dp" />
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:gravity="center">
+
+            <TextView
+                android:id="@+id/tv_stock"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="0"
+                android:textSize="18sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Stock"
+                android:textSize="10sp"
+                android:textColor="@color/gray" />
+
+        </LinearLayout>
+
     </LinearLayout>
 </androidx.cardview.widget.CardView>

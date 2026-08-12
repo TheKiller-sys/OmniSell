@@ -12,18 +12,22 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class ProductoAdapter extends RecyclerView.Adapter<ProductoAdapter.ViewHolder> {
+    private List<Producto> productos = new ArrayList<>();
+    private OnProductoClickListener listener;
 
-    private List<Producto> productos;
+    public interface OnProductoClickListener {
+        void onProductoClick(Producto producto);
+    }
 
-    public ProductoAdapter(List<Producto> productos) {
-        this.productos = productos != null ? productos : new ArrayList<>();
+    public ProductoAdapter(OnProductoClickListener listener) {
+        this.listener = listener;
     }
 
     @NonNull
     @Override
     public ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
         View view = LayoutInflater.from(parent.getContext())
-            .inflate(R.layout.item_producto, parent, false);
+            .inflate(R.layout.item_producto_busqueda, parent, false);
         return new ViewHolder(view);
     }
 
@@ -31,15 +35,12 @@ public class ProductoAdapter extends RecyclerView.Adapter<ProductoAdapter.ViewHo
     public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
         Producto p = productos.get(position);
         holder.tvNombre.setText(p.getNombre());
-        holder.tvSeccion.setText(p.getSeccion());
+        holder.tvSeccion.setText(p.getSeccion() != null ? p.getSeccion() : "Sin categoría");
         holder.tvPrecio.setText("$" + String.format("%.2f", p.getPrecio()));
-        holder.tvStock.setText("Stock: " + p.getStock());
-
-        if (p.getStock() <= 3) {
-            holder.tvStock.setTextColor(holder.itemView.getContext().getColor(R.color.danger));
-        } else {
-            holder.tvStock.setTextColor(holder.itemView.getContext().getColor(R.color.gray));
-        }
+        
+        holder.itemView.setOnClickListener(v -> {
+            if (listener != null) listener.onProductoClick(p);
+        });
     }
 
     @Override
@@ -47,20 +48,22 @@ public class ProductoAdapter extends RecyclerView.Adapter<ProductoAdapter.ViewHo
         return productos.size();
     }
 
-    public void updateData(List<Producto> newData) {
-        this.productos = newData != null ? newData : new ArrayList<>();
+    public void setProductos(List<Producto> productos) {
+        this.productos = productos != null ? productos : new ArrayList<>();
         notifyDataSetChanged();
     }
 
-    static class ViewHolder extends RecyclerView.ViewHolder {
-        TextView tvNombre, tvSeccion, tvPrecio, tvStock;
+    public void filter(String query) {
+        // El filtrado se maneja desde el fragmento
+    }
 
+    static class ViewHolder extends RecyclerView.ViewHolder {
+        TextView tvNombre, tvSeccion, tvPrecio;
         ViewHolder(@NonNull View itemView) {
             super(itemView);
-            tvNombre = itemView.findViewById(R.id.tv_nombre);
-            tvSeccion = itemView.findViewById(R.id.tv_seccion);
-            tvPrecio = itemView.findViewById(R.id.tv_precio);
-            tvStock = itemView.findViewById(R.id.tv_stock);
+            tvNombre = itemView.findViewById(R.id.tv_nombre_busqueda);
+            tvSeccion = itemView.findViewById(R.id.tv_seccion_busqueda);
+            tvPrecio = itemView.findViewById(R.id.tv_precio_busqueda);
         }
     }
 }

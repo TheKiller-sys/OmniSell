@@ -9,4 +9,18 @@
     <string name="login_error_empty">Ingresa tu ID de vendedor</string>
     <string name="login_error_length">El ID debe tener 8 caracteres</string>
     <string name="login_error_chars">Solo letras y números</string>
+    <string name="registrar_venta">Registrar Venta</string>
+    <string name="buscar_producto">Buscar producto...</string>
+    <string name="cantidad">Cantidad</string>
+    <string name="total">Total</string>
+    <string name="cancelar">Cancelar</string>
+    <string name="registrar">Registrar</string>
+    <string name="ventas_hoy">Ventas de Hoy</string>
+    <string name="sin_ventas_hoy">No hay ventas registradas hoy</string>
+    <string name="inventario">Inventario</string>
+    <string name="productos">Productos</string>
+    <string name="stock_bajo">Stock Bajo</string>
+    <string name="sin_stock">Sin Stock</string>
+    <string name="cargando">Cargando...</string>
+    <string name="error_conexion">Error de conexión</string>
 </resources>

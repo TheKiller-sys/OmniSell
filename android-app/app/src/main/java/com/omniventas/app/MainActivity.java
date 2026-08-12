@@ -13,7 +13,6 @@ import com.omniventas.app.ui.InventarioFragment;
 import com.omniventas.app.utils.SessionManager;
 
 public class MainActivity extends AppCompatActivity {
-
     private BottomNavigationView bottomNav;
     private long backPressedTime = 0;
     private SessionManager sessionManager;
@@ -43,7 +42,6 @@ public class MainActivity extends AppCompatActivity {
 
     private boolean onNavigationItemSelected(@NonNull MenuItem item) {
         Fragment selectedFragment = null;
-
         if (item.getItemId() == R.id.nav_dashboard) {
             selectedFragment = new DashboardFragment();
         } else if (item.getItemId() == R.id.nav_ventas) {

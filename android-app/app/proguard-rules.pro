@@ -4,3 +4,4 @@
 -keep class com.google.gson.** { *; }
 -dontwarn okhttp3.**
 -dontwarn retrofit2.**
+-keep class lecho.lib.hellocharts.** { *; }

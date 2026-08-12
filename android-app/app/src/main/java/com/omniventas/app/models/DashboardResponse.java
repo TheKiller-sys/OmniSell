@@ -12,7 +12,7 @@ public class DashboardResponse {
         private int ventas_mes;
         private double ingresos_mes;
         private int productos_bajo_stock;
-        private List<VentaReciente> ventas_recientes;
+        private List<Venta> ventas_recientes;
         private String fecha;
         private String business_name;
 
@@ -26,8 +26,8 @@ public class DashboardResponse {
         public void setIngresosMes(double ingresos_mes) { this.ingresos_mes = ingresos_mes; }
         public int getProductosBajoStock() { return productos_bajo_stock; }
         public void setProductosBajoStock(int productos_bajo_stock) { this.productos_bajo_stock = productos_bajo_stock; }
-        public List<VentaReciente> getVentasRecientes() { return ventas_recientes; }
-        public void setVentasRecientes(List<VentaReciente> ventas_recientes) { this.ventas_recientes = ventas_recientes; }
+        public List<Venta> getVentasRecientes() { return ventas_recientes; }
+        public void setVentasRecientes(List<Venta> ventas_recientes) { this.ventas_recientes = ventas_recientes; }
         public String getFecha() { return fecha; }
         public void setFecha(String fecha) { this.fecha = fecha; }
         public String getBusiness_name() { return business_name; }

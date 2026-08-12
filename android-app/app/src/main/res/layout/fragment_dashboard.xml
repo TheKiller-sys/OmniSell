@@ -10,7 +10,8 @@
     <androidx.swiperefreshlayout.widget.SwipeRefreshLayout
         android:id="@+id/swipe_refresh"
         android:layout_width="match_parent"
-        android:layout_height="match_parent">
+        android:layout_height="match_parent"
+        app:colorSchemeColors="@color/primary">
 
         <ScrollView
             android:layout_width="match_parent"
@@ -21,30 +22,23 @@
                 android:layout_height="wrap_content"
                 android:orientation="vertical">
 
-                <LinearLayout
+                <TextView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:gravity="center_vertical"
-                    android:layout_marginBottom="16dp">
+                    android:text="Dashboard"
+                    android:textSize="24sp"
+                    android:textStyle="bold"
+                    android:textColor="@color/dark"
+                    android:layout_marginBottom="16dp" />
 
-                    <TextView
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:text="📊 Dashboard"
-                        android:textSize="24sp"
-                        android:textStyle="bold"
-                        android:textColor="@color/dark" />
-
-                    <TextView
-                        android:id="@+id/tv_fecha"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="Hoy"
-                        android:textSize="14sp"
-                        android:textColor="@color/gray" />
-                </LinearLayout>
+                <TextView
+                    android:id="@+id/tv_fecha"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Hoy"
+                    android:textSize="14sp"
+                    android:textColor="@color/gray"
+                    android:layout_marginBottom="16dp" />
 
                 <LinearLayout
                     android:layout_width="match_parent"
@@ -55,7 +49,7 @@
 
                     <androidx.cardview.widget.CardView
                         android:layout_width="0dp"
-                        android:layout_height="wrap_content"
+                        android:layout_height="120dp"
                         android:layout_weight="1"
                         android:layout_marginEnd="6dp"
                         app:cardCornerRadius="16dp"
@@ -63,15 +57,22 @@
                         app:cardBackgroundColor="@color/card_ventas_hoy">
                         <LinearLayout
                             android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
+                            android:layout_height="match_parent"
                             android:orientation="vertical"
-                            android:padding="16dp">
+                            android:padding="16dp"
+                            android:gravity="center_vertical">
+                            <ImageView
+                                android:layout_width="32dp"
+                                android:layout_height="32dp"
+                                android:src="@drawable/ic_ventas"
+                                android:tint="@color/primary" />
                             <TextView
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:text="🛒 Ventas Hoy"
+                                android:text="Ventas Hoy"
                                 android:textSize="12sp"
-                                android:textColor="@color/gray" />
+                                android:textColor="@color/gray"
+                                android:layout_marginTop="8dp" />
                             <TextView
                                 android:id="@+id/tv_ventas_hoy"
                                 android:layout_width="wrap_content"
@@ -85,7 +86,7 @@
 
                     <androidx.cardview.widget.CardView
                         android:layout_width="0dp"
-                        android:layout_height="wrap_content"
+                        android:layout_height="120dp"
                         android:layout_weight="1"
                         android:layout_marginStart="6dp"
                         app:cardCornerRadius="16dp"
@@ -93,21 +94,28 @@
                         app:cardBackgroundColor="@color/card_ingresos_hoy">
                         <LinearLayout
                             android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
+                            android:layout_height="match_parent"
                             android:orientation="vertical"
-                            android:padding="16dp">
+                            android:padding="16dp"
+                            android:gravity="center_vertical">
+                            <ImageView
+                                android:layout_width="32dp"
+                                android:layout_height="32dp"
+                                android:src="@drawable/ic_store"
+                                android:tint="@color/success" />
                             <TextView
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:text="💰 Ingresos Hoy"
+                                android:text="Ingresos Hoy"
                                 android:textSize="12sp"
-                                android:textColor="@color/gray" />
+                                android:textColor="@color/gray"
+                                android:layout_marginTop="8dp" />
                             <TextView
                                 android:id="@+id/tv_ingresos_hoy"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:text="$0.00"
-                                android:textSize="28sp"
+                                android:textSize="24sp"
                                 android:textStyle="bold"
                                 android:textColor="@color/success" />
                         </LinearLayout>
@@ -123,7 +131,7 @@
 
                     <androidx.cardview.widget.CardView
                         android:layout_width="0dp"
-                        android:layout_height="wrap_content"
+                        android:layout_height="120dp"
                         android:layout_weight="1"
                         android:layout_marginEnd="6dp"
                         app:cardCornerRadius="16dp"
@@ -131,15 +139,22 @@
                         app:cardBackgroundColor="@color/card_ventas_mes">
                         <LinearLayout
                             android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
+                            android:layout_height="match_parent"
                             android:orientation="vertical"
-                            android:padding="16dp">
+                            android:padding="16dp"
+                            android:gravity="center_vertical">
+                            <ImageView
+                                android:layout_width="32dp"
+                                android:layout_height="32dp"
+                                android:src="@drawable/ic_dashboard"
+                                android:tint="@color/info" />
                             <TextView
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:text="📈 Ventas Mes"
+                                android:text="Ventas Mes"
                                 android:textSize="12sp"
-                                android:textColor="@color/gray" />
+                                android:textColor="@color/gray"
+                                android:layout_marginTop="8dp" />
                             <TextView
                                 android:id="@+id/tv_ventas_mes"
                                 android:layout_width="wrap_content"
@@ -153,7 +168,7 @@
 
                     <androidx.cardview.widget.CardView
                         android:layout_width="0dp"
-                        android:layout_height="wrap_content"
+                        android:layout_height="120dp"
                         android:layout_weight="1"
                         android:layout_marginStart="6dp"
                         app:cardCornerRadius="16dp"
@@ -161,21 +176,28 @@
                         app:cardBackgroundColor="@color/card_ingresos_mes">
                         <LinearLayout
                             android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
+                            android:layout_height="match_parent"
                             android:orientation="vertical"
-                            android:padding="16dp">
+                            android:padding="16dp"
+                            android:gravity="center_vertical">
+                            <ImageView
+                                android:layout_width="32dp"
+                                android:layout_height="32dp"
+                                android:src="@drawable/ic_store"
+                                android:tint="@color/warning" />
                             <TextView
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:text="💵 Ingresos Mes"
+                                android:text="Ingresos Mes"
                                 android:textSize="12sp"
-                                android:textColor="@color/gray" />
+                                android:textColor="@color/gray"
+                                android:layout_marginTop="8dp" />
                             <TextView
                                 android:id="@+id/tv_ingresos_mes"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:text="$0.00"
-                                android:textSize="28sp"
+                                android:textSize="24sp"
                                 android:textStyle="bold"
                                 android:textColor="@color/warning" />
                         </LinearLayout>
@@ -195,13 +217,19 @@
                         android:orientation="horizontal"
                         android:padding="16dp"
                         android:gravity="center_vertical">
+                        <ImageView
+                            android:layout_width="24dp"
+                            android:layout_height="24dp"
+                            android:src="@drawable/ic_inventario"
+                            android:tint="@color/warning" />
                         <TextView
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
-                            android:text="⚠️ Productos con stock bajo:"
+                            android:text="Productos con stock bajo:"
                             android:textSize="14sp"
-                            android:textColor="@color/dark_secondary" />
+                            android:textColor="@color/dark_secondary"
+                            android:layout_marginStart="12dp" />
                         <TextView
                             android:id="@+id/tv_bajo_stock"
                             android:layout_width="wrap_content"
@@ -216,7 +244,7 @@
                 <TextView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="🕐 Ventas Recientes"
+                    android:text="Ventas Recientes"
                     android:textSize="18sp"
                     android:textStyle="bold"
                     android:textColor="@color/dark"

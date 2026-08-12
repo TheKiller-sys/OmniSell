@@ -14,22 +14,18 @@ import android.widget.TextView;
 import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.cardview.widget.CardView;
-
 import com.omniventas.app.api.ApiService;
 import com.omniventas.app.api.RetrofitClient;
 import com.omniventas.app.models.LoginResponse;
 import com.omniventas.app.models.VendorLoginRequest;
 import com.omniventas.app.utils.SessionManager;
 import com.omniventas.app.utils.TelegramLogger;
-
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
 
 public class LoginActivity extends AppCompatActivity {
-
     private static final String TAG = "LoginActivity";
-
     private EditText etVendorId;
     private Button btnLogin;
     private CardView cardLogin;
@@ -105,22 +101,13 @@ public class LoginActivity extends AppCompatActivity {
             @Override
             public void onResponse(Call<LoginResponse> call, Response<LoginResponse> response) {
                 setLoading(false);
-
                 if (response.isSuccessful() && response.body() != null) {
                     LoginResponse loginResponse = response.body();
-
                     if (loginResponse.isSuccess()) {
                         String token = loginResponse.getToken();
                         LoginResponse.Vendor vendor = loginResponse.getVendor();
-
                         if (vendor != null && token != null) {
-                            sessionManager.saveUser(
-                                token,
-                                vendor.getId(),
-                                vendor.getName(),
-                                vendor.getBusinessName()
-                            );
-
+                            sessionManager.saveUser(token, vendor.getId(), vendor.getName(), vendor.getBusinessName());
                             logger.success("Login exitoso: " + vendor.getName());
                             irAlDashboard();
                         }
@@ -164,9 +151,7 @@ public class LoginActivity extends AppCompatActivity {
     }
 
     private void shakeView(View view) {
-        ObjectAnimator shake = ObjectAnimator.ofFloat(
-            view, "translationX", 0f, -20f, 20f, -20f, 20f, -10f, 10f, 0f
-        );
+        ObjectAnimator shake = ObjectAnimator.ofFloat(view, "translationX", 0f, -20f, 20f, -20f, 20f, -10f, 10f, 0f);
         shake.setDuration(500);
         shake.start();
     }
