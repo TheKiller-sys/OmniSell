@@ -1,4 +1,4 @@
-name: Build Android APK
+name: Build Android App (Production)
 
 on:
   push:
@@ -27,9 +27,9 @@ jobs:
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
 
-      - name: Create Android project with real login
+      - name: Create Production Android Project
         run: |
-          echo "📱 Creating Android project..."
+          echo "🚀 Creando proyecto Android para PRODUCCIÓN..."
           
           mkdir -p android-app/app/src/main/java/com/omniventas/app
           mkdir -p android-app/app/src/main/java/com/omniventas/app/api
@@ -39,6 +39,7 @@ jobs:
           mkdir -p android-app/app/src/main/res/layout
           mkdir -p android-app/app/src/main/res/values
           mkdir -p android-app/app/src/main/res/drawable
+          mkdir -p android-app/app/src/main/res/drawable-v24
           mkdir -p android-app/app/src/main/res/menu
           mkdir -p android-app/app/src/main/res/xml
           mkdir -p android-app/app/src/main/res/mipmap-hdpi
@@ -47,6 +48,7 @@ jobs:
           mkdir -p android-app/app/src/main/res/mipmap-xxhdpi
           mkdir -p android-app/app/src/main/res/mipmap-xxxhdpi
           mkdir -p android-app/app/src/main/res/mipmap-anydpi-v26
+          mkdir -p android-app/app/src/main/res/anim
           mkdir -p android-app/gradle/wrapper
           
           cd android-app
@@ -124,18 +126,19 @@ jobs:
                   applicationId "com.omniventas.app"
                   minSdk 21
                   targetSdk 34
-                  versionCode 1
-                  versionName "1.0"
+                  versionCode 2
+                  versionName "2.0.0"
                   testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
               }
           
               buildTypes {
                   release {
-                      minifyEnabled false
+                      minifyEnabled true
                       proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
                   }
                   debug {
                       minifyEnabled false
+                      debuggable true
                   }
               }
           
@@ -158,6 +161,7 @@ jobs:
               implementation 'com.squareup.okhttp3:logging-interceptor:4.11.0'
               implementation 'com.auth0:java-jwt:4.4.0'
               implementation 'com.google.code.gson:gson:2.10.1'
+              implementation 'com.github.bumptech.glide:glide:4.16.0'
               testImplementation 'junit:junit:4.13.2'
               androidTestImplementation 'androidx.test.ext:junit:1.1.5'
               androidTestImplementation 'androidx.test.espresso:espresso-core:3.5.1'
@@ -168,6 +172,9 @@ jobs:
           -keep class com.omniventas.app.** { *; }
           -keep class retrofit2.** { *; }
           -keep class okhttp3.** { *; }
+          -keep class com.google.gson.** { *; }
+          -dontwarn okhttp3.**
+          -dontwarn retrofit2.**
           EOF
 
       - name: Create AndroidManifest
@@ -180,9 +187,7 @@ jobs:
           
               <uses-permission android:name="android.permission.INTERNET" />
               <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
-              <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"
-                  android:maxSdkVersion="28" />
-              <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
+              <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
           
               <application
                   android:allowBackup="true"
@@ -193,14 +198,15 @@ jobs:
                   android:theme="@style/Theme.OmniVentas"
                   android:usesCleartextTraffic="true"
                   android:networkSecurityConfig="@xml/network_security_config"
-                  android:requestLegacyExternalStorage="true"
+                  android:hardwareAccelerated="true"
                   tools:targetApi="31">
           
                   <activity
                       android:name=".LoginActivity"
                       android:exported="true"
                       android:screenOrientation="portrait"
-                      android:windowSoftInputMode="adjustResize">
+                      android:windowSoftInputMode="adjustResize"
+                      android:theme="@style/Theme.OmniVentas.Login">
                       <intent-filter>
                           <action android:name="android.intent.action.MAIN" />
                           <category android:name="android.intent.category.LAUNCHER" />
@@ -213,74 +219,123 @@ jobs:
                       android:screenOrientation="portrait"
                       android:windowSoftInputMode="adjustResize" />
           
-                  <provider
-                      android:name="androidx.core.content.FileProvider"
-                      android:authorities="${applicationId}.fileprovider"
-                      android:exported="false"
-                      android:grantUriPermissions="true">
-                      <meta-data
-                          android:name="android.support.FILE_PROVIDER_PATHS"
-                          android:resource="@xml/file_paths" />
-                  </provider>
-          
               </application>
           
           </manifest>
           EOF
 
-      - name: Create resources
+      - name: Create network security config
         run: |
           cd android-app
-          
           cat > app/src/main/res/xml/network_security_config.xml << 'EOF'
           <?xml version="1.0" encoding="utf-8"?>
           <network-security-config>
               <domain-config cleartextTrafficPermitted="true">
                   <domain includeSubdomains="true">10.0.2.2</domain>
                   <domain includeSubdomains="true">localhost</domain>
-                  <domain includeSubdomains="true">127.0.0.1</domain>
                   <domain includeSubdomains="true">prueba-1-omni.onrender.com</domain>
                   <domain includeSubdomains="true">onrender.com</domain>
               </domain-config>
           </network-security-config>
           EOF
+
+      - name: Create animation files
+        run: |
+          cd android-app
           
-          cat > app/src/main/res/xml/file_paths.xml << 'EOF'
+          cat > app/src/main/res/anim/fade_in.xml << 'EOF'
           <?xml version="1.0" encoding="utf-8"?>
-          <paths>
-              <external-path name="download" path="Download/" />
-              <external-path name="external_files" path="." />
-              <cache-path name="cache" path="." />
-          </paths>
+          <alpha xmlns:android="http://schemas.android.com/apk/res/android"
+              android:fromAlpha="0.0"
+              android:toAlpha="1.0"
+              android:duration="600" />
           EOF
           
+          cat > app/src/main/res/anim/slide_up.xml << 'EOF'
+          <?xml version="1.0" encoding="utf-8"?>
+          <translate xmlns:android="http://schemas.android.com/apk/res/android"
+              android:fromYDelta="100%"
+              android:toYDelta="0%"
+              android:duration="600" />
+          EOF
+          
+          cat > app/src/main/res/anim/scale_up.xml << 'EOF'
+          <?xml version="1.0" encoding="utf-8"?>
+          <scale xmlns:android="http://schemas.android.com/apk/res/android"
+              android:fromXScale="0.8"
+              android:toXScale="1.0"
+              android:fromYScale="0.8"
+              android:toYScale="1.0"
+              android:pivotX="50%"
+              android:pivotY="50%"
+              android:duration="400" />
+          EOF
+
+      - name: Create colors
+        run: |
+          cd android-app
           cat > app/src/main/res/values/colors.xml << 'EOF'
           <?xml version="1.0" encoding="utf-8"?>
           <resources>
-              <color name="primary">#4361EE</color>
-              <color name="primary_dark">#3A56D4</color>
-              <color name="primary_light">#6C8CFF</color>
-              <color name="secondary">#3F37C9</color>
-              <color name="success">#4CC9F0</color>
-              <color name="warning">#FFD166</color>
-              <color name="danger">#EF476F</color>
-              <color name="dark">#212529</color>
-              <color name="dark_secondary">#343A40</color>
-              <color name="light_gray">#F5F7FB</color>
-              <color name="gray">#6C757D</color>
-              <color name="gray_light">#E9ECEF</color>
+              <!-- Primary Colors -->
+              <color name="primary">#6366F1</color>
+              <color name="primary_dark">#4F46E5</color>
+              <color name="primary_light">#818CF8</color>
+              <color name="primary_gradient_start">#6366F1</color>
+              <color name="primary_gradient_end">#8B5CF6</color>
+              
+              <!-- Secondary -->
+              <color name="secondary">#8B5CF6</color>
+              <color name="secondary_light">#A78BFA</color>
+              
+              <!-- Status Colors -->
+              <color name="success">#10B981</color>
+              <color name="warning">#F59E0B</color>
+              <color name="danger">#EF4444</color>
+              <color name="info">#3B82F6</color>
+              
+              <!-- Neutral -->
+              <color name="dark">#1F2937</color>
+              <color name="dark_secondary">#374151</color>
+              <color name="gray">#6B7280</color>
+              <color name="gray_light">#E5E7EB</color>
+              <color name="light_gray">#F3F4F6</color>
               <color name="white">#FFFFFF</color>
+              <color name="white_alpha_80">#CCFFFFFF</color>
+              
+              <!-- Bottom Nav -->
               <color name="bottom_nav_tint">@color/primary</color>
+              <color name="bottom_nav_background">@color/white</color>
+              
+              <!-- Card Colors -->
+              <color name="card_ventas_hoy">#EEF2FF</color>
+              <color name="card_ingresos_hoy">#ECFDF5</color>
+              <color name="card_ventas_mes">#EFF6FF</color>
+              <color name="card_ingresos_mes">#FEF3C7</color>
           </resources>
           EOF
-          
+
+      - name: Create strings
+        run: |
+          cd android-app
           cat > app/src/main/res/values/strings.xml << 'EOF'
           <?xml version="1.0" encoding="utf-8"?>
           <resources>
               <string name="app_name">OmniVentas</string>
+              <string name="login_title">OmniVentas</string>
+              <string name="login_subtitle">Acceso para Vendedores</string>
+              <string name="login_hint">ID de Vendedor</string>
+              <string name="login_button">Ingresar</string>
+              <string name="login_help">Contacta al administrador para obtener tu ID</string>
+              <string name="login_error_empty">Ingresa tu ID de vendedor</string>
+              <string name="login_error_length">El ID debe tener 8 caracteres</string>
+              <string name="login_error_chars">Solo letras y números</string>
           </resources>
           EOF
-          
+
+      - name: Create themes
+        run: |
+          cd android-app
           cat > app/src/main/res/values/themes.xml << 'EOF'
           <?xml version="1.0" encoding="utf-8"?>
           <resources>
@@ -290,591 +345,160 @@ jobs:
                   <item name="colorOnPrimary">@color/white</item>
                   <item name="colorSecondary">@color/secondary</item>
                   <item name="colorOnSecondary">@color/white</item>
-                  <item name="android:statusBarColor">@color/primary</item>
+                  <item name="android:statusBarColor">@color/primary_dark</item>
                   <item name="android:windowBackground">@color/light_gray</item>
+                  <item name="android:windowAnimationStyle">@style/WindowAnimationTransition</item>
+              </style>
+          
+              <style name="Theme.OmniVentas.Login" parent="Theme.OmniVentas">
+                  <item name="android:statusBarColor">@color/primary_dark</item>
+                  <item name="android:windowBackground">@color/white</item>
+              </style>
+          
+              <style name="WindowAnimationTransition">
+                  <item name="android:windowEnterAnimation">@anim/fade_in</item>
+                  <item name="android:windowExitAnimation">@anim/fade_in</item>
+              </style>
+          
+              <style name="CardViewStyle" parent="CardView">
+                  <item name="cardCornerRadius">16dp</item>
+                  <item name="cardElevation">8dp</item>
+                  <item name="cardBackgroundColor">@color/white</item>
+              </style>
+          
+              <style name="StatCardStyle" parent="CardViewStyle">
+                  <item name="cardCornerRadius">16dp</item>
+                  <item name="cardElevation">4dp</item>
               </style>
           </resources>
           EOF
 
-      - name: Create layouts
+      - name: Create drawables - Login
         run: |
           cd android-app
           
-          cat > app/src/main/res/layout/activity_login.xml << 'EOF'
-          <?xml version="1.0" encoding="utf-8"?>
-          <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-              xmlns:app="http://schemas.android.com/apk/res-auto"
-              android:layout_width="match_parent"
-              android:layout_height="match_parent"
-              android:orientation="vertical"
-              android:gravity="center"
-              android:padding="32dp"
-              android:background="@color/light_gray">
-          
-              <ImageView
-                  android:id="@+id/iv_logo"
-                  android:layout_width="100dp"
-                  android:layout_height="100dp"
-                  android:src="@drawable/ic_launcher_foreground"
-                  android:layout_marginBottom="16dp"
-                  android:scaleType="centerInside" />
-          
-              <TextView
-                  android:id="@+id/tv_title"
-                  android:layout_width="wrap_content"
-                  android:layout_height="wrap_content"
-                  android:text="OmniVentas"
-                  android:textSize="32sp"
-                  android:textStyle="bold"
-                  android:textColor="@color/primary"
-                  android:layout_marginBottom="4dp" />
-          
-              <TextView
-                  android:id="@+id/tv_subtitle"
-                  android:layout_width="wrap_content"
-                  android:layout_height="wrap_content"
-                  android:text="Acceso para Vendedores"
-                  android:textSize="16sp"
-                  android:textColor="@color/gray"
-                  android:layout_marginBottom="32dp" />
-          
-              <androidx.cardview.widget.CardView
-                  android:id="@+id/card_login"
-                  android:layout_width="match_parent"
-                  android:layout_height="wrap_content"
-                  app:cardCornerRadius="24dp"
-                  app:cardElevation="8dp"
-                  app:cardBackgroundColor="@color/white">
-          
-                  <LinearLayout
-                      android:layout_width="match_parent"
-                      android:layout_height="wrap_content"
-                      android:orientation="vertical"
-                      android:padding="24dp">
-          
-                      <ImageView
-                          android:layout_width="64dp"
-                          android:layout_height="64dp"
-                          android:src="@drawable/ic_vendor"
-                          android:layout_gravity="center"
-                          android:layout_marginBottom="16dp" />
-          
-                      <TextView
-                          android:layout_width="wrap_content"
-                          android:layout_height="wrap_content"
-                          android:text="ID de Vendedor"
-                          android:textSize="14sp"
-                          android:textColor="@color/gray"
-                          android:layout_marginBottom="8dp" />
-          
-                      <LinearLayout
-                          android:layout_width="match_parent"
-                          android:layout_height="wrap_content"
-                          android:orientation="horizontal"
-                          android:background="@drawable/edit_text_background"
-                          android:padding="4dp"
-                          android:layout_marginBottom="16dp">
-          
-                          <ImageView
-                              android:layout_width="24dp"
-                              android:layout_height="24dp"
-                              android:src="@drawable/ic_vendor_id"
-                              android:layout_gravity="center"
-                              android:layout_marginStart="12dp" />
-          
-                          <EditText
-                              android:id="@+id/et_vendor_id"
-                              android:layout_width="0dp"
-                              android:layout_height="wrap_content"
-                              android:layout_weight="1"
-                              android:hint="Ej: AAAA0000"
-                              android:inputType="text"
-                              android:background="@android:color/transparent"
-                              android:padding="12dp"
-                              android:textSize="16dp"
-                              android:textColor="@color/dark"
-                              android:maxLength="8"
-                              android:imeOptions="actionDone" />
-                      </LinearLayout>
-          
-                      <TextView
-                          android:id="@+id/tv_error"
-                          android:layout_width="match_parent"
-                          android:layout_height="wrap_content"
-                          android:textColor="@color/danger"
-                          android:textSize="14sp"
-                          android:gravity="center"
-                          android:padding="8dp"
-                          android:visibility="gone"
-                          android:layout_marginBottom="8dp" />
-          
-                      <ProgressBar
-                          android:id="@+id/progressBar"
-                          android:layout_width="wrap_content"
-                          android:layout_height="wrap_content"
-                          android:layout_gravity="center"
-                          android:visibility="gone"
-                          android:layout_marginBottom="8dp" />
-          
-                      <Button
-                          android:id="@+id/btn_login"
-                          android:layout_width="match_parent"
-                          android:layout_height="56dp"
-                          android:text="Ingresar"
-                          android:textSize="16sp"
-                          android:textStyle="bold"
-                          android:backgroundTint="@color/primary"
-                          app:cornerRadius="12dp" />
-          
-                      <TextView
-                          android:layout_width="wrap_content"
-                          android:layout_height="wrap_content"
-                          android:text="Contacta al administrador para obtener tu ID"
-                          android:textSize="12sp"
-                          android:textColor="@color/gray"
-                          android:layout_gravity="center"
-                          android:layout_marginTop="16dp" />
-          
-                      <TextView
-                          android:layout_width="wrap_content"
-                          android:layout_height="wrap_content"
-                          android:text="v1.0"
-                          android:textSize="11sp"
-                          android:textColor="@color/gray"
-                          android:layout_gravity="center"
-                          android:layout_marginTop="12dp"
-                          android:alpha="0.6" />
-          
-                  </LinearLayout>
-              </androidx.cardview.widget.CardView>
-          
-          </LinearLayout>
-          EOF
-          
-          cat > app/src/main/res/layout/activity_main.xml << 'EOF'
-          <?xml version="1.0" encoding="utf-8"?>
-          <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-              xmlns:app="http://schemas.android.com/apk/res-auto"
-              android:layout_width="match_parent"
-              android:layout_height="match_parent"
-              android:orientation="vertical">
-          
-              <FrameLayout
-                  android:id="@+id/fragment_container"
-                  android:layout_width="match_parent"
-                  android:layout_height="0dp"
-                  android:layout_weight="1" />
-          
-              <com.google.android.material.bottomnavigation.BottomNavigationView
-                  android:id="@+id/bottom_navigation"
-                  android:layout_width="match_parent"
-                  android:layout_height="wrap_content"
-                  android:background="@color/white"
-                  app:menu="@menu/bottom_nav_menu"
-                  app:itemIconTint="@color/bottom_nav_tint"
-                  app:itemTextColor="@color/bottom_nav_tint" />
-          
-          </LinearLayout>
-          EOF
-
-      - name: Create more layouts
-        run: |
-          cd android-app
-          
-          cat > app/src/main/res/layout/fragment_dashboard.xml << 'EOF'
-          <?xml version="1.0" encoding="utf-8"?>
-          <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-              xmlns:app="http://schemas.android.com/apk/res-auto"
-              android:layout_width="match_parent"
-              android:layout_height="match_parent"
-              android:orientation="vertical"
-              android:padding="16dp"
-              android:background="@color/light_gray">
-          
-              <androidx.swiperefreshlayout.widget.SwipeRefreshLayout
-                  android:id="@+id/swipe_refresh"
-                  android:layout_width="match_parent"
-                  android:layout_height="match_parent">
-          
-                  <ScrollView
-                      android:layout_width="match_parent"
-                      android:layout_height="match_parent">
-          
-                      <LinearLayout
-                          android:layout_width="match_parent"
-                          android:layout_height="wrap_content"
-                          android:orientation="vertical">
-          
-                          <TextView
-                              android:layout_width="match_parent"
-                              android:layout_height="wrap_content"
-                              android:text="📊 Dashboard"
-                              android:textSize="24sp"
-                              android:textStyle="bold"
-                              android:textColor="@color/dark"
-                              android:layout_marginBottom="16dp" />
-          
-                          <LinearLayout
-                              android:layout_width="match_parent"
-                              android:layout_height="wrap_content"
-                              android:orientation="horizontal"
-                              android:weightSum="2"
-                              android:layout_marginBottom="12dp">
-                              <androidx.cardview.widget.CardView
-                                  android:layout_width="0dp"
-                                  android:layout_height="wrap_content"
-                                  android:layout_weight="1"
-                                  android:layout_marginEnd="6dp"
-                                  app:cardCornerRadius="12dp"
-                                  app:cardElevation="4dp">
-                                  <LinearLayout
-                                      android:layout_width="match_parent"
-                                      android:layout_height="wrap_content"
-                                      android:orientation="vertical"
-                                      android:padding="16dp">
-                                      <TextView
-                                          android:layout_width="wrap_content"
-                                          android:layout_height="wrap_content"
-                                          android:text="Ventas Hoy"
-                                          android:textSize="12sp"
-                                          android:textColor="@color/gray" />
-                                      <TextView
-                                          android:id="@+id/tv_ventas_hoy"
-                                          android:layout_width="wrap_content"
-                                          android:layout_height="wrap_content"
-                                          android:text="0"
-                                          android:textSize="24sp"
-                                          android:textStyle="bold"
-                                          android:textColor="@color/primary" />
-                                  </LinearLayout>
-                              </androidx.cardview.widget.CardView>
-                              <androidx.cardview.widget.CardView
-                                  android:layout_width="0dp"
-                                  android:layout_height="wrap_content"
-                                  android:layout_weight="1"
-                                  android:layout_marginStart="6dp"
-                                  app:cardCornerRadius="12dp"
-                                  app:cardElevation="4dp">
-                                  <LinearLayout
-                                      android:layout_width="match_parent"
-                                      android:layout_height="wrap_content"
-                                      android:orientation="vertical"
-                                      android:padding="16dp">
-                                      <TextView
-                                          android:layout_width="wrap_content"
-                                          android:layout_height="wrap_content"
-                                          android:text="Ingresos Hoy"
-                                          android:textSize="12sp"
-                                          android:textColor="@color/gray" />
-                                      <TextView
-                                          android:id="@+id/tv_ingresos_hoy"
-                                          android:layout_width="wrap_content"
-                                          android:layout_height="wrap_content"
-                                          android:text="$0.00"
-                                          android:textSize="24sp"
-                                          android:textStyle="bold"
-                                          android:textColor="@color/success" />
-                                  </LinearLayout>
-                              </androidx.cardview.widget.CardView>
-                          </LinearLayout>
-                          <LinearLayout
-                              android:layout_width="match_parent"
-                              android:layout_height="wrap_content"
-                              android:orientation="horizontal"
-                              android:weightSum="2"
-                              android:layout_marginBottom="12dp">
-                              <androidx.cardview.widget.CardView
-                                  android:layout_width="0dp"
-                                  android:layout_height="wrap_content"
-                                  android:layout_weight="1"
-                                  android:layout_marginEnd="6dp"
-                                  app:cardCornerRadius="12dp"
-                                  app:cardElevation="4dp">
-                                  <LinearLayout
-                                      android:layout_width="match_parent"
-                                      android:layout_height="wrap_content"
-                                      android:orientation="vertical"
-                                      android:padding="16dp">
-                                      <TextView
-                                          android:layout_width="wrap_content"
-                                          android:layout_height="wrap_content"
-                                          android:text="Ventas Mes"
-                                          android:textSize="12sp"
-                                          android:textColor="@color/gray" />
-                                      <TextView
-                                          android:id="@+id/tv_ventas_mes"
-                                          android:layout_width="wrap_content"
-                                          android:layout_height="wrap_content"
-                                          android:text="0"
-                                          android:textSize="24sp"
-                                          android:textStyle="bold"
-                                          android:textColor="@color/primary" />
-                                  </LinearLayout>
-                              </androidx.cardview.widget.CardView>
-                              <androidx.cardview.widget.CardView
-                                  android:layout_width="0dp"
-                                  android:layout_height="wrap_content"
-                                  android:layout_weight="1"
-                                  android:layout_marginStart="6dp"
-                                  app:cardCornerRadius="12dp"
-                                  app:cardElevation="4dp">
-                                  <LinearLayout
-                                      android:layout_width="match_parent"
-                                      android:layout_height="wrap_content"
-                                      android:orientation="vertical"
-                                      android:padding="16dp">
-                                      <TextView
-                                          android:layout_width="wrap_content"
-                                          android:layout_height="wrap_content"
-                                          android:text="Ingresos Mes"
-                                          android:textSize="12sp"
-                                          android:textColor="@color/gray" />
-                                      <TextView
-                                          android:id="@+id/tv_ingresos_mes"
-                                          android:layout_width="wrap_content"
-                                          android:layout_height="wrap_content"
-                                          android:text="$0.00"
-                                          android:textSize="24sp"
-                                          android:textStyle="bold"
-                                          android:textColor="@color/success" />
-                                  </LinearLayout>
-                              </androidx.cardview.widget.CardView>
-                          </LinearLayout>
-                          <androidx.cardview.widget.CardView
-                              android:layout_width="match_parent"
-                              android:layout_height="wrap_content"
-                              android:layout_marginBottom="16dp"
-                              app:cardCornerRadius="12dp"
-                              app:cardElevation="4dp">
-                              <LinearLayout
-                                  android:layout_width="match_parent"
-                                  android:layout_height="wrap_content"
-                                  android:orientation="horizontal"
-                                  android:padding="16dp">
-                                  <TextView
-                                      android:layout_width="0dp"
-                                      android:layout_height="wrap_content"
-                                      android:layout_weight="1"
-                                      android:text="⚠️ Productos con stock bajo:" />
-                                  <TextView
-                                      android:id="@+id/tv_bajo_stock"
-                                      android:layout_width="wrap_content"
-                                      android:layout_height="wrap_content"
-                                      android:text="0"
-                                      android:textStyle="bold"
-                                      android:textColor="@color/warning" />
-                              </LinearLayout>
-                          </androidx.cardview.widget.CardView>
-                          <TextView
-                              android:layout_width="match_parent"
-                              android:layout_height="wrap_content"
-                              android:text="🕐 Ventas Recientes"
-                              android:textSize="18sp"
-                              android:textStyle="bold"
-                              android:textColor="@color/dark"
-                              android:layout_marginBottom="8dp" />
-                          <androidx.recyclerview.widget.RecyclerView
-                              android:id="@+id/rv_ventas_recientes"
-                              android:layout_width="match_parent"
-                              android:layout_height="wrap_content"
-                              android:nestedScrollingEnabled="false" />
-                      </LinearLayout>
-                  </ScrollView>
-              </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
-          </LinearLayout>
-          EOF
-          
-          cat > app/src/main/res/layout/fragment_inventario.xml << 'EOF'
-          <?xml version="1.0" encoding="utf-8"?>
-          <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-              android:layout_width="match_parent"
-              android:layout_height="match_parent"
-              android:orientation="vertical"
-              android:padding="16dp"
-              android:background="@color/light_gray">
-              <androidx.swiperefreshlayout.widget.SwipeRefreshLayout
-                  android:id="@+id/swipe_refresh"
-                  android:layout_width="match_parent"
-                  android:layout_height="match_parent">
-                  <LinearLayout
-                      android:layout_width="match_parent"
-                      android:layout_height="wrap_content"
-                      android:orientation="vertical">
-                      <TextView
-                          android:layout_width="match_parent"
-                          android:layout_height="wrap_content"
-                          android:text="📦 Inventario"
-                          android:textSize="24sp"
-                          android:textStyle="bold"
-                          android:textColor="@color/dark"
-                          android:layout_marginBottom="8dp" />
-                      <LinearLayout
-                          android:layout_width="match_parent"
-                          android:layout_height="wrap_content"
-                          android:orientation="horizontal"
-                          android:layout_marginBottom="12dp">
-                          <TextView
-                              android:id="@+id/tv_total_productos"
-                              android:layout_width="0dp"
-                              android:layout_height="wrap_content"
-                              android:layout_weight="1"
-                              android:text="Total: 0 productos"
-                              android:textSize="14sp"
-                              android:textColor="@color/gray" />
-                          <TextView
-                              android:id="@+id/tv_bajo_stock"
-                              android:layout_width="wrap_content"
-                              android:layout_height="wrap_content"
-                              android:text="⚠️ Stock bajo: 0"
-                              android:textSize="14sp"
-                              android:textColor="@color/warning" />
-                      </LinearLayout>
-                      <androidx.recyclerview.widget.RecyclerView
-                          android:id="@+id/rv_inventario"
-                          android:layout_width="match_parent"
-                          android:layout_height="match_parent" />
-                  </LinearLayout>
-              </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
-          </LinearLayout>
-          EOF
-          
-          cat > app/src/main/res/layout/fragment_ventas.xml << 'EOF'
-          <?xml version="1.0" encoding="utf-8"?>
-          <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-              xmlns:app="http://schemas.android.com/apk/res-auto"
-              android:layout_width="match_parent"
-              android:layout_height="match_parent"
-              android:orientation="vertical"
-              android:padding="16dp"
-              android:background="@color/light_gray">
-              <androidx.swiperefreshlayout.widget.SwipeRefreshLayout
-                  android:id="@+id/swipe_refresh"
-                  android:layout_width="match_parent"
-                  android:layout_height="match_parent">
-                  <ScrollView
-                      android:layout_width="match_parent"
-                      android:layout_height="match_parent">
-                      <LinearLayout
-                          android:layout_width="match_parent"
-                          android:layout_height="wrap_content"
-                          android:orientation="vertical">
-                          <TextView
-                              android:layout_width="match_parent"
-                              android:layout_height="wrap_content"
-                              android:text="🧾 Registrar Venta"
-                              android:textSize="24sp"
-                              android:textStyle="bold"
-                              android:textColor="@color/dark"
-                              android:layout_marginBottom="16dp" />
-                          <androidx.cardview.widget.CardView
-                              android:layout_width="match_parent"
-                              android:layout_height="wrap_content"
-                              app:cardCornerRadius="12dp"
-                              app:cardElevation="4dp"
-                              android:layout_marginBottom="16dp">
-                              <LinearLayout
-                                  android:layout_width="match_parent"
-                                  android:layout_height="wrap_content"
-                                  android:orientation="vertical"
-                                  android:padding="16dp">
-                                  <TextView
-                                      android:layout_width="wrap_content"
-                                      android:layout_height="wrap_content"
-                                      android:text="Producto"
-                                      android:textSize="14sp"
-                                      android:textColor="@color/gray"
-                                      android:layout_marginBottom="4dp" />
-                                  <Spinner
-                                      android:id="@+id/spinner_productos"
-                                      android:layout_width="match_parent"
-                                      android:layout_height="wrap_content"
-                                      android:padding="12dp"
-                                      android:background="@drawable/spinner_background"
-                                      android:layout_marginBottom="12dp" />
-                                  <TextView
-                                      android:layout_width="wrap_content"
-                                      android:layout_height="wrap_content"
-                                      android:text="Cantidad"
-                                      android:textSize="14sp"
-                                      android:textColor="@color/gray"
-                                      android:layout_marginBottom="4dp" />
-                                  <EditText
-                                      android:id="@+id/et_cantidad"
-                                      android:layout_width="match_parent"
-                                      android:layout_height="wrap_content"
-                                      android:text="1"
-                                      android:inputType="number"
-                                      android:padding="12dp"
-                                      android:background="@drawable/edit_text_background"
-                                      android:layout_marginBottom="12dp" />
-                                  <TextView
-                                      android:layout_width="wrap_content"
-                                      android:layout_height="wrap_content"
-                                      android:text="Precio Unitario"
-                                      android:textSize="14sp"
-                                      android:textColor="@color/gray"
-                                      android:layout_marginBottom="4dp" />
-                                  <TextView
-                                      android:id="@+id/tv_precio"
-                                      android:layout_width="match_parent"
-                                      android:layout_height="wrap_content"
-                                      android:text="$0.00"
-                                      android:textSize="18sp"
-                                      android:textStyle="bold"
-                                      android:textColor="@color/primary"
-                                      android:padding="12dp"
-                                      android:background="@drawable/edit_text_background"
-                                      android:layout_marginBottom="12dp" />
-                                  <TextView
-                                      android:id="@+id/tv_total"
-                                      android:layout_width="match_parent"
-                                      android:layout_height="wrap_content"
-                                      android:text="Total: $0.00"
-                                      android:textSize="20sp"
-                                      android:textStyle="bold"
-                                      android:textColor="@color/dark"
-                                      android:gravity="center"
-                                      android:padding="12dp"
-                                      android:background="@drawable/edit_text_background"
-                                      android:layout_marginBottom="16dp" />
-                                  <Button
-                                      android:id="@+id/btn_registrar_venta"
-                                      android:layout_width="match_parent"
-                                      android:layout_height="wrap_content"
-                                      android:text="Registrar Venta"
-                                      android:textSize="16sp"
-                                      android:padding="14dp"
-                                      android:backgroundTint="@color/primary"
-                                      app:cornerRadius="12dp" />
-                              </LinearLayout>
-                          </androidx.cardview.widget.CardView>
-                      </LinearLayout>
-                  </ScrollView>
-              </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
-          </LinearLayout>
-          EOF
-
-      - name: Create drawables and menu
-        run: |
-          cd android-app
-          
-          cat > app/src/main/res/drawable/edit_text_background.xml << 'EOF'
+          cat > app/src/main/res/drawable/bg_login_gradient.xml << 'EOF'
           <?xml version="1.0" encoding="utf-8"?>
           <shape xmlns:android="http://schemas.android.com/apk/res/android">
-              <solid android:color="@color/white" />
-              <stroke android:width="1dp" android:color="@color/gray_light" />
-              <corners android:radius="12dp" />
+              <gradient
+                  android:startColor="@color/primary_gradient_start"
+                  android:endColor="@color/primary_gradient_end"
+                  android:angle="135" />
           </shape>
           EOF
           
-          cat > app/src/main/res/drawable/spinner_background.xml << 'EOF'
+          cat > app/src/main/res/drawable/bg_card_login.xml << 'EOF'
           <?xml version="1.0" encoding="utf-8"?>
           <shape xmlns:android="http://schemas.android.com/apk/res/android">
               <solid android:color="@color/white" />
+              <corners android:radius="24dp" />
               <stroke android:width="1dp" android:color="@color/gray_light" />
-              <corners android:radius="12dp" />
           </shape>
           EOF
+          
+          cat > app/src/main/res/drawable/bg_button_login.xml << 'EOF'
+          <?xml version="1.0" encoding="utf-8"?>
+          <shape xmlns:android="http://schemas.android.com/apk/res/android">
+              <gradient
+                  android:startColor="@color/primary_gradient_start"
+                  android:endColor="@color/primary_gradient_end"
+                  android:angle="45" />
+              <corners android:radius="16dp" />
+          </shape>
+          EOF
+          
+          cat > app/src/main/res/drawable/bg_input_login.xml << 'EOF'
+          <?xml version="1.0" encoding="utf-8"?>
+          <shape xmlns:android="http://schemas.android.com/apk/res/android">
+              <solid android:color="@color/light_gray" />
+              <corners android:radius="16dp" />
+              <stroke android:width="2dp" android:color="@color/gray_light" />
+          </shape>
+          EOF
+          
+          cat > app/src/main/res/drawable/bg_input_login_focused.xml << 'EOF'
+          <?xml version="1.0" encoding="utf-8"?>
+          <shape xmlns:android="http://schemas.android.com/apk/res/android">
+              <solid android:color="@color/light_gray" />
+              <corners android:radius="16dp" />
+              <stroke android:width="2dp" android:color="@color/primary" />
+          </shape>
+          EOF
+          
+          cat > app/src/main/res/drawable/bg_error.xml << 'EOF'
+          <?xml version="1.0" encoding="utf-8"?>
+          <shape xmlns:android="http://schemas.android.com/apk/res/android">
+              <solid android:color="#FEE2E2" />
+              <corners android:radius="12dp" />
+              <stroke android:width="1dp" android:color="@color/danger" />
+          </shape>
+          EOF
+
+      - name: Create drawables - Icons
+        run: |
+          cd android-app
+          
+          cat > app/src/main/res/drawable/ic_launcher_foreground.xml << 'EOF'
+          <?xml version="1.0" encoding="utf-8"?>
+          <vector xmlns:android="http://schemas.android.com/apk/res/android"
+              android:width="108dp"
+              android:height="108dp"
+              android:viewportWidth="108"
+              android:viewportHeight="108">
+              <path
+                  android:fillColor="#6366F1"
+                  android:pathData="M54,27C40.5,27 30,37.5 30,51C30,64.5 40.5,75 54,75C67.5,75 78,64.5 78,51C78,37.5 67.5,27 54,27ZM54,69C44.1,69 36,60.9 36,51C36,41.1 44.1,33 54,33C63.9,33 72,41.1 72,51C72,60.9 63.9,69 54,69ZM54,39C47.4,39 42,44.4 42,51C42,57.6 47.4,63 54,63C60.6,63 66,57.6 66,51C66,44.4 60.6,39 54,39Z"/>
+              <path
+                  android:fillColor="#FFFFFF"
+                  android:pathData="M54,45C50.7,45 48,47.7 48,51C48,54.3 50.7,57 54,57C57.3,57 60,54.3 60,51C60,47.7 57.3,45 54,45Z"/>
+          </vector>
+          EOF
+          
+          cat > app/src/main/res/drawable/ic_vendor.xml << 'EOF'
+          <?xml version="1.0" encoding="utf-8"?>
+          <vector xmlns:android="http://schemas.android.com/apk/res/android"
+              android:width="80dp"
+              android:height="80dp"
+              android:viewportWidth="24"
+              android:viewportHeight="24">
+              <path
+                  android:fillColor="@color/primary"
+                  android:pathData="M12,12c2.21,0 4,-1.79 4,-4s-1.79,-4 -4,-4 -4,1.79 -4,4 1.79,4 4,4zM12,14c-2.67,0 -8,1.34 -8,4v2h16v-2c0,-2.66 -5.33,-4 -8,-4z"/>
+              <path
+                  android:fillColor="@color/white"
+                  android:pathData="M12,12c-0.83,0 -1.5,-0.67 -1.5,-1.5S11.17,9 12,9s1.5,0.67 1.5,1.5S12.83,12 12,12zM12,10c-0.28,0 -0.5,0.22 -0.5,0.5S11.72,11 12,11s0.5,-0.22 0.5,-0.5S12.28,10 12,10z"/>
+          </vector>
+          EOF
+          
+          cat > app/src/main/res/drawable/ic_vendor_id.xml << 'EOF'
+          <?xml version="1.0" encoding="utf-8"?>
+          <vector xmlns:android="http://schemas.android.com/apk/res/android"
+              android:width="24dp"
+              android:height="24dp"
+              android:viewportWidth="24"
+              android:viewportHeight="24">
+              <path
+                  android:fillColor="@color/gray"
+                  android:pathData="M20,4H4c-1.1,0 -2,0.9 -2,2v12c0,1.1 0.9,2 2,2h16c1.1,0 2,-0.9 2,-2V6c0,-1.1 -0.9,-2 -2,-2zM4,6h16v2H4V6zM4,12v-2h4v2H4zM4,10V8h4v2H4zM12,12H8v-2h4v2zM12,10H8V8h4v2zM20,12h-6v-2h6v2zM20,10h-6V8h6v2zM4,16v-2h16v2H4z"/>
+          </vector>
+          EOF
+          
+          cat > app/src/main/res/drawable/ic_store.xml << 'EOF'
+          <?xml version="1.0" encoding="utf-8"?>
+          <vector xmlns:android="http://schemas.android.com/apk/res/android"
+              android:width="24dp"
+              android:height="24dp"
+              android:viewportWidth="24"
+              android:viewportHeight="24">
+              <path
+                  android:fillColor="@color/primary"
+                  android:pathData="M20,4H4c-1.1,0 -2,0.9 -2,2v12c0,1.1 0.9,2 2,2h16c1.1,0 2,-0.9 2,-2V6c0,-1.1 -0.9,-2 -2,-2zM4,6h16v2H4V6zM4,12h4v2H4v-2zM10,12h4v2h-4v-2zM16,12h4v2h-4v-2zM4,10V8h4v2H4zM10,10V8h4v2h-4zM16,10V8h4v2h-4z"/>
+          </vector>
+          EOF
+
+      - name: Create Bottom Nav Icons
+        run: |
+          cd android-app
           
           cat > app/src/main/res/drawable/ic_dashboard.xml << 'EOF'
           <?xml version="1.0" encoding="utf-8"?>
@@ -927,36 +551,10 @@ jobs:
                   android:pathData="M17,7l-1.41,1.41L18.17,11H8v2h10.17l-2.58,2.58L17,17l5,-5zM4,5h8V3H4c-1.1,0 -2,0.9 -2,2v14c0,1.1 0.9,2 2,2h8v-2H4V5z"/>
           </vector>
           EOF
-          
-          cat > app/src/main/res/drawable/ic_vendor.xml << 'EOF'
-          <?xml version="1.0" encoding="utf-8"?>
-          <vector xmlns:android="http://schemas.android.com/apk/res/android"
-              android:width="64dp"
-              android:height="64dp"
-              android:viewportWidth="24"
-              android:viewportHeight="24">
-              <path
-                  android:fillColor="@color/primary"
-                  android:pathData="M12,12c2.21,0 4,-1.79 4,-4s-1.79,-4 -4,-4 -4,1.79 -4,4 1.79,4 4,4zM12,14c-2.67,0 -8,1.34 -8,4v2h16v-2c0,-2.66 -5.33,-4 -8,-4z"/>
-              <path
-                  android:fillColor="@color/white"
-                  android:pathData="M12,12c-0.83,0 -1.5,-0.67 -1.5,-1.5S11.17,9 12,9s1.5,0.67 1.5,1.5S12.83,12 12,12zM12,10c-0.28,0 -0.5,0.22 -0.5,0.5S11.72,11 12,11s0.5,-0.22 0.5,-0.5S12.28,10 12,10z"/>
-          </vector>
-          EOF
-          
-          cat > app/src/main/res/drawable/ic_vendor_id.xml << 'EOF'
-          <?xml version="1.0" encoding="utf-8"?>
-          <vector xmlns:android="http://schemas.android.com/apk/res/android"
-              android:width="24dp"
-              android:height="24dp"
-              android:viewportWidth="24"
-              android:viewportHeight="24">
-              <path
-                  android:fillColor="@color/gray"
-                  android:pathData="M20,4H4c-1.1,0 -2,0.9 -2,2v12c0,1.1 0.9,2 2,2h16c1.1,0 2,-0.9 2,-2V6c0,-1.1 -0.9,-2 -2,-2zM4,6h16v2H4V6zM4,12v-2h4v2H4zM4,10V8h4v2H4zM12,12H8v-2h4v2zM12,10H8V8h4v2zM20,12h-6v-2h6v2zM20,10h-6V8h6v2zM4,16v-2h16v2H4z"/>
-          </vector>
-          EOF
-          
+
+      - name: Create menu
+        run: |
+          cd android-app
           cat > app/src/main/res/menu/bottom_nav_menu.xml << 'EOF'
           <?xml version="1.0" encoding="utf-8"?>
           <menu xmlns:android="http://schemas.android.com/apk/res/android">
@@ -979,6 +577,661 @@ jobs:
           </menu>
           EOF
 
+      - name: Create Login Layout
+        run: |
+          cd android-app
+          cat > app/src/main/res/layout/activity_login.xml << 'EOF'
+          <?xml version="1.0" encoding="utf-8"?>
+          <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+              xmlns:app="http://schemas.android.com/apk/res-auto"
+              android:layout_width="match_parent"
+              android:layout_height="match_parent"
+              android:orientation="vertical"
+              android:gravity="center"
+              android:padding="24dp"
+              android:background="@drawable/bg_login_gradient">
+          
+              <!-- Logo con animación -->
+              <ImageView
+                  android:id="@+id/iv_logo"
+                  android:layout_width="120dp"
+                  android:layout_height="120dp"
+                  android:src="@drawable/ic_launcher_foreground"
+                  android:layout_marginBottom="8dp"
+                  android:scaleType="centerInside"
+                  android:alpha="0.9" />
+          
+              <!-- Título con sombra -->
+              <TextView
+                  android:id="@+id/tv_title"
+                  android:layout_width="wrap_content"
+                  android:layout_height="wrap_content"
+                  android:text="@string/login_title"
+                  android:textSize="36sp"
+                  android:textStyle="bold"
+                  android:textColor="@color/white"
+                  android:shadowColor="#00000033"
+                  android:shadowDx="0"
+                  android:shadowDy="4"
+                  android:shadowRadius="8"
+                  android:layout_marginBottom="4dp" />
+          
+              <TextView
+                  android:id="@+id/tv_subtitle"
+                  android:layout_width="wrap_content"
+                  android:layout_height="wrap_content"
+                  android:text="@string/login_subtitle"
+                  android:textSize="16sp"
+                  android:textColor="@color/white_alpha_80"
+                  android:layout_marginBottom="32dp" />
+          
+              <!-- Card contenedor -->
+              <androidx.cardview.widget.CardView
+                  android:id="@+id/card_login"
+                  android:layout_width="match_parent"
+                  android:layout_height="wrap_content"
+                  app:cardCornerRadius="24dp"
+                  app:cardElevation="16dp"
+                  app:cardBackgroundColor="@color/white">
+          
+                  <LinearLayout
+                      android:layout_width="match_parent"
+                      android:layout_height="wrap_content"
+                      android:orientation="vertical"
+                      android:padding="28dp">
+          
+                      <!-- Icono de vendedor -->
+                      <ImageView
+                          android:layout_width="72dp"
+                          android:layout_height="72dp"
+                          android:src="@drawable/ic_vendor"
+                          android:layout_gravity="center"
+                          android:layout_marginBottom="16dp" />
+          
+                      <TextView
+                          android:layout_width="wrap_content"
+                          android:layout_height="wrap_content"
+                          android:text="ID de Vendedor"
+                          android:textSize="14sp"
+                          android:textColor="@color/gray"
+                          android:layout_marginBottom="8dp"
+                          android:fontFamily="sans-serif-medium" />
+          
+                      <!-- Campo de entrada -->
+                      <LinearLayout
+                          android:layout_width="match_parent"
+                          android:layout_height="wrap_content"
+                          android:orientation="horizontal"
+                          android:background="@drawable/bg_input_login"
+                          android:padding="4dp"
+                          android:layout_marginBottom="16dp">
+          
+                          <ImageView
+                              android:layout_width="24dp"
+                              android:layout_height="24dp"
+                              android:src="@drawable/ic_vendor_id"
+                              android:layout_gravity="center"
+                              android:layout_marginStart="16dp" />
+          
+                          <EditText
+                              android:id="@+id/et_vendor_id"
+                              android:layout_width="0dp"
+                              android:layout_height="wrap_content"
+                              android:layout_weight="1"
+                              android:hint="@string/login_hint"
+                              android:inputType="text"
+                              android:background="@android:color/transparent"
+                              android:padding="14dp"
+                              android:textSize="18dp"
+                              android:textColor="@color/dark"
+                              android:maxLength="8"
+                              android:fontFamily="sans-serif-medium"
+                              android:imeOptions="actionDone" />
+                      </LinearLayout>
+          
+                      <!-- Error -->
+                      <TextView
+                          android:id="@+id/tv_error"
+                          android:layout_width="match_parent"
+                          android:layout_height="wrap_content"
+                          android:textColor="@color/danger"
+                          android:textSize="14sp"
+                          android:gravity="center"
+                          android:padding="12dp"
+                          android:background="@drawable/bg_error"
+                          android:visibility="gone"
+                          android:layout_marginBottom="12dp"
+                          android:fontFamily="sans-serif" />
+          
+                      <!-- ProgressBar -->
+                      <ProgressBar
+                          android:id="@+id/progressBar"
+                          android:layout_width="wrap_content"
+                          android:layout_height="wrap_content"
+                          android:layout_gravity="center"
+                          android:visibility="gone"
+                          android:layout_marginBottom="12dp"
+                          android:indeterminateTint="@color/primary" />
+          
+                      <!-- Botón -->
+                      <Button
+                          android:id="@+id/btn_login"
+                          android:layout_width="match_parent"
+                          android:layout_height="56dp"
+                          android:text="@string/login_button"
+                          android:textSize="18sp"
+                          android:textStyle="bold"
+                          android:textColor="@color/white"
+                          android:background="@drawable/bg_button_login"
+                          android:stateListAnimator="@null"
+                          android:elevation="4dp" />
+          
+                      <!-- Texto de ayuda -->
+                      <TextView
+                          android:layout_width="wrap_content"
+                          android:layout_height="wrap_content"
+                          android:text="@string/login_help"
+                          android:textSize="12sp"
+                          android:textColor="@color/gray"
+                          android:layout_gravity="center"
+                          android:layout_marginTop="16dp" />
+          
+                      <!-- Versión -->
+                      <TextView
+                          android:layout_width="wrap_content"
+                          android:layout_height="wrap_content"
+                          android:text="v2.0.0"
+                          android:textSize="11sp"
+                          android:textColor="@color/gray"
+                          android:layout_gravity="center"
+                          android:layout_marginTop="12dp"
+                          android:alpha="0.6" />
+          
+                  </LinearLayout>
+              </androidx.cardview.widget.CardView>
+          
+          </LinearLayout>
+          EOF
+
+      - name: Create Main Layout
+        run: |
+          cd android-app
+          cat > app/src/main/res/layout/activity_main.xml << 'EOF'
+          <?xml version="1.0" encoding="utf-8"?>
+          <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+              xmlns:app="http://schemas.android.com/apk/res-auto"
+              android:layout_width="match_parent"
+              android:layout_height="match_parent"
+              android:orientation="vertical"
+              android:background="@color/light_gray">
+          
+              <FrameLayout
+                  android:id="@+id/fragment_container"
+                  android:layout_width="match_parent"
+                  android:layout_height="0dp"
+                  android:layout_weight="1" />
+          
+              <com.google.android.material.bottomnavigation.BottomNavigationView
+                  android:id="@+id/bottom_navigation"
+                  android:layout_width="match_parent"
+                  android:layout_height="wrap_content"
+                  android:background="@color/bottom_nav_background"
+                  app:menu="@menu/bottom_nav_menu"
+                  app:itemIconTint="@color/bottom_nav_tint"
+                  app:itemTextColor="@color/bottom_nav_tint"
+                  app:itemActiveIndicatorStyle="@style/Widget.MaterialComponents.BottomNavigationView.ActiveIndicator"
+                  android:elevation="8dp" />
+          
+          </LinearLayout>
+          EOF
+
+      - name: Create Dashboard Layout
+        run: |
+          cd android-app
+          cat > app/src/main/res/layout/fragment_dashboard.xml << 'EOF'
+          <?xml version="1.0" encoding="utf-8"?>
+          <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+              xmlns:app="http://schemas.android.com/apk/res-auto"
+              android:layout_width="match_parent"
+              android:layout_height="match_parent"
+              android:orientation="vertical"
+              android:padding="16dp"
+              android:background="@color/light_gray">
+          
+              <androidx.swiperefreshlayout.widget.SwipeRefreshLayout
+                  android:id="@+id/swipe_refresh"
+                  android:layout_width="match_parent"
+                  android:layout_height="match_parent"
+                  app:colorSchemeColors="@color/primary">
+          
+                  <ScrollView
+                      android:layout_width="match_parent"
+                      android:layout_height="match_parent">
+          
+                      <LinearLayout
+                          android:layout_width="match_parent"
+                          android:layout_height="wrap_content"
+                          android:orientation="vertical">
+          
+                          <!-- Header -->
+                          <LinearLayout
+                              android:layout_width="match_parent"
+                              android:layout_height="wrap_content"
+                              android:orientation="horizontal"
+                              android:gravity="center_vertical"
+                              android:layout_marginBottom="16dp">
+          
+                              <TextView
+                                  android:layout_width="0dp"
+                                  android:layout_height="wrap_content"
+                                  android:layout_weight="1"
+                                  android:text="📊 Dashboard"
+                                  android:textSize="24sp"
+                                  android:textStyle="bold"
+                                  android:textColor="@color/dark" />
+          
+                              <TextView
+                                  android:id="@+id/tv_fecha"
+                                  android:layout_width="wrap_content"
+                                  android:layout_height="wrap_content"
+                                  android:text="Hoy"
+                                  android:textSize="14sp"
+                                  android:textColor="@color/gray" />
+                          </LinearLayout>
+          
+                          <!-- Stats Grid -->
+                          <LinearLayout
+                              android:layout_width="match_parent"
+                              android:layout_height="wrap_content"
+                              android:orientation="horizontal"
+                              android:weightSum="2"
+                              android:layout_marginBottom="12dp">
+          
+                              <androidx.cardview.widget.CardView
+                                  android:layout_width="0dp"
+                                  android:layout_height="wrap_content"
+                                  android:layout_weight="1"
+                                  android:layout_marginEnd="6dp"
+                                  app:cardCornerRadius="16dp"
+                                  app:cardElevation="4dp"
+                                  app:cardBackgroundColor="@color/card_ventas_hoy">
+                                  <LinearLayout
+                                      android:layout_width="match_parent"
+                                      android:layout_height="wrap_content"
+                                      android:orientation="vertical"
+                                      android:padding="16dp">
+                                      <TextView
+                                          android:layout_width="wrap_content"
+                                          android:layout_height="wrap_content"
+                                          android:text="🛒 Ventas Hoy"
+                                          android:textSize="12sp"
+                                          android:textColor="@color/gray" />
+                                      <TextView
+                                          android:id="@+id/tv_ventas_hoy"
+                                          android:layout_width="wrap_content"
+                                          android:layout_height="wrap_content"
+                                          android:text="0"
+                                          android:textSize="28sp"
+                                          android:textStyle="bold"
+                                          android:textColor="@color/primary" />
+                                  </LinearLayout>
+                              </androidx.cardview.widget.CardView>
+          
+                              <androidx.cardview.widget.CardView
+                                  android:layout_width="0dp"
+                                  android:layout_height="wrap_content"
+                                  android:layout_weight="1"
+                                  android:layout_marginStart="6dp"
+                                  app:cardCornerRadius="16dp"
+                                  app:cardElevation="4dp"
+                                  app:cardBackgroundColor="@color/card_ingresos_hoy">
+                                  <LinearLayout
+                                      android:layout_width="match_parent"
+                                      android:layout_height="wrap_content"
+                                      android:orientation="vertical"
+                                      android:padding="16dp">
+                                      <TextView
+                                          android:layout_width="wrap_content"
+                                          android:layout_height="wrap_content"
+                                          android:text="💰 Ingresos Hoy"
+                                          android:textSize="12sp"
+                                          android:textColor="@color/gray" />
+                                      <TextView
+                                          android:id="@+id/tv_ingresos_hoy"
+                                          android:layout_width="wrap_content"
+                                          android:layout_height="wrap_content"
+                                          android:text="$0.00"
+                                          android:textSize="28sp"
+                                          android:textStyle="bold"
+                                          android:textColor="@color/success" />
+                                  </LinearLayout>
+                              </androidx.cardview.widget.CardView>
+                          </LinearLayout>
+          
+                          <LinearLayout
+                              android:layout_width="match_parent"
+                              android:layout_height="wrap_content"
+                              android:orientation="horizontal"
+                              android:weightSum="2"
+                              android:layout_marginBottom="12dp">
+          
+                              <androidx.cardview.widget.CardView
+                                  android:layout_width="0dp"
+                                  android:layout_height="wrap_content"
+                                  android:layout_weight="1"
+                                  android:layout_marginEnd="6dp"
+                                  app:cardCornerRadius="16dp"
+                                  app:cardElevation="4dp"
+                                  app:cardBackgroundColor="@color/card_ventas_mes">
+                                  <LinearLayout
+                                      android:layout_width="match_parent"
+                                      android:layout_height="wrap_content"
+                                      android:orientation="vertical"
+                                      android:padding="16dp">
+                                      <TextView
+                                          android:layout_width="wrap_content"
+                                          android:layout_height="wrap_content"
+                                          android:text="📈 Ventas Mes"
+                                          android:textSize="12sp"
+                                          android:textColor="@color/gray" />
+                                      <TextView
+                                          android:id="@+id/tv_ventas_mes"
+                                          android:layout_width="wrap_content"
+                                          android:layout_height="wrap_content"
+                                          android:text="0"
+                                          android:textSize="28sp"
+                                          android:textStyle="bold"
+                                          android:textColor="@color/info" />
+                                  </LinearLayout>
+                              </androidx.cardview.widget.CardView>
+          
+                              <androidx.cardview.widget.CardView
+                                  android:layout_width="0dp"
+                                  android:layout_height="wrap_content"
+                                  android:layout_weight="1"
+                                  android:layout_marginStart="6dp"
+                                  app:cardCornerRadius="16dp"
+                                  app:cardElevation="4dp"
+                                  app:cardBackgroundColor="@color/card_ingresos_mes">
+                                  <LinearLayout
+                                      android:layout_width="match_parent"
+                                      android:layout_height="wrap_content"
+                                      android:orientation="vertical"
+                                      android:padding="16dp">
+                                      <TextView
+                                          android:layout_width="wrap_content"
+                                          android:layout_height="wrap_content"
+                                          android:text="💵 Ingresos Mes"
+                                          android:textSize="12sp"
+                                          android:textColor="@color/gray" />
+                                      <TextView
+                                          android:id="@+id/tv_ingresos_mes"
+                                          android:layout_width="wrap_content"
+                                          android:layout_height="wrap_content"
+                                          android:text="$0.00"
+                                          android:textSize="28sp"
+                                          android:textStyle="bold"
+                                          android:textColor="@color/warning" />
+                                  </LinearLayout>
+                              </androidx.cardview.widget.CardView>
+                          </LinearLayout>
+          
+                          <!-- Stock Alert -->
+                          <androidx.cardview.widget.CardView
+                              android:layout_width="match_parent"
+                              android:layout_height="wrap_content"
+                              android:layout_marginBottom="16dp"
+                              app:cardCornerRadius="12dp"
+                              app:cardElevation="2dp"
+                              app:cardBackgroundColor="@color/white">
+                              <LinearLayout
+                                  android:layout_width="match_parent"
+                                  android:layout_height="wrap_content"
+                                  android:orientation="horizontal"
+                                  android:padding="16dp"
+                                  android:gravity="center_vertical">
+                                  <TextView
+                                      android:layout_width="0dp"
+                                      android:layout_height="wrap_content"
+                                      android:layout_weight="1"
+                                      android:text="⚠️ Productos con stock bajo:"
+                                      android:textSize="14sp"
+                                      android:textColor="@color/dark_secondary" />
+                                  <TextView
+                                      android:id="@+id/tv_bajo_stock"
+                                      android:layout_width="wrap_content"
+                                      android:layout_height="wrap_content"
+                                      android:text="0"
+                                      android:textSize="20sp"
+                                      android:textStyle="bold"
+                                      android:textColor="@color/warning" />
+                              </LinearLayout>
+                          </androidx.cardview.widget.CardView>
+          
+                          <!-- Recent Sales -->
+                          <TextView
+                              android:layout_width="match_parent"
+                              android:layout_height="wrap_content"
+                              android:text="🕐 Ventas Recientes"
+                              android:textSize="18sp"
+                              android:textStyle="bold"
+                              android:textColor="@color/dark"
+                              android:layout_marginBottom="8dp" />
+          
+                          <androidx.recyclerview.widget.RecyclerView
+                              android:id="@+id/rv_ventas_recientes"
+                              android:layout_width="match_parent"
+                              android:layout_height="wrap_content"
+                              android:nestedScrollingEnabled="false" />
+          
+                      </LinearLayout>
+                  </ScrollView>
+              </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
+          </LinearLayout>
+          EOF
+
+      - name: Create other layouts
+        run: |
+          cd android-app
+          
+          cat > app/src/main/res/layout/fragment_ventas.xml << 'EOF'
+          <?xml version="1.0" encoding="utf-8"?>
+          <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+              xmlns:app="http://schemas.android.com/apk/res-auto"
+              android:layout_width="match_parent"
+              android:layout_height="match_parent"
+              android:orientation="vertical"
+              android:padding="16dp"
+              android:background="@color/light_gray">
+          
+              <androidx.swiperefreshlayout.widget.SwipeRefreshLayout
+                  android:id="@+id/swipe_refresh"
+                  android:layout_width="match_parent"
+                  android:layout_height="match_parent"
+                  app:colorSchemeColors="@color/primary">
+          
+                  <ScrollView
+                      android:layout_width="match_parent"
+                      android:layout_height="match_parent">
+          
+                      <LinearLayout
+                          android:layout_width="match_parent"
+                          android:layout_height="wrap_content"
+                          android:orientation="vertical">
+          
+                          <TextView
+                              android:layout_width="match_parent"
+                              android:layout_height="wrap_content"
+                              android:text="🧾 Registrar Venta"
+                              android:textSize="24sp"
+                              android:textStyle="bold"
+                              android:textColor="@color/dark"
+                              android:layout_marginBottom="16dp" />
+          
+                          <androidx.cardview.widget.CardView
+                              android:layout_width="match_parent"
+                              android:layout_height="wrap_content"
+                              app:cardCornerRadius="16dp"
+                              app:cardElevation="4dp"
+                              app:cardBackgroundColor="@color/white"
+                              android:layout_marginBottom="16dp">
+          
+                              <LinearLayout
+                                  android:layout_width="match_parent"
+                                  android:layout_height="wrap_content"
+                                  android:orientation="vertical"
+                                  android:padding="20dp">
+          
+                                  <com.google.android.material.textfield.TextInputLayout
+                                      android:layout_width="match_parent"
+                                      android:layout_height="wrap_content"
+                                      android:layout_marginBottom="12dp"
+                                      style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+                                      app:boxBackgroundMode="outline">
+          
+                                      <com.google.android.material.textfield.TextInputEditText
+                                          android:id="@+id/et_producto"
+                                          android:layout_width="match_parent"
+                                          android:layout_height="wrap_content"
+                                          android:hint="Producto"
+                                          android:textSize="16sp" />
+                                  </com.google.android.material.textfield.TextInputLayout>
+          
+                                  <LinearLayout
+                                      android:layout_width="match_parent"
+                                      android:layout_height="wrap_content"
+                                      android:orientation="horizontal">
+          
+                                      <com.google.android.material.textfield.TextInputLayout
+                                          android:layout_width="0dp"
+                                          android:layout_height="wrap_content"
+                                          android:layout_weight="1"
+                                          android:layout_marginEnd="8dp"
+                                          style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+                                          app:boxBackgroundMode="outline">
+          
+                                          <com.google.android.material.textfield.TextInputEditText
+                                              android:id="@+id/et_cantidad"
+                                              android:layout_width="match_parent"
+                                              android:layout_height="wrap_content"
+                                              android:hint="Cantidad"
+                                              android:inputType="number"
+                                              android:text="1"
+                                              android:textSize="16sp" />
+                                      </com.google.android.material.textfield.TextInputLayout>
+          
+                                      <com.google.android.material.textfield.TextInputLayout
+                                          android:layout_width="0dp"
+                                          android:layout_height="wrap_content"
+                                          android:layout_weight="1"
+                                          android:layout_marginStart="8dp"
+                                          style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+                                          app:boxBackgroundMode="outline">
+          
+                                          <com.google.android.material.textfield.TextInputEditText
+                                              android:id="@+id/et_precio"
+                                              android:layout_width="match_parent"
+                                              android:layout_height="wrap_content"
+                                              android:hint="Precio"
+                                              android:inputType="numberDecimal"
+                                              android:textSize="16sp" />
+                                      </com.google.android.material.textfield.TextInputLayout>
+                                  </LinearLayout>
+          
+                                  <TextView
+                                      android:id="@+id/tv_total"
+                                      android:layout_width="match_parent"
+                                      android:layout_height="wrap_content"
+                                      android:text="Total: $0.00"
+                                      android:textSize="22sp"
+                                      android:textStyle="bold"
+                                      android:textColor="@color/primary"
+                                      android:gravity="center"
+                                      android:padding="16dp"
+                                      android:layout_marginVertical="12dp" />
+          
+                                  <Button
+                                      android:id="@+id/btn_registrar_venta"
+                                      android:layout_width="match_parent"
+                                      android:layout_height="56dp"
+                                      android:text="✅ Registrar Venta"
+                                      android:textSize="16sp"
+                                      android:textStyle="bold"
+                                      android:backgroundTint="@color/primary"
+                                      app:cornerRadius="12dp" />
+          
+                              </LinearLayout>
+                          </androidx.cardview.widget.CardView>
+          
+                      </LinearLayout>
+                  </ScrollView>
+              </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
+          </LinearLayout>
+          EOF
+          
+          cat > app/src/main/res/layout/fragment_inventario.xml << 'EOF'
+          <?xml version="1.0" encoding="utf-8"?>
+          <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+              android:layout_width="match_parent"
+              android:layout_height="match_parent"
+              android:orientation="vertical"
+              android:padding="16dp"
+              android:background="@color/light_gray">
+          
+              <androidx.swiperefreshlayout.widget.SwipeRefreshLayout
+                  android:id="@+id/swipe_refresh"
+                  android:layout_width="match_parent"
+                  android:layout_height="match_parent"
+                  app:colorSchemeColors="@color/primary">
+          
+                  <LinearLayout
+                      android:layout_width="match_parent"
+                      android:layout_height="wrap_content"
+                      android:orientation="vertical">
+          
+                      <TextView
+                          android:layout_width="match_parent"
+                          android:layout_height="wrap_content"
+                          android:text="📦 Inventario"
+                          android:textSize="24sp"
+                          android:textStyle="bold"
+                          android:textColor="@color/dark"
+                          android:layout_marginBottom="8dp" />
+          
+                      <LinearLayout
+                          android:layout_width="match_parent"
+                          android:layout_height="wrap_content"
+                          android:orientation="horizontal"
+                          android:layout_marginBottom="12dp">
+          
+                          <TextView
+                              android:id="@+id/tv_total_productos"
+                              android:layout_width="0dp"
+                              android:layout_height="wrap_content"
+                              android:layout_weight="1"
+                              android:text="Total: 0 productos"
+                              android:textSize="14sp"
+                              android:textColor="@color/gray" />
+          
+                          <TextView
+                              android:id="@+id/tv_bajo_stock"
+                              android:layout_width="wrap_content"
+                              android:layout_height="wrap_content"
+                              android:text="⚠️ Stock bajo: 0"
+                              android:textSize="14sp"
+                              android:textColor="@color/warning" />
+                      </LinearLayout>
+          
+                      <androidx.recyclerview.widget.RecyclerView
+                          android:id="@+id/rv_inventario"
+                          android:layout_width="match_parent"
+                          android:layout_height="match_parent" />
+          
+                  </LinearLayout>
+              </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
+          </LinearLayout>
+          EOF
+
       - name: Create Java source files
         run: |
           cd android-app
@@ -988,11 +1241,10 @@ jobs:
 
           import android.animation.ObjectAnimator;
           import android.content.Intent;
-          import android.os.Build;
           import android.os.Bundle;
-          import android.os.Environment;
           import android.util.Log;
           import android.view.View;
+          import android.view.animation.AnimationUtils;
           import android.view.inputmethod.EditorInfo;
           import android.widget.Button;
           import android.widget.EditText;
@@ -1001,7 +1253,6 @@ jobs:
           import android.widget.Toast;
           import androidx.appcompat.app.AppCompatActivity;
           import androidx.cardview.widget.CardView;
-          import androidx.core.content.FileProvider;
 
           import com.omniventas.app.api.ApiService;
           import com.omniventas.app.api.RetrofitClient;
@@ -1009,14 +1260,6 @@ jobs:
           import com.omniventas.app.models.VendorLoginRequest;
           import com.omniventas.app.utils.SessionManager;
           import com.omniventas.app.utils.TelegramLogger;
-
-          import java.io.BufferedWriter;
-          import java.io.File;
-          import java.io.FileWriter;
-          import java.io.IOException;
-          import java.text.SimpleDateFormat;
-          import java.util.Date;
-          import java.util.Locale;
 
           import retrofit2.Call;
           import retrofit2.Callback;
@@ -1033,14 +1276,11 @@ jobs:
               private TextView tvError;
               private SessionManager sessionManager;
               private TelegramLogger logger;
-              private StringBuilder logBuilder = new StringBuilder();
 
               @Override
               protected void onCreate(Bundle savedInstanceState) {
                   super.onCreate(savedInstanceState);
                   setContentView(R.layout.activity_login);
-
-                  Log.d(TAG, "=== onCreate ===");
 
                   sessionManager = new SessionManager(this);
                   logger = TelegramLogger.getInstance(this);
@@ -1056,29 +1296,16 @@ jobs:
                       etVendorId.setText("AAAA0000");
                   }
 
-                  if (tvError != null) tvError.setVisibility(View.GONE);
-                  if (progressBar != null) progressBar.setVisibility(View.GONE);
-
+                  // Animación de entrada
                   if (cardLogin != null) {
-                      cardLogin.setTranslationY(100f);
-                      cardLogin.setAlpha(0f);
-                      cardLogin.animate()
-                              .translationY(0f)
-                              .alpha(1f)
-                              .setDuration(600)
-                              .start();
+                      cardLogin.startAnimation(AnimationUtils.loadAnimation(this, R.anim.slide_up));
                   }
 
-                  btnLogin.setOnClickListener(v -> {
-                      Log.d(TAG, "🔥 Boton presionado");
-                      iniciarCapturaLogs();
-                      realizarLogin();
-                  });
+                  btnLogin.setOnClickListener(v -> realizarLogin());
 
                   if (etVendorId != null) {
                       etVendorId.setOnEditorActionListener((v, actionId, event) -> {
                           if (actionId == EditorInfo.IME_ACTION_DONE) {
-                              iniciarCapturaLogs();
                               realizarLogin();
                               return true;
                           }
@@ -1087,117 +1314,29 @@ jobs:
                   }
               }
 
-              private void iniciarCapturaLogs() {
-                  logBuilder = new StringBuilder();
-                  String timestamp = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(new Date());
-
-                  logBuilder.append("========================================\n");
-                  logBuilder.append("📱 OMNIVENTAS - LOG DE DEPURACION\n");
-                  logBuilder.append("========================================\n");
-                  logBuilder.append("📅 Fecha: ").append(timestamp).append("\n");
-                  logBuilder.append("📱 Dispositivo: ").append(Build.MANUFACTURER)
-                          .append(" ").append(Build.MODEL).append("\n");
-                  logBuilder.append("🤖 Android: ").append(Build.VERSION.RELEASE)
-                          .append(" (API ").append(Build.VERSION.SDK_INT).append(")\n");
-                  logBuilder.append("📦 App Version: ").append(getAppVersion()).append("\n");
-                  logBuilder.append("========================================\n\n");
-
-                  agregarLog("🚀 Iniciando proceso de login...");
-                  String vendorId = etVendorId != null ? etVendorId.getText().toString().trim().toUpperCase() : "DESCONOCIDO";
-                  agregarLog("📝 Vendor ID: " + vendorId);
-              }
-
-              private void agregarLog(String mensaje) {
-                  String timestamp = new SimpleDateFormat("HH:mm:ss", Locale.getDefault()).format(new Date());
-                  logBuilder.append("[").append(timestamp).append("] ").append(mensaje).append("\n");
-                  Log.d(TAG, mensaje);
-              }
-
-              private String getAppVersion() {
-                  try {
-                      return getPackageManager().getPackageInfo(getPackageName(), 0).versionName;
-                  } catch (Exception e) {
-                      return "1.0";
-                  }
-              }
-
-              private void guardarYDescargarLogs() {
-                  try {
-                      agregarLog("💾 Guardando archivo de logs en Download...");
-
-                      File downloadDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS);
-                      if (!downloadDir.exists()) {
-                          downloadDir.mkdirs();
-                      }
-
-                      String fileName = "omniventas_login_" +
-                              new SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(new Date()) + ".txt";
-                      File logFile = new File(downloadDir, fileName);
-
-                      BufferedWriter writer = new BufferedWriter(new FileWriter(logFile));
-                      writer.write(logBuilder.toString());
-                      writer.close();
-
-                      agregarLog("✅ Archivo guardado en Download: " + logFile.getAbsolutePath());
-                      Toast.makeText(this, "✅ Logs guardados en Download", Toast.LENGTH_LONG).show();
-
-                      abrirArchivoLogs(logFile);
-
-                  } catch (IOException e) {
-                      Log.e(TAG, "❌ Error guardando logs: " + e.getMessage());
-                      Toast.makeText(this, "❌ Error guardando logs: " + e.getMessage(), Toast.LENGTH_LONG).show();
-                  }
-              }
-
-              private void abrirArchivoLogs(File logFile) {
-                  try {
-                      Intent intent = new Intent(Intent.ACTION_VIEW);
-                      intent.setDataAndType(
-                              FileProvider.getUriForFile(this, getPackageName() + ".fileprovider", logFile),
-                              "text/plain"
-                      );
-                      intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
-                      startActivity(Intent.createChooser(intent, "📄 Abrir logs con..."));
-                  } catch (Exception e) {
-                      Log.e(TAG, "Error abriendo archivo: " + e.getMessage());
-                  }
-              }
-
               private void realizarLogin() {
-                  agregarLog("=== Iniciando login ===");
-
                   String vendorId = etVendorId.getText().toString().trim().toUpperCase();
-                  agregarLog("📝 Vendor ID ingresado: '" + vendorId + "'");
 
                   if (vendorId.isEmpty()) {
-                      agregarLog("❌ Error: ID vacio");
                       mostrarError("Ingresa tu ID de vendedor");
                       shakeView(etVendorId);
-                      guardarYDescargarLogs();
                       return;
                   }
 
                   if (vendorId.length() != 8) {
-                      agregarLog("❌ Error: ID tiene " + vendorId.length() + " caracteres");
                       mostrarError("El ID debe tener 8 caracteres");
                       shakeView(etVendorId);
-                      guardarYDescargarLogs();
                       return;
                   }
 
                   if (!vendorId.matches("[A-Z0-9]+")) {
-                      agregarLog("❌ Error: ID contiene caracteres invalidos");
-                      mostrarError("Solo letras y numeros");
+                      mostrarError("Solo letras y números");
                       shakeView(etVendorId);
-                      guardarYDescargarLogs();
                       return;
                   }
 
-                  agregarLog("✅ Validaciones pasadas");
                   setLoading(true);
                   ocultarError();
-
-                  agregarLog("🔄 Llamando a la API: " + RetrofitClient.getApiUrl());
 
                   ApiService apiService = RetrofitClient.getInstance(this).getApiService();
                   VendorLoginRequest request = new VendorLoginRequest(vendorId);
@@ -1206,108 +1345,70 @@ jobs:
                       @Override
                       public void onResponse(Call<LoginResponse> call, Response<LoginResponse> response) {
                           setLoading(false);
-                          agregarLog("📡 Respuesta recibida - Codigo: " + response.code());
 
                           if (response.isSuccessful() && response.body() != null) {
                               LoginResponse loginResponse = response.body();
-                              agregarLog("   loginResponse.success: " + loginResponse.isSuccess());
 
                               if (loginResponse.isSuccess()) {
                                   String token = loginResponse.getToken();
                                   LoginResponse.Vendor vendor = loginResponse.getVendor();
 
-                                  agregarLog("✅ LOGIN EXITOSO!");
-                                  agregarLog("   Token: " + (token != null ? "PRESENTE" : "NULL"));
-                                  agregarLog("   Vendor: " + (vendor != null ? vendor.getName() : "NULL"));
-
-                                  if (vendor != null && token != null && !token.isEmpty()) {
-                                      sessionManager.saveUser(token, vendor.getId(), vendor.getName(), vendor.getBusinessName());
-                                      agregarLog("✅ Sesion guardada");
+                                  if (vendor != null && token != null) {
+                                      sessionManager.saveUser(
+                                          token,
+                                          vendor.getId(),
+                                          vendor.getName(),
+                                          vendor.getBusinessName()
+                                      );
 
                                       logger.success("Login exitoso: " + vendor.getName());
-                                      guardarYDescargarLogs();
                                       irAlDashboard();
-                                  } else {
-                                      agregarLog("❌ Error: Token o Vendor es NULL");
-                                      mostrarError("Error: datos de login incompletos");
-                                      guardarYDescargarLogs();
                                   }
-
                               } else {
-                                  String mensaje = loginResponse.getMessage() != null ? loginResponse.getMessage() : "ID invalido";
-                                  agregarLog("❌ Login fallido: " + mensaje);
-                                  mostrarError(mensaje);
-                                  shakeView(cardLogin);
-                                  guardarYDescargarLogs();
+                                  String msg = loginResponse.getMessage() != null ? loginResponse.getMessage() : "ID inválido";
+                                  mostrarError(msg);
+                                  logger.warning("Login fallido: " + msg);
                               }
-
                           } else {
-                              String mensaje = "Error del servidor. Codigo: " + response.code();
-                              agregarLog("❌ " + mensaje);
-                              mostrarError(mensaje);
-                              shakeView(cardLogin);
-                              guardarYDescargarLogs();
+                              mostrarError("Error del servidor. Código: " + response.code());
                           }
                       }
 
                       @Override
                       public void onFailure(Call<LoginResponse> call, Throwable t) {
                           setLoading(false);
-                          agregarLog("❌ ERROR DE RED: " + t.getMessage());
-                          mostrarError("Error de conexion. Verifica tu internet.");
-                          shakeView(cardLogin);
-                          guardarYDescargarLogs();
+                          mostrarError("Error de conexión");
+                          logger.networkError(t);
                       }
                   });
               }
 
               private void irAlDashboard() {
-                  agregarLog("🚀 Navegando al Dashboard");
-                  try {
-                      Intent intent = new Intent(LoginActivity.this, MainActivity.class);
-                      intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
-                      startActivity(intent);
-                      finish();
-                      agregarLog("✅ Dashboard iniciado");
-                  } catch (Exception e) {
-                      agregarLog("❌ Error navegando: " + e.getMessage());
-                      Toast.makeText(this, "Error: " + e.getMessage(), Toast.LENGTH_LONG).show();
-                  }
+                  startActivity(new Intent(this, MainActivity.class));
+                  finish();
               }
 
               private void setLoading(boolean loading) {
-                  if (btnLogin != null) {
-                      btnLogin.setEnabled(!loading);
-                      btnLogin.setText(loading ? "Verificando..." : "Ingresar");
-                  }
-                  if (progressBar != null) {
-                      progressBar.setVisibility(loading ? View.VISIBLE : View.GONE);
-                  }
+                  btnLogin.setEnabled(!loading);
+                  btnLogin.setText(loading ? "Verificando..." : "Ingresar");
+                  progressBar.setVisibility(loading ? View.VISIBLE : View.GONE);
               }
 
               private void mostrarError(String mensaje) {
-                  if (tvError != null) {
-                      tvError.setText(mensaje);
-                      tvError.setVisibility(View.VISIBLE);
-                  } else {
-                      Toast.makeText(this, "❌ " + mensaje, Toast.LENGTH_LONG).show();
-                  }
+                  tvError.setText(mensaje);
+                  tvError.setVisibility(View.VISIBLE);
               }
 
               private void ocultarError() {
-                  if (tvError != null) {
-                      tvError.setVisibility(View.GONE);
-                  }
+                  tvError.setVisibility(View.GONE);
               }
 
               private void shakeView(View view) {
-                  if (view != null) {
-                      ObjectAnimator shake = ObjectAnimator.ofFloat(
-                              view, "translationX", 0f, -20f, 20f, -20f, 20f, -10f, 10f, 0f
-                      );
-                      shake.setDuration(500);
-                      shake.start();
-                  }
+                  ObjectAnimator shake = ObjectAnimator.ofFloat(
+                      view, "translationX", 0f, -20f, 20f, -20f, 20f, -10f, 10f, 0f
+                  );
+                  shake.setDuration(500);
+                  shake.start();
               }
 
               @Override
@@ -1320,7 +1421,92 @@ jobs:
           }
           EOF
 
-      - name: Create API and models
+      - name: Create MainActivity
+        run: |
+          cd android-app
+          cat > app/src/main/java/com/omniventas/app/MainActivity.java << 'EOF'
+          package com.omniventas.app;
+
+          import android.os.Bundle;
+          import android.view.MenuItem;
+          import android.widget.Toast;
+          import androidx.annotation.NonNull;
+          import androidx.appcompat.app.AppCompatActivity;
+          import androidx.fragment.app.Fragment;
+          import com.google.android.material.bottomnavigation.BottomNavigationView;
+          import com.omniventas.app.ui.DashboardFragment;
+          import com.omniventas.app.ui.VentasFragment;
+          import com.omniventas.app.ui.InventarioFragment;
+          import com.omniventas.app.utils.SessionManager;
+
+          public class MainActivity extends AppCompatActivity {
+
+              private BottomNavigationView bottomNav;
+              private long backPressedTime = 0;
+              private SessionManager sessionManager;
+
+              @Override
+              protected void onCreate(Bundle savedInstanceState) {
+                  super.onCreate(savedInstanceState);
+                  setContentView(R.layout.activity_main);
+
+                  sessionManager = new SessionManager(this);
+
+                  if (!sessionManager.isLoggedIn()) {
+                      Toast.makeText(this, "Sesión expirada", Toast.LENGTH_SHORT).show();
+                      finish();
+                      return;
+                  }
+
+                  bottomNav = findViewById(R.id.bottom_navigation);
+                  bottomNav.setOnItemSelectedListener(this::onNavigationItemSelected);
+
+                  if (savedInstanceState == null) {
+                      getSupportFragmentManager().beginTransaction()
+                          .replace(R.id.fragment_container, new DashboardFragment())
+                          .commit();
+                  }
+              }
+
+              private boolean onNavigationItemSelected(@NonNull MenuItem item) {
+                  Fragment selectedFragment = null;
+
+                  if (item.getItemId() == R.id.nav_dashboard) {
+                      selectedFragment = new DashboardFragment();
+                  } else if (item.getItemId() == R.id.nav_ventas) {
+                      selectedFragment = new VentasFragment();
+                  } else if (item.getItemId() == R.id.nav_inventario) {
+                      selectedFragment = new InventarioFragment();
+                  } else if (item.getItemId() == R.id.nav_logout) {
+                      sessionManager.clearSession();
+                      Toast.makeText(this, "Sesión cerrada", Toast.LENGTH_SHORT).show();
+                      finish();
+                      return true;
+                  }
+
+                  if (selectedFragment != null) {
+                      getSupportFragmentManager().beginTransaction()
+                          .replace(R.id.fragment_container, selectedFragment)
+                          .commit();
+                      return true;
+                  }
+                  return false;
+              }
+
+              @Override
+              public void onBackPressed() {
+                  if (backPressedTime + 2000 > System.currentTimeMillis()) {
+                      super.onBackPressed();
+                      finish();
+                  } else {
+                      Toast.makeText(this, "Presiona de nuevo para salir", Toast.LENGTH_SHORT).show();
+                      backPressedTime = System.currentTimeMillis();
+                  }
+              }
+          }
+          EOF
+
+      - name: Create API classes
         run: |
           cd android-app
           
@@ -1346,7 +1532,7 @@ jobs:
               private static final String TAG = "RetrofitClient";
               private static RetrofitClient instance;
               private ApiService apiService;
-              private static String API_URL = "https://prueba-1-omni.onrender.com";
+              private static final String API_URL = "https://prueba-1-omni.onrender.com";
               private Context context;
 
               private RetrofitClient(Context context) {
@@ -1355,29 +1541,18 @@ jobs:
                   HttpLoggingInterceptor logging = new HttpLoggingInterceptor();
                   logging.setLevel(HttpLoggingInterceptor.Level.BODY);
 
-                  Interceptor authInterceptor = new Interceptor() {
-                      @Override
-                      public Response intercept(Chain chain) throws IOException {
-                          Request original = chain.request();
-                          String url = original.url().toString();
+                  Interceptor authInterceptor = chain -> {
+                      Request original = chain.request();
+                      SharedPreferences prefs = context.getSharedPreferences("OmniVentasSession", Context.MODE_PRIVATE);
+                      String token = prefs.getString("token", null);
 
-                          Log.d(TAG, "📡 URL: " + url);
-
-                          SharedPreferences prefs = context.getSharedPreferences("OmniVentasSession", Context.MODE_PRIVATE);
-                          String token = prefs.getString("token", null);
-
-                          Request request;
-                          if (token != null && !token.isEmpty()) {
-                              String authHeader = "Bearer " + token;
-                              request = original.newBuilder()
-                                  .header("Authorization", authHeader)
-                                  .build();
-                          } else {
-                              request = original;
-                          }
-
+                      if (token != null && !token.isEmpty()) {
+                          Request request = original.newBuilder()
+                              .header("Authorization", "Bearer " + token)
+                              .build();
                           return chain.proceed(request);
                       }
+                      return chain.proceed(original);
                   };
 
                   OkHttpClient client = new OkHttpClient.Builder()
@@ -1395,7 +1570,7 @@ jobs:
                       .build();
 
                   apiService = retrofit.create(ApiService.class);
-                  Log.d(TAG, "✅ RetrofitClient inicializado con URL: " + API_URL);
+                  Log.d(TAG, "✅ API URL: " + API_URL);
               }
 
               public static synchronized RetrofitClient getInstance(Context context) {
@@ -1434,7 +1609,7 @@ jobs:
           }
           EOF
 
-      - name: Create models
+      - name: Create Models
         run: |
           cd android-app
           
@@ -1491,7 +1666,7 @@ jobs:
           }
           EOF
 
-      - name: Create utils
+      - name: Create Utils
         run: |
           cd android-app
           
@@ -1518,14 +1693,14 @@ jobs:
               }
 
               public void saveUser(String token, String vendorId, String vendorName, String businessName) {
-                  SharedPreferences.Editor editor = sharedPreferences.edit();
-                  editor.putString(KEY_TOKEN, token);
-                  editor.putString(KEY_VENDOR_ID, vendorId);
-                  editor.putString(KEY_VENDOR_NAME, vendorName);
-                  editor.putString(KEY_BUSINESS_NAME, businessName);
-                  editor.putBoolean(KEY_IS_LOGGED_IN, true);
-                  editor.apply();
-                  Log.d(TAG, "✅ Sesion guardada");
+                  sharedPreferences.edit()
+                      .putString(KEY_TOKEN, token)
+                      .putString(KEY_VENDOR_ID, vendorId)
+                      .putString(KEY_VENDOR_NAME, vendorName)
+                      .putString(KEY_BUSINESS_NAME, businessName)
+                      .putBoolean(KEY_IS_LOGGED_IN, true)
+                      .apply();
+                  Log.d(TAG, "✅ Sesión guardada");
               }
 
               public String getToken() {
@@ -1545,16 +1720,12 @@ jobs:
               }
 
               public boolean isLoggedIn() {
-                  boolean isLoggedIn = sharedPreferences.getBoolean(KEY_IS_LOGGED_IN, false);
-                  String token = getToken();
-                  return isLoggedIn && token != null && !token.isEmpty();
+                  return sharedPreferences.getBoolean(KEY_IS_LOGGED_IN, false) && getToken() != null;
               }
 
               public void clearSession() {
-                  SharedPreferences.Editor editor = sharedPreferences.edit();
-                  editor.clear();
-                  editor.apply();
-                  Log.d(TAG, "🧹 Sesion limpiada");
+                  sharedPreferences.edit().clear().apply();
+                  Log.d(TAG, "🧹 Sesión limpiada");
               }
           }
           EOF
@@ -1584,18 +1755,11 @@ jobs:
               private static TelegramLogger instance;
               private Context context;
               private SessionManager sessionManager;
-              private Gson gson;
               private String appVersion = "1.0";
-
-              public static final String LEVEL_INFO = "INFO";
-              public static final String LEVEL_SUCCESS = "SUCCESS";
-              public static final String LEVEL_WARNING = "WARNING";
-              public static final String LEVEL_ERROR = "ERROR";
 
               private TelegramLogger(Context context) {
                   this.context = context.getApplicationContext();
                   this.sessionManager = new SessionManager(context);
-                  this.gson = new Gson();
                   try {
                       PackageInfo pInfo = context.getPackageManager().getPackageInfo(context.getPackageName(), 0);
                       appVersion = pInfo.versionName;
@@ -1609,28 +1773,16 @@ jobs:
                   return instance;
               }
 
-              public void info(String message) { log(LEVEL_INFO, message); }
-              public void success(String message) { log(LEVEL_SUCCESS, message); }
-              public void warning(String message) { log(LEVEL_WARNING, message); }
-              public void error(String message) { log(LEVEL_ERROR, message); }
-              public void networkError(Throwable t) { error("Error de red: " + t.getMessage()); }
+              public void success(String message) { sendLog("SUCCESS", message); }
+              public void warning(String message) { sendLog("WARNING", message); }
+              public void error(String message) { sendLog("ERROR", message); }
+              public void networkError(Throwable t) { sendLog("ERROR", "Error de red: " + t.getMessage()); }
 
-              private void log(String level, String message) {
-                  Log.d(TAG, level + ": " + message);
-                  sendToServer(level, message);
-              }
-
-              private void sendToServer(String level, String message) {
+              private void sendLog(String level, String message) {
                   try {
-                      String vendorId = "DESCONOCIDO";
-                      String vendorName = "DESCONOCIDO";
-                      String businessName = "DESCONOCIDO";
-
-                      if (sessionManager.isLoggedIn()) {
-                          vendorId = sessionManager.getVendorId() != null ? sessionManager.getVendorId() : "DESCONOCIDO";
-                          vendorName = sessionManager.getVendorName() != null ? sessionManager.getVendorName() : "DESCONOCIDO";
-                          businessName = sessionManager.getBusinessName() != null ? sessionManager.getBusinessName() : "DESCONOCIDO";
-                      }
+                      String vendorId = sessionManager.isLoggedIn() ? sessionManager.getVendorId() : "DESCONOCIDO";
+                      String vendorName = sessionManager.isLoggedIn() ? sessionManager.getVendorName() : "DESCONOCIDO";
+                      String businessName = sessionManager.isLoggedIn() ? sessionManager.getBusinessName() : "DESCONOCIDO";
 
                       JsonObject jsonData = new JsonObject();
                       jsonData.addProperty("level", level);
@@ -1643,21 +1795,19 @@ jobs:
                       jsonData.addProperty("device_model", Build.MANUFACTURER + " " + Build.MODEL);
                       jsonData.addProperty("android_version", Build.VERSION.RELEASE);
 
-                      ApiService apiService = RetrofitClient.getInstance(context).getApiService();
-                      apiService.sendLog(jsonData).enqueue(new Callback<Void>() {
-                          @Override
-                          public void onResponse(Call<Void> call, Response<Void> response) {
-                              if (response.isSuccessful()) {
-                                  Log.d(TAG, "✅ Log enviado a Telegram");
+                      RetrofitClient.getInstance(context).getApiService().sendLog(jsonData)
+                          .enqueue(new Callback<Void>() {
+                              @Override
+                              public void onResponse(Call<Void> call, Response<Void> response) {
+                                  if (response.isSuccessful()) Log.d(TAG, "✅ Log enviado");
                               }
-                          }
-                          @Override
-                          public void onFailure(Call<Void> call, Throwable t) {
-                              Log.e(TAG, "❌ Error enviando log: " + t.getMessage());
-                          }
-                      });
+                              @Override
+                              public void onFailure(Call<Void> call, Throwable t) {
+                                  Log.e(TAG, "❌ Error enviando log: " + t.getMessage());
+                              }
+                          });
                   } catch (Exception e) {
-                      Log.e(TAG, "❌ Error en sendToServer: " + e.getMessage());
+                      Log.e(TAG, "❌ Error en sendLog: " + e.getMessage());
                   }
               }
 
@@ -1669,7 +1819,7 @@ jobs:
           }
           EOF
 
-      - name: Create UI fragments
+      - name: Create UI Fragments
         run: |
           cd android-app
           
@@ -1688,10 +1838,13 @@ jobs:
           import androidx.recyclerview.widget.RecyclerView;
           import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
           import com.omniventas.app.R;
+          import java.text.SimpleDateFormat;
+          import java.util.Date;
+          import java.util.Locale;
 
           public class DashboardFragment extends Fragment {
 
-              private TextView tvVentasHoy, tvIngresosHoy, tvVentasMes, tvIngresosMes, tvBajoStock;
+              private TextView tvVentasHoy, tvIngresosHoy, tvVentasMes, tvIngresosMes, tvBajoStock, tvFecha;
               private RecyclerView rvVentasRecientes;
               private SwipeRefreshLayout swipeRefresh;
 
@@ -1705,10 +1858,14 @@ jobs:
                   tvVentasMes = view.findViewById(R.id.tv_ventas_mes);
                   tvIngresosMes = view.findViewById(R.id.tv_ingresos_mes);
                   tvBajoStock = view.findViewById(R.id.tv_bajo_stock);
+                  tvFecha = view.findViewById(R.id.tv_fecha);
                   rvVentasRecientes = view.findViewById(R.id.rv_ventas_recientes);
                   swipeRefresh = view.findViewById(R.id.swipe_refresh);
 
                   rvVentasRecientes.setLayoutManager(new LinearLayoutManager(getContext()));
+
+                  String fecha = new SimpleDateFormat("EEEE, d MMM", new Locale("es", "ES")).format(new Date());
+                  tvFecha.setText(fecha);
 
                   tvVentasHoy.setText("5");
                   tvIngresosHoy.setText("$125.50");
@@ -1725,14 +1882,13 @@ jobs:
           package com.omniventas.app.ui;
 
           import android.os.Bundle;
+          import android.text.Editable;
+          import android.text.TextWatcher;
           import android.view.LayoutInflater;
           import android.view.View;
           import android.view.ViewGroup;
-          import android.widget.AdapterView;
-          import android.widget.ArrayAdapter;
           import android.widget.Button;
           import android.widget.EditText;
-          import android.widget.Spinner;
           import android.widget.TextView;
           import android.widget.Toast;
           import androidx.annotation.NonNull;
@@ -1740,14 +1896,11 @@ jobs:
           import androidx.fragment.app.Fragment;
           import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
           import com.omniventas.app.R;
-          import java.util.ArrayList;
-          import java.util.List;
 
           public class VentasFragment extends Fragment {
 
-              private Spinner spinnerProductos;
-              private EditText etCantidad;
-              private TextView tvPrecio, tvTotal;
+              private EditText etProducto, etCantidad, etPrecio;
+              private TextView tvTotal;
               private Button btnRegistrarVenta;
               private SwipeRefreshLayout swipeRefresh;
 
@@ -1756,56 +1909,35 @@ jobs:
               public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
                   View view = inflater.inflate(R.layout.fragment_ventas, container, false);
 
-                  spinnerProductos = view.findViewById(R.id.spinner_productos);
+                  etProducto = view.findViewById(R.id.et_producto);
                   etCantidad = view.findViewById(R.id.et_cantidad);
-                  tvPrecio = view.findViewById(R.id.tv_precio);
+                  etPrecio = view.findViewById(R.id.et_precio);
                   tvTotal = view.findViewById(R.id.tv_total);
                   btnRegistrarVenta = view.findViewById(R.id.btn_registrar_venta);
                   swipeRefresh = view.findViewById(R.id.swipe_refresh);
 
-                  List<String> productos = new ArrayList<>();
-                  productos.add("Seleccionar producto...");
-                  productos.add("Producto A - $10.00");
-                  productos.add("Producto B - $15.00");
-                  productos.add("Producto C - $20.00");
-
-                  ArrayAdapter<String> adapter = new ArrayAdapter<>(getContext(), android.R.layout.simple_spinner_item, productos);
-                  adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-                  spinnerProductos.setAdapter(adapter);
-
-                  spinnerProductos.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
-                      @Override
-                      public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
-                          if (position > 0) {
-                              tvPrecio.setText("$10.00");
-                              actualizarTotal();
-                          }
-                      }
-                      @Override
-                      public void onNothingSelected(AdapterView<?> parent) {}
-                  });
-
-                  etCantidad.addTextChangedListener(new android.text.TextWatcher() {
+                  TextWatcher watcher = new TextWatcher() {
                       @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
                       @Override public void onTextChanged(CharSequence s, int start, int before, int count) {}
-                      @Override public void afterTextChanged(android.text.Editable s) { actualizarTotal(); }
-                  });
+                      @Override public void afterTextChanged(Editable s) { calcularTotal(); }
+                  };
+
+                  etCantidad.addTextChangedListener(watcher);
+                  etPrecio.addTextChangedListener(watcher);
 
                   btnRegistrarVenta.setOnClickListener(v -> {
                       Toast.makeText(getContext(), "✅ Venta registrada!", Toast.LENGTH_SHORT).show();
                   });
 
-                  tvPrecio.setText("$0.00");
-                  tvTotal.setText("Total: $0.00");
-
                   return view;
               }
 
-              private void actualizarTotal() {
+              private void calcularTotal() {
                   try {
                       int cantidad = Integer.parseInt(etCantidad.getText().toString());
-                      double total = cantidad * 10.00;
-                      tvTotal.setText(String.format("Total: $%.2f", total));
+                      double precio = Double.parseDouble(etPrecio.getText().toString());
+                      double total = cantidad * precio;
+                      tvTotal.setText("Total: $" + String.format("%.2f", total));
                   } catch (NumberFormatException e) {
                       tvTotal.setText("Total: $0.00");
                   }
@@ -1854,112 +1986,9 @@ jobs:
           }
           EOF
 
-      - name: Create MainActivity
-        run: |
-          cd android-app
-          
-          cat > app/src/main/java/com/omniventas/app/MainActivity.java << 'EOF'
-          package com.omniventas.app;
-
-          import android.os.Bundle;
-          import android.view.MenuItem;
-          import android.widget.Toast;
-          import androidx.annotation.NonNull;
-          import androidx.appcompat.app.AppCompatActivity;
-          import androidx.fragment.app.Fragment;
-          import com.google.android.material.bottomnavigation.BottomNavigationView;
-          import com.omniventas.app.ui.DashboardFragment;
-          import com.omniventas.app.ui.VentasFragment;
-          import com.omniventas.app.ui.InventarioFragment;
-          import com.omniventas.app.utils.SessionManager;
-
-          public class MainActivity extends AppCompatActivity {
-
-              private BottomNavigationView bottomNav;
-              private long backPressedTime = 0;
-              private SessionManager sessionManager;
-
-              @Override
-              protected void onCreate(Bundle savedInstanceState) {
-                  super.onCreate(savedInstanceState);
-                  setContentView(R.layout.activity_main);
-
-                  sessionManager = new SessionManager(this);
-
-                  if (!sessionManager.isLoggedIn()) {
-                      Toast.makeText(this, "Sesion expirada", Toast.LENGTH_SHORT).show();
-                      finish();
-                      return;
-                  }
-
-                  bottomNav = findViewById(R.id.bottom_navigation);
-                  bottomNav.setOnItemSelectedListener(this::onNavigationItemSelected);
-
-                  if (savedInstanceState == null) {
-                      getSupportFragmentManager().beginTransaction()
-                          .replace(R.id.fragment_container, new DashboardFragment())
-                          .commit();
-                  }
-              }
-
-              private boolean onNavigationItemSelected(@NonNull MenuItem item) {
-                  Fragment selectedFragment = null;
-                  int id = item.getItemId();
-
-                  if (id == R.id.nav_dashboard) {
-                      selectedFragment = new DashboardFragment();
-                  } else if (id == R.id.nav_ventas) {
-                      selectedFragment = new VentasFragment();
-                  } else if (id == R.id.nav_inventario) {
-                      selectedFragment = new InventarioFragment();
-                  } else if (id == R.id.nav_logout) {
-                      sessionManager.clearSession();
-                      Toast.makeText(this, "Sesion cerrada", Toast.LENGTH_SHORT).show();
-                      finish();
-                      return true;
-                  }
-
-                  if (selectedFragment != null) {
-                      getSupportFragmentManager().beginTransaction()
-                          .replace(R.id.fragment_container, selectedFragment)
-                          .commit();
-                      return true;
-                  }
-                  return false;
-              }
-
-              @Override
-              public void onBackPressed() {
-                  if (backPressedTime + 2000 > System.currentTimeMillis()) {
-                      super.onBackPressed();
-                      finish();
-                  } else {
-                      Toast.makeText(this, "Presiona de nuevo para salir", Toast.LENGTH_SHORT).show();
-                      backPressedTime = System.currentTimeMillis();
-                  }
-              }
-          }
-          EOF
-
       - name: Create launcher icons
         run: |
           cd android-app
-          
-          cat > app/src/main/res/drawable/ic_launcher_foreground.xml << 'EOF'
-          <?xml version="1.0" encoding="utf-8"?>
-          <vector xmlns:android="http://schemas.android.com/apk/res/android"
-              android:width="108dp"
-              android:height="108dp"
-              android:viewportWidth="108"
-              android:viewportHeight="108">
-              <path
-                  android:fillColor="#4361EE"
-                  android:pathData="M54,27C40.5,27 30,37.5 30,51C30,64.5 40.5,75 54,75C67.5,75 78,64.5 78,51C78,37.5 67.5,27 54,27ZM54,69C44.1,69 36,60.9 36,51C36,41.1 44.1,33 54,33C63.9,33 72,41.1 72,51C72,60.9 63.9,69 54,69ZM54,39C47.4,39 42,44.4 42,51C42,57.6 47.4,63 54,63C60.6,63 66,57.6 66,51C66,44.4 60.6,39 54,39Z"/>
-              <path
-                  android:fillColor="#FFFFFF"
-                  android:pathData="M54,45C50.7,45 48,47.7 48,51C48,54.3 50.7,57 54,57C57.3,57 60,54.3 60,51C60,47.7 57.3,45 54,45Z"/>
-          </vector>
-          EOF
           
           cat > app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml << 'EOF'
           <?xml version="1.0" encoding="utf-8"?>
@@ -1985,7 +2014,7 @@ jobs:
           if git diff --staged --quiet; then
             echo "✅ No hay cambios nuevos en android-app/"
           else
-            git commit -m "🤖 Update Android app with real login and logs [skip ci]"
+            git commit -m "🚀 Production Android app v2.0 - Premium Design [skip ci]"
             git push
             echo "✅ Archivos subidos al repositorio"
           fi
@@ -2009,50 +2038,20 @@ jobs:
       - name: Upload Release APK
         uses: actions/upload-artifact@v4
         with:
-          name: app-release-unsigned
-          path: android-app/app/build/outputs/apk/release/*.apk
-
-      - name: Check signing secrets
-        id: check_secrets
-        run: |
-          if [ -n "${{ secrets.KEYSTORE_BASE64 }}" ] && \
-             [ -n "${{ secrets.KEYSTORE_PASSWORD }}" ] && \
-             [ -n "${{ secrets.KEY_ALIAS }}" ] && \
-             [ -n "${{ secrets.KEY_PASSWORD }}" ]; then
-            echo "has_secrets=true" >> $GITHUB_OUTPUT
-            echo "✅ Secrets de firma encontrados"
-          else
-            echo "has_secrets=false" >> $GITHUB_OUTPUT
-            echo "⚠️ Secrets de firma NO configurados"
-          fi
-
-      - name: Sign Release APK
-        if: github.ref == 'refs/heads/main' && steps.check_secrets.outputs.has_secrets == 'true'
-        run: |
-          echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > keystore.jks
-          cd android-app
-          ./gradlew assembleRelease \
-            -Pandroid.injected.signing.store.file=$(pwd)/../keystore.jks \
-            -Pandroid.injected.signing.store.password=${{ secrets.KEYSTORE_PASSWORD }} \
-            -Pandroid.injected.signing.key.alias=${{ secrets.KEY_ALIAS }} \
-            -Pandroid.injected.signing.key.password=${{ secrets.KEY_PASSWORD }}
-
-      - name: Upload Signed APK
-        if: github.ref == 'refs/heads/main' && steps.check_secrets.outputs.has_secrets == 'true'
-        uses: actions/upload-artifact@v4
-        with:
-          name: app-release-signed
+          name: app-release
           path: android-app/app/build/outputs/apk/release/*.apk
 
       - name: Notify success
         if: success()
         run: |
-          echo "✅ APK compilados exitosamente!"
-          echo "📱 Descarga los APKs desde los artifacts"
-          echo "📂 Los archivos fuente estan en tu repositorio en android-app/"
+          echo "🚀 APK DE PRODUCCIÓN COMPILADOS EXITOSAMENTE!"
+          echo ""
+          echo "📱 Versión: 2.0.0"
+          echo "🎨 Diseño: Premium con animaciones y gradientes"
+          echo "🔗 API: https://prueba-1-omni.onrender.com"
           echo ""
           echo "🔑 Credenciales de prueba:"
           echo "   Vendor ID: AAAA0000"
           echo "   Admin: admin / admin123"
           echo ""
-          echo "📝 Los logs se guardan en: /storage/emulated/0/Download/omniventas_login_*.txt"
+          echo "📥 Descarga los APKs desde los artifacts de esta ejecución"
