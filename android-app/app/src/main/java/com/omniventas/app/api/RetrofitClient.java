@@ -2,6 +2,7 @@ package com.omniventas.app.api;
 
 import android.content.Context;
 import android.content.SharedPreferences;
+import android.util.Log;
 import okhttp3.Interceptor;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
@@ -13,6 +14,7 @@ import java.io.IOException;
 import java.util.concurrent.TimeUnit;
 
 public class RetrofitClient {
+    private static final String TAG = "RetrofitClient";
     private static RetrofitClient instance;
     private ApiService apiService;
     private static String API_URL = "https://prueba-1-omni.onrender.com";
@@ -34,13 +36,19 @@ public class RetrofitClient {
                 SharedPreferences prefs = context.getSharedPreferences("OmniVentasSession", Context.MODE_PRIVATE);
                 String token = prefs.getString("token", null);
 
-                if (token != null) {
+                Log.d(TAG, "Interceptor - Token: " + (token != null ? "PRESENTE" : "NULL"));
+                Log.d(TAG, "Interceptor - URL: " + original.url());
+
+                if (token != null && !token.isEmpty()) {
                     Request request = original.newBuilder()
                         .header("Authorization", token)
                         .build();
+                    Log.d(TAG, "Interceptor - Token agregado a la cabecera");
                     return chain.proceed(request);
+                } else {
+                    Log.d(TAG, "Interceptor - Sin token, continuando sin autenticación");
+                    return chain.proceed(original);
                 }
-                return chain.proceed(original);
             }
         };
 
@@ -59,11 +67,13 @@ public class RetrofitClient {
             .build();
 
         apiService = retrofit.create(ApiService.class);
+        Log.d(TAG, "RetrofitClient inicializado con URL: " + API_URL);
     }
 
     public static synchronized RetrofitClient getInstance(Context context) {
         if (instance == null) {
             instance = new RetrofitClient(context);
+            Log.d(TAG, "Nueva instancia de RetrofitClient creada");
         }
         return instance;
     }
@@ -75,5 +85,6 @@ public class RetrofitClient {
     public static void setApiUrl(String url) {
         API_URL = url;
         instance = null;
+        Log.d(TAG, "URL cambiada a: " + url);
     }
 }
