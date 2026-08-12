@@ -1,6 +1,6 @@
 # app.py - Aplicación principal CON endpoint para vendedores
 import os
-from flask import Flask, g, jsonify, request, session
+from flask import Flask, g, jsonify, request, session, send_file
 import logging
 from flask_socketio import SocketIO
 import time
@@ -701,6 +701,24 @@ def eliminar_vendedor(vendor_id):
     except Exception as e:
         logger.error(f"Error en eliminar_vendedor: {e}")
         return jsonify({'success': False, 'message': str(e)}), 500
+
+# En app.py
+@app.route('/download-apk')
+@login_required
+def download_apk():
+    """Servir el archivo APK para descarga"""
+    try:
+        # Buscar en la carpeta static
+        apk_path = os.path.join(os.path.dirname(__file__), 'static', 'app-debug.apk')
+        
+        if not os.path.exists(apk_path):
+            return jsonify({'error': 'APK no encontrado'}), 404
+        
+        return send_file(apk_path, as_attachment=True, download_name='app-debug.apk')
+        
+    except Exception as e:
+        logger.error(f"Error descargando APK: {e}")
+        return jsonify({'error': str(e)}), 500
 
 # ==================== INICIO ====================
 
