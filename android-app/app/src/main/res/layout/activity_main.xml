@@ -20,7 +20,6 @@
         app:menu="@menu/bottom_nav_menu"
         app:itemIconTint="@color/bottom_nav_tint"
         app:itemTextColor="@color/bottom_nav_tint"
-        app:itemActiveIndicatorStyle="@style/Widget.MaterialComponents.BottomNavigationView.ActiveIndicator"
         android:elevation="8dp" />
 
 </LinearLayout>

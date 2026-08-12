@@ -57,7 +57,6 @@ public class LoginActivity extends AppCompatActivity {
             etVendorId.setText("AAAA0000");
         }
 
-        // Animación de entrada
         if (cardLogin != null) {
             cardLogin.startAnimation(AnimationUtils.loadAnimation(this, R.anim.slide_up));
         }

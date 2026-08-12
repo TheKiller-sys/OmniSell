@@ -8,7 +8,6 @@
     android:padding="24dp"
     android:background="@drawable/bg_login_gradient">
 
-    <!-- Logo con animación -->
     <ImageView
         android:id="@+id/iv_logo"
         android:layout_width="120dp"
@@ -18,7 +17,6 @@
         android:scaleType="centerInside"
         android:alpha="0.9" />
 
-    <!-- Título con sombra -->
     <TextView
         android:id="@+id/tv_title"
         android:layout_width="wrap_content"
@@ -42,7 +40,6 @@
         android:textColor="@color/white_alpha_80"
         android:layout_marginBottom="32dp" />
 
-    <!-- Card contenedor -->
     <androidx.cardview.widget.CardView
         android:id="@+id/card_login"
         android:layout_width="match_parent"
@@ -57,7 +54,6 @@
             android:orientation="vertical"
             android:padding="28dp">
 
-            <!-- Icono de vendedor -->
             <ImageView
                 android:layout_width="72dp"
                 android:layout_height="72dp"
@@ -74,7 +70,6 @@
                 android:layout_marginBottom="8dp"
                 android:fontFamily="sans-serif-medium" />
 
-            <!-- Campo de entrada -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -106,7 +101,6 @@
                     android:imeOptions="actionDone" />
             </LinearLayout>
 
-            <!-- Error -->
             <TextView
                 android:id="@+id/tv_error"
                 android:layout_width="match_parent"
@@ -120,7 +114,6 @@
                 android:layout_marginBottom="12dp"
                 android:fontFamily="sans-serif" />
 
-            <!-- ProgressBar -->
             <ProgressBar
                 android:id="@+id/progressBar"
                 android:layout_width="wrap_content"
@@ -130,7 +123,6 @@
                 android:layout_marginBottom="12dp"
                 android:indeterminateTint="@color/primary" />
 
-            <!-- Botón -->
             <Button
                 android:id="@+id/btn_login"
                 android:layout_width="match_parent"
@@ -143,7 +135,6 @@
                 android:stateListAnimator="@null"
                 android:elevation="4dp" />
 
-            <!-- Texto de ayuda -->
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
@@ -153,7 +144,6 @@
                 android:layout_gravity="center"
                 android:layout_marginTop="16dp" />
 
-            <!-- Versión -->
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
