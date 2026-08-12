@@ -10,6 +10,8 @@ import datetime
 import bcrypt
 from functools import wraps
 
+from flask_login import login_required, current_user
+
 # Configuración básica de logging
 logging.basicConfig(
     level=logging.INFO,
