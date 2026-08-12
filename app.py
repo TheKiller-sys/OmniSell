@@ -1,4 +1,4 @@
-# app.py - Aplicación principal SIN Telegram, SOLO API REST
+# app.py - Aplicación principal CON endpoint para vendedores
 import os
 from flask import Flask, g, jsonify, request, session
 import logging
@@ -35,9 +35,11 @@ def token_required(f):
         try:
             token = auth_header.split(' ')[1]
             payload = jwt.decode(token, os.environ.get('JWT_SECRET', 'secret-key'), algorithms=['HS256'])
-            request.user_id = payload['user_id']
+            request.user_id = payload.get('user_id')
+            request.vendor_id = payload.get('vendor_id')
             request.business_id = payload['business_id']
-            request.username = payload['username']
+            request.username = payload.get('username')
+            request.vendor_name = payload.get('name')
             request.role = payload.get('role', 'vendedor')
             return f(*args, **kwargs)
         except jwt.ExpiredSignatureError:
@@ -62,89 +64,101 @@ def health_check():
         'environment': 'production' if 'RENDER' in os.environ else 'development'
     }), 200
 
-# ==================== DESCARGA DE APK ====================
-
-@app.route('/download/app-release.apk')
-def download_apk():
-    """Servir la APK para descargar"""
-    from flask import send_from_directory
-    try:
-        return send_from_directory('static', 'app-release.apk', as_attachment=True)
-    except Exception as e:
-        logger.error(f"Error sirviendo APK: {e}")
-        return jsonify({'success': False, 'message': 'APK no encontrada'}), 404
-
-# ==================== API PARA LA APP ANDROID ====================
+# ==================== NUEVO ENDPOINT: LOGIN DE VENDEDOR ====================
 
 @app.route('/api/login-vendedor', methods=['POST'])
 def login_vendedor():
-    """Login para vendedores desde la app Android"""
+    """Login para vendedores con ID de 8 caracteres"""
     try:
         data = request.json
-        username = data.get('username', '').strip()
-        password = data.get('password', '').strip()
-        business_id = data.get('business_id', '').strip()
+        vendor_id = data.get('vendor_id', '').strip()
         
-        if not all([username, password, business_id]):
-            return jsonify({'success': False, 'message': 'Faltan datos: usuario, contraseña y business_id son requeridos'}), 400
+        # Validar formato del ID (8 caracteres alfanuméricos)
+        if not vendor_id:
+            return jsonify({
+                'success': False, 
+                'message': 'ID de vendedor requerido'
+            }), 400
         
-        # Verificar credenciales en la base de datos global
+        if len(vendor_id) != 8:
+            return jsonify({
+                'success': False, 
+                'message': 'El ID debe tener exactamente 8 caracteres'
+            }), 400
+        
+        if not vendor_id.isalnum():
+            return jsonify({
+                'success': False, 
+                'message': 'El ID solo debe contener letras y números'
+            }), 400
+        
         from database.db_manager import DatabaseManager
         DatabaseManager.verify_and_fix_global_tables()
         conn = DatabaseManager.get_global_connection()
+        
         if conn is None:
-            return jsonify({'success': False, 'message': 'Error de conexión a la base de datos'}), 500
+            return jsonify({'success': False, 'message': 'Error de conexión'}), 500
         
         c = conn.cursor()
         is_postgres = 'RENDER' in os.environ and os.environ.get('DATABASE_URL')
         
+        # Buscar vendedor por ID
         if is_postgres:
             c.execute("""
-                SELECT u.id, u.business_id, u.username, u.password, u.role, b.name as business_name
-                FROM users u
-                JOIN businesses b ON u.business_id = b.id
-                WHERE u.username = %s AND u.business_id = %s
-            """, (username, business_id))
+                SELECT v.id, v.name, v.business_id, b.name as business_name, v.role, v.active
+                FROM vendors v
+                JOIN businesses b ON v.business_id = b.id
+                WHERE v.id = %s
+            """, (vendor_id,))
         else:
             c.execute("""
-                SELECT u.id, u.business_id, u.username, u.password, u.role, b.name as business_name
-                FROM users u
-                JOIN businesses b ON u.business_id = b.id
-                WHERE u.username = ? AND u.business_id = ?
-            """, (username, business_id))
+                SELECT v.id, v.name, v.business_id, b.name as business_name, v.role, v.active
+                FROM vendors v
+                JOIN businesses b ON v.business_id = b.id
+                WHERE v.id = ?
+            """, (vendor_id,))
         
-        user_data = c.fetchone()
-        if not user_data:
-            return jsonify({'success': False, 'message': 'Credenciales inválidas'}), 401
+        vendor_data = c.fetchone()
         
-        # Verificar contraseña con bcrypt
-        stored_password = user_data[3]
-        if bcrypt.checkpw(password.encode('utf-8'), stored_password.encode('utf-8')):
-            # Generar token JWT
-            token = jwt.encode({
-                'user_id': user_data[0],
-                'business_id': user_data[1],
-                'username': user_data[2],
-                'role': user_data[4],
-                'exp': datetime.datetime.utcnow() + datetime.timedelta(days=7)
-            }, os.environ.get('JWT_SECRET', 'secret-key'), algorithm='HS256')
-            
+        if not vendor_data:
             return jsonify({
-                'success': True,
-                'token': token,
-                'user': {
-                    'id': user_data[0],
-                    'username': user_data[2],
-                    'role': user_data[4],
-                    'business_name': user_data[5]
-                }
-            })
-        else:
-            return jsonify({'success': False, 'message': 'Credenciales inválidas'}), 401
-            
+                'success': False, 
+                'message': 'ID de vendedor no encontrado'
+            }), 401
+        
+        # Verificar si el vendedor está activo
+        if not vendor_data[5]:
+            return jsonify({
+                'success': False, 
+                'message': 'Este vendedor está desactivado. Contacta al administrador.'
+            }), 401
+        
+        # Generar token JWT
+        token = jwt.encode({
+            'vendor_id': vendor_data[0],
+            'business_id': vendor_data[2],
+            'name': vendor_data[1],
+            'role': vendor_data[4],
+            'exp': datetime.datetime.utcnow() + datetime.timedelta(days=7)
+        }, os.environ.get('JWT_SECRET', 'secret-key'), algorithm='HS256')
+        
+        return jsonify({
+            'success': True,
+            'token': token,
+            'vendor': {
+                'id': vendor_data[0],
+                'name': vendor_data[1],
+                'business_id': vendor_data[2],
+                'business_name': vendor_data[3],
+                'role': vendor_data[4]
+            }
+        })
+        
     except Exception as e:
         logger.error(f"Error en login_vendedor: {e}")
         return jsonify({'success': False, 'message': str(e)}), 500
+
+# ==================== ENDPOINTS EXISTENTES (actualizados para soportar vendedores) ====================
 
 @app.route('/api/productos', methods=['GET'])
 @token_required
@@ -204,7 +218,7 @@ def registrar_venta_app():
         precio_unitario = data.get('precio_unitario')
         
         if not all([producto_id, cantidad, precio_unitario]):
-            return jsonify({'success': False, 'message': 'Faltan datos: producto_id, cantidad y precio_unitario son requeridos'}), 400
+            return jsonify({'success': False, 'message': 'Faltan datos'}), 400
         
         from database.db_manager import DatabaseManager
         db = DatabaseManager(request.business_id)
@@ -227,7 +241,9 @@ def registrar_venta_app():
                 'stock_disponible': stock_disponible
             }), 400
         
-        # Registrar venta
+        # Registrar venta (usar vendor_id si existe)
+        usuario_id = request.vendor_id if hasattr(request, 'vendor_id') else request.user_id
+        
         insert_query = """
             INSERT INTO ventas (producto_id, cantidad, usuario_id) 
             VALUES (%s, %s, %s)
@@ -235,7 +251,7 @@ def registrar_venta_app():
             INSERT INTO ventas (producto_id, cantidad, usuario_id) 
             VALUES (?, ?, ?)
         """
-        db.execute_query(insert_query, (producto_id, cantidad, request.user_id))
+        db.execute_query(insert_query, (producto_id, cantidad, usuario_id))
         
         # Actualizar stock
         update_query = "UPDATE productos SET stock = stock - %s WHERE id = %s" if is_postgres else "UPDATE productos SET stock = stock - ? WHERE id = ?"
@@ -291,14 +307,7 @@ def dashboard_app():
         total_ingresos = float(ventas_hoy[0][1]) if ventas_hoy and ventas_hoy[0][1] else 0
         
         # Productos con bajo stock (<= 5)
-        if is_postgres:
-            bajo_stock_query = """
-                SELECT COUNT(*) FROM productos WHERE stock <= 5
-            """
-        else:
-            bajo_stock_query = """
-                SELECT COUNT(*) FROM productos WHERE stock <= 5
-            """
+        bajo_stock_query = "SELECT COUNT(*) FROM productos WHERE stock <= 5"
         bajo_stock = db.execute_query(bajo_stock_query)
         productos_bajo_stock = bajo_stock[0][0] if bajo_stock else 0
         
@@ -370,134 +379,12 @@ def dashboard_app():
         logger.error(f"Error en dashboard_app: {e}")
         return jsonify({'success': False, 'message': str(e)}), 500
 
-@app.route('/api/ventas-app', methods=['GET'])
-@token_required
-def ventas_app():
-    """Obtener historial de ventas para la app"""
-    try:
-        from database.db_manager import DatabaseManager
-        db = DatabaseManager(request.business_id)
-        is_postgres = 'RENDER' in os.environ and os.environ.get('DATABASE_URL')
-        
-        # Obtener parámetros de paginación
-        limite = request.args.get('limite', 50)
-        offset = request.args.get('offset', 0)
-        
-        if is_postgres:
-            query = """
-                SELECT 
-                    v.id,
-                    p.nombre as producto,
-                    v.cantidad,
-                    p.precio_venta as precio_unitario,
-                    (v.cantidad * p.precio_venta) as total,
-                    v.fecha
-                FROM ventas v
-                JOIN productos p ON v.producto_id = p.id
-                ORDER BY v.fecha DESC
-                LIMIT %s OFFSET %s
-            """
-        else:
-            query = """
-                SELECT 
-                    v.id,
-                    p.nombre as producto,
-                    v.cantidad,
-                    p.precio_venta as precio_unitario,
-                    (v.cantidad * p.precio_venta) as total,
-                    v.fecha
-                FROM ventas v
-                JOIN productos p ON v.producto_id = p.id
-                ORDER BY v.fecha DESC
-                LIMIT ? OFFSET ?
-            """
-        
-        resultados = db.execute_query(query, (limite, offset))
-        
-        ventas = []
-        if resultados:
-            for row in resultados:
-                ventas.append({
-                    'id': row[0],
-                    'producto': row[1],
-                    'cantidad': row[2],
-                    'precio_unitario': float(row[3]),
-                    'total': float(row[4]),
-                    'fecha': row[5]
-                })
-        
-        # Contar total
-        if is_postgres:
-            count_query = "SELECT COUNT(*) FROM ventas"
-        else:
-            count_query = "SELECT COUNT(*) FROM ventas"
-        
-        count_result = db.execute_query(count_query)
-        total = count_result[0][0] if count_result else 0
-        
-        return jsonify({
-            'success': True,
-            'ventas': ventas,
-            'total': total,
-            'limite': int(limite),
-            'offset': int(offset)
-        })
-        
-    except Exception as e:
-        logger.error(f"Error en ventas_app: {e}")
-        return jsonify({'success': False, 'message': str(e)}), 500
+# ==================== LOGOUT ====================
 
-@app.route('/api/perfil-vendedor', methods=['GET'])
-@token_required
-def perfil_vendedor():
-    """Obtener perfil del vendedor"""
-    try:
-        from database.db_manager import DatabaseManager
-        DatabaseManager.verify_and_fix_global_tables()
-        conn = DatabaseManager.get_global_connection()
-        
-        if conn is None:
-            return jsonify({'success': False, 'message': 'Error de conexión'}), 500
-        
-        c = conn.cursor()
-        is_postgres = 'RENDER' in os.environ and os.environ.get('DATABASE_URL')
-        
-        if is_postgres:
-            c.execute("""
-                SELECT u.id, u.username, u.role, b.name as business_name, b.email
-                FROM users u
-                JOIN businesses b ON u.business_id = b.id
-                WHERE u.id = %s
-            """, (request.user_id,))
-        else:
-            c.execute("""
-                SELECT u.id, u.username, u.role, b.name as business_name, b.email
-                FROM users u
-                JOIN businesses b ON u.business_id = b.id
-                WHERE u.id = ?
-            """, (request.user_id,))
-        
-        user_data = c.fetchone()
-        if not user_data:
-            return jsonify({'success': False, 'message': 'Usuario no encontrado'}), 404
-        
-        return jsonify({
-            'success': True,
-            'usuario': {
-                'id': user_data[0],
-                'username': user_data[1],
-                'role': user_data[2],
-                'business_name': user_data[3],
-                'email': user_data[4] if len(user_data) > 4 else ''
-            }
-        })
-        
-    except Exception as e:
-        logger.error(f"Error en perfil_vendedor: {e}")
-        return jsonify({'success': False, 'message': str(e)}), 500
-
-# ==================== NOTA: EL LOGOUT YA ESTÁ EN DASHBOARD.PY ====================
-# No duplicar la ruta /logout aquí
+@app.route('/logout')
+def logout():
+    session.clear()
+    return jsonify({'success': True, 'message': 'Sesión cerrada'})
 
 # ==================== INICIO ====================
 
