@@ -706,7 +706,6 @@ def eliminar_vendedor(vendor_id):
 
 # En app.py
 @app.route('/download-apk')
-@login_required
 def download_apk():
     """Servir el archivo APK para descarga"""
     try:
