@@ -86,7 +86,7 @@
                                 android:id="@+id/tv_ingresos_hoy"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:text="/home/runner/work/_temp/b1917efa-018b-4e12-831a-09529e2dffbf.sh.00"
+                                android:text="/home/runner/work/_temp/cd10925e-aaa7-4142-b6e2-df6469e85ec9.sh.00"
                                 android:textSize="24sp"
                                 android:textStyle="bold"
                                 android:textColor="@color/success" />
@@ -149,7 +149,7 @@
                                 android:id="@+id/tv_ingresos_mes"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:text="/home/runner/work/_temp/b1917efa-018b-4e12-831a-09529e2dffbf.sh.00"
+                                android:text="/home/runner/work/_temp/cd10925e-aaa7-4142-b6e2-df6469e85ec9.sh.00"
                                 android:textSize="24sp"
                                 android:textStyle="bold"
                                 android:textColor="@color/success" />
