@@ -510,7 +510,7 @@ def perfil_vendedor():
 # ==================== ENDPOINTS PARA GESTIÓN DE VENDEDORES (ADMIN) ====================
 
 @app.route('/api/vendedores', methods=['GET'])
-@token_required
+@login_required
 def get_vendedores():
     """Obtener lista de vendedores del negocio"""
     try:
