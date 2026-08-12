@@ -75,7 +75,7 @@
                 android:orientation="horizontal"
                 android:background="@drawable/edit_text_background"
                 android:padding="4dp"
-                android:layout_marginBottom="16dp">
+                android:layout_marginBottom="20dp">
 
                 <ImageView
                     android:layout_width="24dp"
@@ -89,36 +89,13 @@
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
-                    android:hint="Ej: AAAA0000"
+                    android:hint="Ej: VEN-001"
                     android:inputType="text"
                     android:background="@android:color/transparent"
                     android:padding="12dp"
                     android:textSize="16dp"
-                    android:textColor="@color/dark"
-                    android:maxLength="8"
-                    android:imeOptions="actionDone" />
+                    android:textColor="@color/dark" />
             </LinearLayout>
-
-            <!-- TextView para mostrar errores -->
-            <TextView
-                android:id="@+id/tv_error"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:textColor="@color/danger"
-                android:textSize="14sp"
-                android:gravity="center"
-                android:padding="8dp"
-                android:visibility="gone"
-                android:layout_marginBottom="8dp" />
-
-            <!-- ProgressBar (inicialmente oculto) -->
-            <ProgressBar
-                android:id="@+id/progressBar"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_gravity="center"
-                android:visibility="gone"
-                android:layout_marginBottom="8dp" />
 
             <!-- Botón de inicio de sesión -->
             <Button
@@ -140,17 +117,6 @@
                 android:textColor="@color/gray"
                 android:layout_gravity="center"
                 android:layout_marginTop="16dp" />
-
-            <!-- Texto de versión -->
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="v1.0"
-                android:textSize="11sp"
-                android:textColor="@color/gray"
-                android:layout_gravity="center"
-                android:layout_marginTop="12dp"
-                android:alpha="0.6" />
 
         </LinearLayout>
     </androidx.cardview.widget.CardView>
