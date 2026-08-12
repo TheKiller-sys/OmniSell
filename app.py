@@ -1,4 +1,4 @@
-# app.py - Aplicación principal CON endpoint para vendedores
+# app.py - Aplicación principal CON endpoint para vendedores y logs por Telegram
 import os
 from flask import Flask, g, jsonify, request, session, send_file
 import logging
@@ -8,6 +8,7 @@ import json
 import jwt
 import datetime
 import bcrypt
+import requests
 from functools import wraps
 
 from flask_login import login_required, current_user
@@ -23,6 +24,15 @@ logger = logging.getLogger(__name__)
 from web.dashboard import create_app
 app = create_app()
 socketio = SocketIO(app, async_mode='threading', cors_allowed_origins="*")
+
+# ==================== CONFIGURACIÓN DEL BOT DE TELEGRAM PARA LOGS ====================
+TELEGRAM_BOT_TOKEN = os.environ.get('TELEGRAM_BOT_TOKEN', '')
+TELEGRAM_ADMIN_CHAT_ID = os.environ.get('TELEGRAM_ADMIN_CHAT_ID', '')
+
+if TELEGRAM_BOT_TOKEN and TELEGRAM_ADMIN_CHAT_ID:
+    logger.info("✅ Bot de Telegram configurado correctamente para logs")
+else:
+    logger.warning("⚠️ Bot de Telegram NO configurado. Los logs no se enviarán.")
 
 # ==================== DECORADOR DE AUTENTICACIÓN ====================
 
@@ -63,10 +73,145 @@ def health_check():
         'timestamp': time.time(),
         'service': 'OmniVentas API',
         'version': '2.0',
-        'environment': 'production' if 'RENDER' in os.environ else 'development'
+        'environment': 'production' if 'RENDER' in os.environ else 'development',
+        'telegram_logs': bool(TELEGRAM_BOT_TOKEN and TELEGRAM_ADMIN_CHAT_ID)
     }), 200
 
-# ==================== NUEVO ENDPOINT: LOGIN DE VENDEDOR ====================
+# ==================== ENDPOINT: LOGS POR TELEGRAM (BOT ÚNICO) ====================
+
+def send_telegram_message(message, parse_mode='Markdown'):
+    """Función interna para enviar mensajes a Telegram"""
+    try:
+        if not TELEGRAM_BOT_TOKEN or not TELEGRAM_ADMIN_CHAT_ID:
+            logger.warning("Telegram no configurado, mensaje no enviado")
+            return False
+        
+        url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
+        payload = {
+            'chat_id': TELEGRAM_ADMIN_CHAT_ID,
+            'text': message,
+            'parse_mode': parse_mode
+        }
+        
+        response = requests.post(url, json=payload, timeout=10)
+        
+        if response.status_code == 200:
+            return True
+        else:
+            logger.error(f"Error enviando mensaje a Telegram: {response.status_code}")
+            return False
+            
+    except Exception as e:
+        logger.error(f"Error en send_telegram_message: {e}")
+        return False
+
+
+@app.route('/api/send-log', methods=['POST'])
+def send_log_to_telegram():
+    """
+    Recibe logs desde la app Android y los envía al bot de Telegram del programador.
+    NO requiere autenticación, es un endpoint público para logs.
+    """
+    try:
+        data = request.json
+        
+        if not data:
+            return jsonify({'success': False, 'message': 'No data received'}), 400
+        
+        log_level = data.get('level', 'INFO')
+        log_message = data.get('message', '')
+        log_data = data.get('data', {})
+        timestamp = data.get('timestamp', datetime.datetime.now().isoformat())
+        vendor_id = data.get('vendor_id', 'DESCONOCIDO')
+        vendor_name = data.get('vendor_name', 'DESCONOCIDO')
+        business_name = data.get('business_name', 'DESCONOCIDO')
+        app_version = data.get('app_version', '1.0')
+        device_model = data.get('device_model', 'DESCONOCIDO')
+        android_version = data.get('android_version', 'DESCONOCIDO')
+        
+        if not log_message:
+            return jsonify({'success': False, 'message': 'message required'}), 400
+        
+        # Verificar que el bot esté configurado
+        if not TELEGRAM_BOT_TOKEN or not TELEGRAM_ADMIN_CHAT_ID:
+            logger.warning("Telegram bot no configurado para enviar log")
+            return jsonify({'success': False, 'message': 'Bot not configured'}), 500
+        
+        # Emojis por nivel
+        emoji = {
+            'DEBUG': '🔍',
+            'INFO': 'ℹ️',
+            'WARNING': '⚠️',
+            'ERROR': '❌',
+            'SUCCESS': '✅',
+            'CRITICAL': '🔥'
+        }.get(log_level, '📱')
+        
+        # Construir mensaje formateado
+        data_str = ""
+        if log_data:
+            try:
+                if isinstance(log_data, dict):
+                    data_str = f"\n📦 *Data:*\n```json\n{json.dumps(log_data, indent=2, default=str)}\n```"
+                else:
+                    data_str = f"\n📦 *Data:* `{str(log_data)}`"
+            except Exception as e:
+                data_str = f"\n📦 *Data:* `{str(log_data)}`"
+        
+        # Construir mensaje completo
+        message = f"""
+{emoji} *[{log_level}] Log desde App Android*
+
+📱 *App:* OmniVentas v{app_version}
+🆔 *Vendedor:* `{vendor_id}` ({vendor_name})
+🏪 *Negocio:* `{business_name}`
+📱 *Dispositivo:* {device_model} (Android {android_version})
+🕐 *Timestamp:* `{timestamp}`
+
+📝 *Mensaje:*
+{log_message}
+{data_str}
+        """.strip()
+        
+        # Enviar mensaje a Telegram
+        success = send_telegram_message(message)
+        
+        if success:
+            logger.info(f"Log enviado a Telegram: {log_level} - {log_message[:50]}")
+            return jsonify({'success': True, 'message': 'Log sent to Telegram'})
+        else:
+            return jsonify({'success': False, 'message': 'Failed to send Telegram message'}), 500
+            
+    except Exception as e:
+        logger.error(f"Error en send_log_to_telegram: {e}")
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@app.route('/api/test-log', methods=['GET'])
+def test_log_endpoint():
+    """Endpoint para probar el envío de logs (sin autenticación)"""
+    try:
+        test_data = {
+            'level': 'SUCCESS',
+            'message': '🧪 Test de conexión desde el servidor',
+            'vendor_id': 'TEST_SERVER',
+            'vendor_name': 'Servidor',
+            'business_name': 'OmniVentas Test',
+            'app_version': '1.0',
+            'device_model': 'Server',
+            'android_version': 'N/A',
+            'timestamp': datetime.datetime.now().isoformat(),
+            'data': {'test': True, 'endpoint': '/api/test-log'}
+        }
+        
+        # Reutilizar la función de envío
+        with app.test_request_context(json=test_data):
+            return send_log_to_telegram()
+            
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+# ==================== ENDPOINT: LOGIN DE VENDEDOR ====================
 
 @app.route('/api/login-vendedor', methods=['POST'])
 def login_vendedor():
@@ -144,6 +289,20 @@ def login_vendedor():
             'exp': datetime.datetime.utcnow() + datetime.timedelta(days=7)
         }, os.environ.get('JWT_SECRET', 'secret-key'), algorithm='HS256')
         
+        # Enviar log de login exitoso al programador
+        log_message = f"✅ Login exitoso: {vendor_data[1]} (ID: {vendor_data[0]}) - {vendor_data[3]}"
+        try:
+            send_telegram_message(f"""
+✅ *Login exitoso desde App Android*
+
+🆔 *Vendedor:* `{vendor_data[0]}` ({vendor_data[1]})
+🏪 *Negocio:* `{vendor_data[3]}`
+🕐 *Timestamp:* `{datetime.datetime.now().isoformat()}`
+📝 *Estado:* Conexión exitosa
+            """.strip())
+        except:
+            pass
+        
         return jsonify({
             'success': True,
             'token': token,
@@ -158,6 +317,16 @@ def login_vendedor():
         
     except Exception as e:
         logger.error(f"Error en login_vendedor: {e}")
+        # Enviar log de error al programador
+        try:
+            send_telegram_message(f"""
+❌ *Error en login*
+
+🕐 *Timestamp:* `{datetime.datetime.now().isoformat()}`
+📝 *Error:* `{str(e)}`
+            """.strip())
+        except:
+            pass
         return jsonify({'success': False, 'message': str(e)}), 500
 
 # ==================== API PARA LA APP ANDROID ====================
@@ -261,6 +430,23 @@ def registrar_venta_app():
         
         total = cantidad * float(precio_unitario)
         
+        # Enviar log de venta registrada
+        try:
+            send_telegram_message(f"""
+✅ *Nueva venta registrada*
+
+🆔 *Vendedor:* `{request.vendor_id}` ({request.vendor_name})
+🏪 *Negocio:* `{request.business_id}`
+📦 *Producto:* {nombre_producto} (ID: {producto_id})
+📊 *Cantidad:* {cantidad}
+💰 *Precio unitario:* ${float(precio_unitario):.2f}
+💵 *Total:* ${total:.2f}
+📦 *Stock restante:* {stock_disponible - cantidad}
+🕐 *Timestamp:* `{datetime.datetime.now().isoformat()}`
+            """.strip())
+        except:
+            pass
+        
         return jsonify({
             'success': True,
             'message': f'Venta registrada: {cantidad} x {nombre_producto}',
@@ -276,6 +462,18 @@ def registrar_venta_app():
         
     except Exception as e:
         logger.error(f"Error en registrar_venta_app: {e}")
+        # Enviar log de error
+        try:
+            send_telegram_message(f"""
+❌ *Error al registrar venta*
+
+🆔 *Vendedor:* `{request.vendor_id if hasattr(request, 'vendor_id') else 'DESCONOCIDO'}`
+🏪 *Negocio:* `{request.business_id if hasattr(request, 'business_id') else 'DESCONOCIDO'}`
+📝 *Error:* `{str(e)}`
+🕐 *Timestamp:* `{datetime.datetime.now().isoformat()}`
+            """.strip())
+        except:
+            pass
         return jsonify({'success': False, 'message': str(e)}), 500
 
 @app.route('/api/dashboard-app', methods=['GET'])
@@ -612,6 +810,19 @@ def crear_vendedor_web():
                 VALUES (?, ?, ?, ?, ?)
             """, (vendor_id, name, current_user.business_id, 'vendedor', 1))
         
+        # Enviar log de vendedor creado
+        try:
+            send_telegram_message(f"""
+✅ *Nuevo vendedor creado desde panel web*
+
+🆔 *ID:* `{vendor_id}`
+👤 *Nombre:* {name}
+🏪 *Negocio:* `{current_user.business_id}`
+🕐 *Timestamp:* `{datetime.datetime.now().isoformat()}`
+            """.strip())
+        except:
+            pass
+        
         return jsonify({
             'success': True,
             'message': 'Vendedor creado correctamente',
@@ -706,9 +917,6 @@ def eliminar_vendedor_web(vendor_id):
         return jsonify({'success': False, 'message': str(e)}), 500
 
 # ==================== ENDPOINTS PARA GESTIÓN DE VENDEDORES (APP ANDROID) ====================
-
-# Estos endpoints usan token_required para la app Android
-# Nota: Los endpoints para la app usan request.role (del token JWT)
 
 @app.route('/api/vendedores-app', methods=['GET'])
 @token_required
@@ -812,6 +1020,20 @@ def crear_vendedor_app():
                 VALUES (?, ?, ?, ?, ?)
             """, (vendor_id, name, request.business_id, 'vendedor', 1))
         
+        # Enviar log de vendedor creado desde app
+        try:
+            send_telegram_message(f"""
+✅ *Nuevo vendedor creado desde App Android*
+
+🆔 *ID:* `{vendor_id}`
+👤 *Nombre:* {name}
+🏪 *Negocio:* `{request.business_id}`
+📱 *Creado por:* `{request.vendor_id}` ({request.vendor_name})
+🕐 *Timestamp:* `{datetime.datetime.now().isoformat()}`
+            """.strip())
+        except:
+            pass
+        
         return jsonify({
             'success': True,
             'message': 'Vendedor creado correctamente',
@@ -829,11 +1051,9 @@ def crear_vendedor_app():
 def download_apk():
     """Servir el archivo APK para descarga"""
     try:
-        # Buscar en la carpeta static
         apk_path = os.path.join(os.path.dirname(__file__), 'static', 'app-debug.apk')
         
         if not os.path.exists(apk_path):
-            # Buscar cualquier .apk en static
             import glob
             apk_files = glob.glob(os.path.join(os.path.dirname(__file__), 'static', '*.apk'))
             if apk_files:
