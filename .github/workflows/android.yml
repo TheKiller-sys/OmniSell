@@ -1184,6 +1184,18 @@ jobs:
                   android:layout_height="200dp"
                   android:layout_marginBottom="12dp" />
           
+              <TextView
+                  android:id="@+id/tv_producto_seleccionado"
+                  android:layout_width="match_parent"
+                  android:layout_height="wrap_content"
+                  android:text=""
+                  android:textSize="14sp"
+                  android:textColor="@color/primary"
+                  android:gravity="center"
+                  android:padding="8dp"
+                  android:visibility="gone"
+                  android:layout_marginBottom="8dp" />
+          
               <com.google.android.material.textfield.TextInputLayout
                   android:layout_width="match_parent"
                   android:layout_height="wrap_content"
@@ -1933,10 +1945,6 @@ jobs:
                   notifyDataSetChanged();
               }
 
-              public void filter(String query) {
-                  // El filtrado se maneja desde el fragmento
-              }
-
               static class ViewHolder extends RecyclerView.ViewHolder {
                   TextView tvNombre, tvSeccion, tvPrecio;
                   ViewHolder(@NonNull View itemView) {
@@ -2063,10 +2071,6 @@ jobs:
                   this.productos = productos != null ? productos : new ArrayList<>();
                   Collections.sort(this.productos, (p1, p2) -> p1.getNombre().compareToIgnoreCase(p2.getNombre()));
                   notifyDataSetChanged();
-              }
-
-              public void filter(String query) {
-                  // El filtrado se maneja desde el fragmento
               }
 
               static class ViewHolder extends RecyclerView.ViewHolder {
@@ -2781,7 +2785,6 @@ jobs:
           import java.text.SimpleDateFormat;
           import java.util.ArrayList;
           import java.util.Collections;
-          import java.util.Comparator;
           import java.util.Date;
           import java.util.List;
           import java.util.Locale;
@@ -2851,7 +2854,6 @@ jobs:
               }
 
               private void cargarVentasHoy() {
-                  // Aquí se cargarían las ventas reales desde la API
                   ventasHoy.clear();
                   actualizarUI();
                   swipeRefresh.setRefreshing(false);
@@ -3542,7 +3544,7 @@ jobs:
           if git diff --staged --quiet; then
             echo "✅ No hay cambios nuevos en android-app/"
           else
-            git commit -m "🚀 Production Android app v6.0 - Mejoras en Ventas e Inventario [skip ci]"
+            git commit -m "🚀 Production Android app v6.0 - Fixed dialog layout [skip ci]"
             git push
             echo "✅ Archivos subidos al repositorio"
           fi
@@ -3584,6 +3586,7 @@ jobs:
           echo "   - ✅ Botón 'Limpiar' en Inventario"
           echo "   - ✅ Actualización automática en tiempo real"
           echo "   - ✅ Conexión API para registro de ventas"
+          echo "   - ✅ Corregido layout del diálogo de registro de ventas"
           echo ""
           echo "🔑 Credenciales de prueba:"
           echo "   Vendor ID: AAAA0000"
