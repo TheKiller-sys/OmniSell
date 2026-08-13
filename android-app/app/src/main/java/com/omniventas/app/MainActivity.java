@@ -10,6 +10,7 @@ import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.omniventas.app.ui.DashboardFragment;
 import com.omniventas.app.ui.VentasFragment;
 import com.omniventas.app.ui.InventarioFragment;
+import com.omniventas.app.ui.UsuarioFragment;
 import com.omniventas.app.utils.SessionManager;
 
 public class MainActivity extends AppCompatActivity {
@@ -48,11 +49,8 @@ public class MainActivity extends AppCompatActivity {
             selectedFragment = new VentasFragment();
         } else if (item.getItemId() == R.id.nav_inventario) {
             selectedFragment = new InventarioFragment();
-        } else if (item.getItemId() == R.id.nav_logout) {
-            sessionManager.clearSession();
-            Toast.makeText(this, "Sesión cerrada", Toast.LENGTH_SHORT).show();
-            finish();
-            return true;
+        } else if (item.getItemId() == R.id.nav_usuario) {
+            selectedFragment = new UsuarioFragment();
         }
 
         if (selectedFragment != null) {

@@ -1,7 +1,8 @@
 package com.omniventas.app.ui;
 
 import android.os.Bundle;
-import android.util.Log;
+import android.os.Handler;
+import android.os.Looper;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -31,13 +32,14 @@ import retrofit2.Response;
 
 public class DashboardFragment extends Fragment {
 
-    private static final String TAG = "DashboardFragment";
     private TextView tvVentasHoy, tvIngresosHoy, tvVentasMes, tvIngresosMes, tvBajoStock, tvFecha;
     private RecyclerView rvVentasRecientes;
     private SwipeRefreshLayout swipeRefresh;
     private SessionManager sessionManager;
     private TelegramLogger logger;
     private VentaAdapter ventaAdapter;
+    private Handler handler = new Handler(Looper.getMainLooper());
+    private Runnable actualizacionAutomatica;
 
     @Nullable
     @Override
@@ -65,9 +67,26 @@ public class DashboardFragment extends Fragment {
 
         swipeRefresh.setOnRefreshListener(this::cargarDashboard);
 
+        actualizacionAutomatica = new Runnable() {
+            @Override
+            public void run() {
+                if (isAdded()) {
+                    cargarDashboard();
+                    handler.postDelayed(this, 10000);
+                }
+            }
+        };
+        handler.postDelayed(actualizacionAutomatica, 10000);
+
         cargarDashboard();
 
         return view;
+    }
+
+    @Override
+    public void onDestroyView() {
+        super.onDestroyView();
+        handler.removeCallbacks(actualizacionAutomatica);
     }
 
     private void cargarDashboard() {
@@ -93,17 +112,17 @@ public class DashboardFragment extends Fragment {
 
                     List<Venta> ventas = data.getVentasRecientes();
                     if (ventas != null) {
+                        if (ventas.size() > 5) {
+                            ventas = ventas.subList(0, 5);
+                        }
                         ventaAdapter.setVentas(ventas);
                     }
-                } else {
-                    Toast.makeText(getContext(), "Error al cargar datos", Toast.LENGTH_SHORT).show();
                 }
             }
 
             @Override
             public void onFailure(Call<DashboardResponse> call, Throwable t) {
                 swipeRefresh.setRefreshing(false);
-                Toast.makeText(getContext(), "Error de conexión", Toast.LENGTH_SHORT).show();
                 logger.networkError(t);
             }
         });

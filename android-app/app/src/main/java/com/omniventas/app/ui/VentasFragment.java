@@ -2,6 +2,8 @@ package com.omniventas.app.ui;
 
 import android.app.Dialog;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.text.Editable;
 import android.text.TextWatcher;
 import android.view.LayoutInflater;
@@ -41,7 +43,6 @@ import retrofit2.Response;
 
 public class VentasFragment extends Fragment {
 
-    private static final String TAG = "VentasFragment";
     private RecyclerView rvVentasHoy;
     private SwipeRefreshLayout swipeRefresh;
     private Button btnRegistrarVenta;
@@ -51,6 +52,8 @@ public class VentasFragment extends Fragment {
     private VentaAdapter ventaAdapter;
     private List<Venta> ventasHoy = new ArrayList<>();
     private List<Producto> productosGlobales = new ArrayList<>();
+    private Handler handler = new Handler(Looper.getMainLooper());
+    private Runnable actualizacionAutomatica;
 
     @Nullable
     @Override
@@ -76,9 +79,26 @@ public class VentasFragment extends Fragment {
         swipeRefresh.setOnRefreshListener(this::cargarVentasHoy);
         btnRegistrarVenta.setOnClickListener(v -> mostrarDialogoRegistrarVenta());
 
+        actualizacionAutomatica = new Runnable() {
+            @Override
+            public void run() {
+                if (isAdded()) {
+                    cargarVentasHoy();
+                    handler.postDelayed(this, 5000);
+                }
+            }
+        };
+        handler.postDelayed(actualizacionAutomatica, 5000);
+
         cargarVentasHoy();
 
         return view;
+    }
+
+    @Override
+    public void onDestroyView() {
+        super.onDestroyView();
+        handler.removeCallbacks(actualizacionAutomatica);
     }
 
     private void cargarVentasHoy() {
@@ -108,14 +128,11 @@ public class VentasFragment extends Fragment {
             public void onResponse(Call<RespuestaProductos> call, Response<RespuestaProductos> response) {
                 if (response.isSuccessful() && response.body() != null && response.body().isSuccess()) {
                     productosGlobales = response.body().getProductos();
-                } else {
-                    Toast.makeText(getContext(), "Error al cargar productos", Toast.LENGTH_SHORT).show();
                 }
             }
             @Override
             public void onFailure(Call<RespuestaProductos> call, Throwable t) {
                 logger.networkError(t);
-                Toast.makeText(getContext(), "Error de conexión al cargar productos", Toast.LENGTH_SHORT).show();
             }
         });
     }

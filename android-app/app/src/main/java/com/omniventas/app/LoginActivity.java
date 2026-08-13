@@ -3,7 +3,6 @@ package com.omniventas.app;
 import android.animation.ObjectAnimator;
 import android.content.Intent;
 import android.os.Bundle;
-import android.util.Log;
 import android.view.View;
 import android.view.animation.AnimationUtils;
 import android.view.inputmethod.EditorInfo;
@@ -25,7 +24,6 @@ import retrofit2.Callback;
 import retrofit2.Response;
 
 public class LoginActivity extends AppCompatActivity {
-    private static final String TAG = "LoginActivity";
     private EditText etVendorId;
     private Button btnLogin;
     private CardView cardLogin;
@@ -41,7 +39,11 @@ public class LoginActivity extends AppCompatActivity {
 
         sessionManager = new SessionManager(this);
         logger = TelegramLogger.getInstance(this);
-        sessionManager.clearSession();
+
+        if (sessionManager.isLoggedIn()) {
+            irAlDashboard();
+            return;
+        }
 
         etVendorId = findViewById(R.id.et_vendor_id);
         btnLogin = findViewById(R.id.btn_login);

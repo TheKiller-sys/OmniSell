@@ -1,9 +1,13 @@
 package com.omniventas.app.ui;
 
 import android.os.Bundle;
+import android.text.Editable;
+import android.text.TextWatcher;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Button;
+import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
 import androidx.annotation.NonNull;
@@ -31,10 +35,13 @@ public class InventarioFragment extends Fragment {
     private RecyclerView rvInventario;
     private SwipeRefreshLayout swipeRefresh;
     private TextView tvTotalProductos, tvStockBajo, tvSinStock, tvInventarioVacio;
+    private EditText etFiltroCategoria, etFiltroPrecio;
+    private Button btnFiltrar;
     private SessionManager sessionManager;
     private TelegramLogger logger;
     private InventarioAdapter inventarioAdapter;
-    private List<Producto> productos = new ArrayList<>();
+    private List<Producto> productosOriginales = new ArrayList<>();
+    private List<Producto> productosFiltrados = new ArrayList<>();
 
     @Nullable
     @Override
@@ -47,6 +54,9 @@ public class InventarioFragment extends Fragment {
         tvStockBajo = view.findViewById(R.id.tv_stock_bajo);
         tvSinStock = view.findViewById(R.id.tv_sin_stock);
         tvInventarioVacio = view.findViewById(R.id.tv_inventario_vacio);
+        etFiltroCategoria = view.findViewById(R.id.et_filtro_categoria);
+        etFiltroPrecio = view.findViewById(R.id.et_filtro_precio);
+        btnFiltrar = view.findViewById(R.id.btn_filtrar);
 
         sessionManager = new SessionManager(getContext());
         logger = TelegramLogger.getInstance(getContext());
@@ -56,6 +66,20 @@ public class InventarioFragment extends Fragment {
         rvInventario.setAdapter(inventarioAdapter);
 
         swipeRefresh.setOnRefreshListener(this::cargarInventario);
+
+        btnFiltrar.setOnClickListener(v -> aplicarFiltros());
+
+        etFiltroCategoria.addTextChangedListener(new TextWatcher() {
+            @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+            @Override public void onTextChanged(CharSequence s, int start, int before, int count) {}
+            @Override public void afterTextChanged(Editable s) { aplicarFiltros(); }
+        });
+
+        etFiltroPrecio.addTextChangedListener(new TextWatcher() {
+            @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+            @Override public void onTextChanged(CharSequence s, int start, int before, int count) {}
+            @Override public void afterTextChanged(Editable s) { aplicarFiltros(); }
+        });
 
         cargarInventario();
 
@@ -76,28 +100,9 @@ public class InventarioFragment extends Fragment {
             public void onResponse(Call<RespuestaProductos> call, Response<RespuestaProductos> response) {
                 swipeRefresh.setRefreshing(false);
                 if (response.isSuccessful() && response.body() != null && response.body().isSuccess()) {
-                    List<Producto> productosData = response.body().getProductos();
-                    productos = productosData;
-                    inventarioAdapter.setProductos(productosData);
-
-                    int total = productosData.size();
-                    int bajo = 0, sinStock = 0;
-                    for (Producto p : productosData) {
-                        if (p.getStock() == 0) sinStock++;
-                        else if (p.getStock() <= 3) bajo++;
-                    }
-
-                    tvTotalProductos.setText(String.valueOf(total));
-                    tvStockBajo.setText(String.valueOf(bajo));
-                    tvSinStock.setText(String.valueOf(sinStock));
-
-                    if (productosData.isEmpty()) {
-                        tvInventarioVacio.setVisibility(View.VISIBLE);
-                        rvInventario.setVisibility(View.GONE);
-                    } else {
-                        tvInventarioVacio.setVisibility(View.GONE);
-                        rvInventario.setVisibility(View.VISIBLE);
-                    }
+                    productosOriginales = response.body().getProductos();
+                    productosFiltrados = new ArrayList<>(productosOriginales);
+                    actualizarUI();
                 } else {
                     Toast.makeText(getContext(), "Error al cargar inventario", Toast.LENGTH_SHORT).show();
                 }
@@ -110,5 +115,58 @@ public class InventarioFragment extends Fragment {
                 logger.networkError(t);
             }
         });
+    }
+
+    private void aplicarFiltros() {
+        String categoria = etFiltroCategoria.getText().toString().toLowerCase().trim();
+        String precioMaxStr = etFiltroPrecio.getText().toString().trim();
+
+        productosFiltrados = new ArrayList<>();
+        for (Producto p : productosOriginales) {
+            boolean cumpleCategoria = true;
+            boolean cumplePrecio = true;
+
+            if (!categoria.isEmpty()) {
+                cumpleCategoria = p.getSeccion() != null && p.getSeccion().toLowerCase().contains(categoria);
+            }
+
+            if (!precioMaxStr.isEmpty()) {
+                try {
+                    double precioMax = Double.parseDouble(precioMaxStr);
+                    cumplePrecio = p.getPrecio() <= precioMax;
+                } catch (NumberFormatException e) {
+                    cumplePrecio = true;
+                }
+            }
+
+            if (cumpleCategoria && cumplePrecio) {
+                productosFiltrados.add(p);
+            }
+        }
+
+        actualizarUI();
+    }
+
+    private void actualizarUI() {
+        inventarioAdapter.setProductos(productosFiltrados);
+
+        int total = productosFiltrados.size();
+        int bajo = 0, sinStock = 0;
+        for (Producto p : productosFiltrados) {
+            if (p.getStock() == 0) sinStock++;
+            else if (p.getStock() <= 3) bajo++;
+        }
+
+        tvTotalProductos.setText(String.valueOf(total));
+        tvStockBajo.setText(String.valueOf(bajo));
+        tvSinStock.setText(String.valueOf(sinStock));
+
+        if (productosFiltrados.isEmpty()) {
+            tvInventarioVacio.setVisibility(View.VISIBLE);
+            rvInventario.setVisibility(View.GONE);
+        } else {
+            tvInventarioVacio.setVisibility(View.GONE);
+            rvInventario.setVisibility(View.VISIBLE);
+        }
     }
 }

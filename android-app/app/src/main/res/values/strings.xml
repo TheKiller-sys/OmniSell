@@ -6,9 +6,6 @@
     <string name="login_hint">ID de Vendedor</string>
     <string name="login_button">Ingresar</string>
     <string name="login_help">Contacta al administrador para obtener tu ID</string>
-    <string name="login_error_empty">Ingresa tu ID de vendedor</string>
-    <string name="login_error_length">El ID debe tener 8 caracteres</string>
-    <string name="login_error_chars">Solo letras y números</string>
     <string name="registrar_venta">Registrar Venta</string>
     <string name="buscar_producto">Buscar producto...</string>
     <string name="cantidad">Cantidad</string>
@@ -23,4 +20,9 @@
     <string name="sin_stock">Sin Stock</string>
     <string name="cargando">Cargando...</string>
     <string name="error_conexion">Error de conexión</string>
+    <string name="usuario">Usuario</string>
+    <string name="cerrar_sesion">Cerrar Sesión</string>
+    <string name="mis_estadisticas">Mis Estadísticas</string>
+    <string name="ventas_totales">Ventas Totales</string>
+    <string name="productos_vendidos">Productos Vendidos</string>
 </resources>

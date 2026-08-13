@@ -2,7 +2,6 @@ package com.omniventas.app.api;
 
 import com.omniventas.app.models.DashboardResponse;
 import com.omniventas.app.models.LoginResponse;
-import com.omniventas.app.models.Producto;
 import com.omniventas.app.models.RespuestaProductos;
 import com.omniventas.app.models.Venta;
 import com.omniventas.app.models.VendorLoginRequest;
