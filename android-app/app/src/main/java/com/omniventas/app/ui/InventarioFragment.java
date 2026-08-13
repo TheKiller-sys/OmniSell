@@ -17,7 +17,6 @@ import com.omniventas.app.adapters.InventarioAdapter;
 import com.omniventas.app.api.ApiService;
 import com.omniventas.app.api.RetrofitClient;
 import com.omniventas.app.models.Producto;
-import com.omniventas.app.models.RespuestaProductos;
 import com.omniventas.app.utils.SessionManager;
 import com.omniventas.app.utils.TelegramLogger;
 import java.util.ArrayList;
@@ -71,18 +70,17 @@ public class InventarioFragment extends Fragment {
         }
 
         ApiService apiService = RetrofitClient.getInstance(getContext()).getApiService();
-        apiService.getProductos("Bearer " + token).enqueue(new Callback<RespuestaProductos>() {
+        apiService.getProductos("Bearer " + token).enqueue(new Callback<List<Producto>>() {
             @Override
-            public void onResponse(Call<RespuestaProductos> call, Response<RespuestaProductos> response) {
+            public void onResponse(Call<List<Producto>> call, Response<List<Producto>> response) {
                 swipeRefresh.setRefreshing(false);
-                if (response.isSuccessful() && response.body() != null && response.body().isSuccess()) {
-                    List<Producto> productosData = response.body().getProductos();
-                    productos = productosData;
-                    inventarioAdapter.setProductos(productosData);
+                if (response.isSuccessful() && response.body() != null) {
+                    productos = response.body();
+                    inventarioAdapter.setProductos(productos);
 
-                    int total = productosData.size();
+                    int total = productos.size();
                     int bajo = 0, sinStock = 0;
-                    for (Producto p : productosData) {
+                    for (Producto p : productos) {
                         if (p.getStock() == 0) sinStock++;
                         else if (p.getStock() <= 3) bajo++;
                     }
@@ -91,7 +89,7 @@ public class InventarioFragment extends Fragment {
                     tvStockBajo.setText(String.valueOf(bajo));
                     tvSinStock.setText(String.valueOf(sinStock));
 
-                    if (productosData.isEmpty()) {
+                    if (productos.isEmpty()) {
                         tvInventarioVacio.setVisibility(View.VISIBLE);
                         rvInventario.setVisibility(View.GONE);
                     } else {
@@ -104,7 +102,7 @@ public class InventarioFragment extends Fragment {
             }
 
             @Override
-            public void onFailure(Call<RespuestaProductos> call, Throwable t) {
+            public void onFailure(Call<List<Producto>> call, Throwable t) {
                 swipeRefresh.setRefreshing(false);
                 Toast.makeText(getContext(), "Error de conexión", Toast.LENGTH_SHORT).show();
                 logger.networkError(t);
