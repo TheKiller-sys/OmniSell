@@ -24,6 +24,7 @@ import com.omniventas.app.adapters.VentaAdapter;
 import com.omniventas.app.api.ApiService;
 import com.omniventas.app.api.RetrofitClient;
 import com.omniventas.app.models.Producto;
+import com.omniventas.app.models.RespuestaProductos;
 import com.omniventas.app.models.Venta;
 import com.omniventas.app.models.VentaRequest;
 import com.omniventas.app.models.VentaResponse;
@@ -102,16 +103,19 @@ public class VentasFragment extends Fragment {
         if (token == null || token.isEmpty()) return;
 
         ApiService apiService = RetrofitClient.getInstance(getContext()).getApiService();
-        apiService.getProductos("Bearer " + token).enqueue(new Callback<List<Producto>>() {
+        apiService.getProductos("Bearer " + token).enqueue(new Callback<RespuestaProductos>() {
             @Override
-            public void onResponse(Call<List<Producto>> call, Response<List<Producto>> response) {
-                if (response.isSuccessful() && response.body() != null) {
-                    productosGlobales = response.body();
+            public void onResponse(Call<RespuestaProductos> call, Response<RespuestaProductos> response) {
+                if (response.isSuccessful() && response.body() != null && response.body().isSuccess()) {
+                    productosGlobales = response.body().getProductos();
+                } else {
+                    Toast.makeText(getContext(), "Error al cargar productos", Toast.LENGTH_SHORT).show();
                 }
             }
             @Override
-            public void onFailure(Call<List<Producto>> call, Throwable t) {
+            public void onFailure(Call<RespuestaProductos> call, Throwable t) {
                 logger.networkError(t);
+                Toast.makeText(getContext(), "Error de conexión al cargar productos", Toast.LENGTH_SHORT).show();
             }
         });
     }
