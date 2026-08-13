@@ -127,8 +127,8 @@ jobs:
                   applicationId "com.omniventas.app"
                   minSdk 21
                   targetSdk 34
-                  versionCode 5
-                  versionName "5.0.0"
+                  versionCode 6
+                  versionName "6.0.0"
                   testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
               }
           
@@ -726,7 +726,7 @@ jobs:
                       <TextView
                           android:layout_width="wrap_content"
                           android:layout_height="wrap_content"
-                          android:text="v5.0.0"
+                          android:text="v6.0.0"
                           android:textSize="11sp"
                           android:textColor="@color/gray"
                           android:layout_gravity="center"
@@ -1286,33 +1286,24 @@ jobs:
                           android:layout_marginBottom="12dp">
           
                           <EditText
-                              android:id="@+id/et_filtro_categoria"
+                              android:id="@+id/et_buscar_producto"
                               android:layout_width="0dp"
                               android:layout_height="wrap_content"
                               android:layout_weight="1"
-                              android:hint="Filtrar por categoría"
+                              android:hint="Buscar producto..."
+                              android:drawableStart="@drawable/ic_search"
+                              android:drawablePadding="12dp"
                               android:padding="12dp"
                               android:background="@drawable/bg_input_login"
                               android:layout_marginEnd="8dp" />
           
-                          <EditText
-                              android:id="@+id/et_filtro_precio"
-                              android:layout_width="0dp"
-                              android:layout_height="wrap_content"
-                              android:layout_weight="1"
-                              android:hint="Precio máx."
-                              android:inputType="numberDecimal"
-                              android:padding="12dp"
-                              android:background="@drawable/bg_input_login" />
-          
                           <Button
-                              android:id="@+id/btn_filtrar"
+                              android:id="@+id/btn_limpiar_filtro"
                               android:layout_width="wrap_content"
                               android:layout_height="wrap_content"
-                              android:text="Filtrar"
-                              android:backgroundTint="@color/primary"
+                              android:text="Limpiar"
+                              android:backgroundTint="@color/gray"
                               android:padding="12dp"
-                              android:layout_marginStart="8dp"
                               app:cornerRadius="8dp" />
           
                       </LinearLayout>
@@ -1896,6 +1887,7 @@ jobs:
           import com.omniventas.app.R;
           import com.omniventas.app.models.Producto;
           import java.util.ArrayList;
+          import java.util.Collections;
           import java.util.List;
 
           public class ProductoAdapter extends RecyclerView.Adapter<ProductoAdapter.ViewHolder> {
@@ -1937,7 +1929,12 @@ jobs:
 
               public void setProductos(List<Producto> productos) {
                   this.productos = productos != null ? productos : new ArrayList<>();
+                  Collections.sort(this.productos, (p1, p2) -> p1.getNombre().compareToIgnoreCase(p2.getNombre()));
                   notifyDataSetChanged();
+              }
+
+              public void filter(String query) {
+                  // El filtrado se maneja desde el fragmento
               }
 
               static class ViewHolder extends RecyclerView.ViewHolder {
@@ -2023,6 +2020,7 @@ jobs:
           import com.omniventas.app.R;
           import com.omniventas.app.models.Producto;
           import java.util.ArrayList;
+          import java.util.Collections;
           import java.util.List;
 
           public class InventarioAdapter extends RecyclerView.Adapter<InventarioAdapter.ViewHolder> {
@@ -2063,7 +2061,12 @@ jobs:
 
               public void setProductos(List<Producto> productos) {
                   this.productos = productos != null ? productos : new ArrayList<>();
+                  Collections.sort(this.productos, (p1, p2) -> p1.getNombre().compareToIgnoreCase(p2.getNombre()));
                   notifyDataSetChanged();
+              }
+
+              public void filter(String query) {
+                  // El filtrado se maneja desde el fragmento
               }
 
               static class ViewHolder extends RecyclerView.ViewHolder {
@@ -2534,7 +2537,7 @@ jobs:
               private static TelegramLogger instance;
               private Context context;
               private SessionManager sessionManager;
-              private String appVersion = "5.0.0";
+              private String appVersion = "6.0.0";
 
               private TelegramLogger(Context context) {
                   this.context = context.getApplicationContext();
@@ -2777,6 +2780,8 @@ jobs:
           import com.omniventas.app.utils.TelegramLogger;
           import java.text.SimpleDateFormat;
           import java.util.ArrayList;
+          import java.util.Collections;
+          import java.util.Comparator;
           import java.util.Date;
           import java.util.List;
           import java.util.Locale;
@@ -2834,6 +2839,7 @@ jobs:
                   handler.postDelayed(actualizacionAutomatica, 5000);
 
                   cargarVentasHoy();
+                  cargarProductos();
 
                   return view;
               }
@@ -2845,6 +2851,7 @@ jobs:
               }
 
               private void cargarVentasHoy() {
+                  // Aquí se cargarían las ventas reales desde la API
                   ventasHoy.clear();
                   actualizarUI();
                   swipeRefresh.setRefreshing(false);
@@ -2871,6 +2878,7 @@ jobs:
                       public void onResponse(Call<RespuestaProductos> call, Response<RespuestaProductos> response) {
                           if (response.isSuccessful() && response.body() != null && response.body().isSuccess()) {
                               productosGlobales = response.body().getProductos();
+                              Collections.sort(productosGlobales, (p1, p2) -> p1.getNombre().compareToIgnoreCase(p2.getNombre()));
                           }
                       }
                       @Override
@@ -2889,6 +2897,7 @@ jobs:
                   RecyclerView rvProductosBusqueda = dialog.findViewById(R.id.rv_productos_busqueda);
                   EditText etCantidad = dialog.findViewById(R.id.et_cantidad);
                   TextView tvTotalVenta = dialog.findViewById(R.id.tv_total_venta);
+                  TextView tvProductoSeleccionado = dialog.findViewById(R.id.tv_producto_seleccionado);
                   Button btnCancelar = dialog.findViewById(R.id.btn_cancelar_venta);
                   Button btnRegistrar = dialog.findViewById(R.id.btn_registrar_venta_dialog);
 
@@ -2897,6 +2906,8 @@ jobs:
                   }
 
                   ProductoAdapter productoAdapter = new ProductoAdapter(producto -> {
+                      tvProductoSeleccionado.setText("Producto seleccionado: " + producto.getNombre());
+                      tvProductoSeleccionado.setVisibility(View.VISIBLE);
                       tvTotalVenta.setTag(producto);
                       double precio = producto.getPrecio();
                       int cantidad = 1;
@@ -2916,7 +2927,8 @@ jobs:
                           String query = s.toString().toLowerCase().trim();
                           List<Producto> filtrados = new ArrayList<>();
                           for (Producto p : productosGlobales) {
-                              if (p.getNombre().toLowerCase().contains(query)) {
+                              if (p.getNombre().toLowerCase().contains(query) ||
+                                  (p.getSeccion() != null && p.getSeccion().toLowerCase().contains(query))) {
                                   filtrados.add(p);
                               }
                           }
@@ -3026,6 +3038,7 @@ jobs:
           import com.omniventas.app.utils.SessionManager;
           import com.omniventas.app.utils.TelegramLogger;
           import java.util.ArrayList;
+          import java.util.Collections;
           import java.util.List;
           import retrofit2.Call;
           import retrofit2.Callback;
@@ -3036,8 +3049,8 @@ jobs:
               private RecyclerView rvInventario;
               private SwipeRefreshLayout swipeRefresh;
               private TextView tvTotalProductos, tvStockBajo, tvSinStock, tvInventarioVacio;
-              private EditText etFiltroCategoria, etFiltroPrecio;
-              private Button btnFiltrar;
+              private EditText etBuscarProducto;
+              private Button btnLimpiarFiltro;
               private SessionManager sessionManager;
               private TelegramLogger logger;
               private InventarioAdapter inventarioAdapter;
@@ -3055,9 +3068,8 @@ jobs:
                   tvStockBajo = view.findViewById(R.id.tv_stock_bajo);
                   tvSinStock = view.findViewById(R.id.tv_sin_stock);
                   tvInventarioVacio = view.findViewById(R.id.tv_inventario_vacio);
-                  etFiltroCategoria = view.findViewById(R.id.et_filtro_categoria);
-                  etFiltroPrecio = view.findViewById(R.id.et_filtro_precio);
-                  btnFiltrar = view.findViewById(R.id.btn_filtrar);
+                  etBuscarProducto = view.findViewById(R.id.et_buscar_producto);
+                  btnLimpiarFiltro = view.findViewById(R.id.btn_limpiar_filtro);
 
                   sessionManager = new SessionManager(getContext());
                   logger = TelegramLogger.getInstance(getContext());
@@ -3068,15 +3080,12 @@ jobs:
 
                   swipeRefresh.setOnRefreshListener(this::cargarInventario);
 
-                  btnFiltrar.setOnClickListener(v -> aplicarFiltros());
-
-                  etFiltroCategoria.addTextChangedListener(new TextWatcher() {
-                      @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
-                      @Override public void onTextChanged(CharSequence s, int start, int before, int count) {}
-                      @Override public void afterTextChanged(Editable s) { aplicarFiltros(); }
+                  btnLimpiarFiltro.setOnClickListener(v -> {
+                      etBuscarProducto.setText("");
+                      aplicarFiltros();
                   });
 
-                  etFiltroPrecio.addTextChangedListener(new TextWatcher() {
+                  etBuscarProducto.addTextChangedListener(new TextWatcher() {
                       @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
                       @Override public void onTextChanged(CharSequence s, int start, int before, int count) {}
                       @Override public void afterTextChanged(Editable s) { aplicarFiltros(); }
@@ -3102,6 +3111,7 @@ jobs:
                           swipeRefresh.setRefreshing(false);
                           if (response.isSuccessful() && response.body() != null && response.body().isSuccess()) {
                               productosOriginales = response.body().getProductos();
+                              Collections.sort(productosOriginales, (p1, p2) -> p1.getNombre().compareToIgnoreCase(p2.getNombre()));
                               productosFiltrados = new ArrayList<>(productosOriginales);
                               actualizarUI();
                           } else {
@@ -3119,29 +3129,17 @@ jobs:
               }
 
               private void aplicarFiltros() {
-                  String categoria = etFiltroCategoria.getText().toString().toLowerCase().trim();
-                  String precioMaxStr = etFiltroPrecio.getText().toString().trim();
+                  String query = etBuscarProducto.getText().toString().toLowerCase().trim();
 
                   productosFiltrados = new ArrayList<>();
                   for (Producto p : productosOriginales) {
-                      boolean cumpleCategoria = true;
-                      boolean cumplePrecio = true;
-
-                      if (!categoria.isEmpty()) {
-                          cumpleCategoria = p.getSeccion() != null && p.getSeccion().toLowerCase().contains(categoria);
-                      }
-
-                      if (!precioMaxStr.isEmpty()) {
-                          try {
-                              double precioMax = Double.parseDouble(precioMaxStr);
-                              cumplePrecio = p.getPrecio() <= precioMax;
-                          } catch (NumberFormatException e) {
-                              cumplePrecio = true;
-                          }
-                      }
-
-                      if (cumpleCategoria && cumplePrecio) {
+                      if (query.isEmpty()) {
                           productosFiltrados.add(p);
+                      } else {
+                          if (p.getNombre().toLowerCase().contains(query) ||
+                              (p.getSeccion() != null && p.getSeccion().toLowerCase().contains(query))) {
+                              productosFiltrados.add(p);
+                          }
                       }
                   }
 
@@ -3149,6 +3147,7 @@ jobs:
               }
 
               private void actualizarUI() {
+                  Collections.sort(productosFiltrados, (p1, p2) -> p1.getNombre().compareToIgnoreCase(p2.getNombre()));
                   inventarioAdapter.setProductos(productosFiltrados);
 
                   int total = productosFiltrados.size();
@@ -3543,7 +3542,7 @@ jobs:
           if git diff --staged --quiet; then
             echo "✅ No hay cambios nuevos en android-app/"
           else
-            git commit -m "🚀 Production Android app v5.0 - Fixed compilation errors [skip ci]"
+            git commit -m "🚀 Production Android app v6.0 - Mejoras en Ventas e Inventario [skip ci]"
             git push
             echo "✅ Archivos subidos al repositorio"
           fi
@@ -3575,18 +3574,16 @@ jobs:
         run: |
           echo "🚀 APK DE PRODUCCIÓN COMPILADOS EXITOSAMENTE!"
           echo ""
-          echo "📱 Versión: 5.0.0"
+          echo "📱 Versión: 6.0.0"
           echo ""
           echo "✨ Mejoras incluidas:"
-          echo "   - ✅ Fondo de login blanco"
-          echo "   - ✅ Datos en tiempo real (actualización automática)"
-          echo "   - ✅ Dashboard con últimos 5 productos en ventas recientes"
-          echo "   - ✅ Ventas del día se actualizan automáticamente"
-          echo "   - ✅ Inventario con filtros por categoría y precio"
-          echo "   - ✅ Menú 'Usuario' con estadísticas del vendedor"
-          echo "   - ✅ Sesiones persistentes"
-          echo "   - ✅ Cerrar sesión desde el perfil"
-          echo "   - ✅ Corregido error de compilación (DialogStyle, TelegramLogger.info)"
+          echo "   - ✅ Búsqueda de productos en Ventas con filtro por nombre y categoría"
+          echo "   - ✅ Productos ordenados A-Z en Ventas e Inventario"
+          echo "   - ✅ Texto de producto seleccionado en el diálogo de Ventas"
+          echo "   - ✅ Inventario con búsqueda por nombre/categoría"
+          echo "   - ✅ Botón 'Limpiar' en Inventario"
+          echo "   - ✅ Actualización automática en tiempo real"
+          echo "   - ✅ Conexión API para registro de ventas"
           echo ""
           echo "🔑 Credenciales de prueba:"
           echo "   Vendor ID: AAAA0000"
