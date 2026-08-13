@@ -652,8 +652,7 @@ jobs:
                           android:layout_marginBottom="8dp"
                           android:fontFamily="sans-serif-medium" />
           
-                      <LinearLayout
-                          android:layout_width="match_parent"
+                      <LinearLayout                          android:layout_width="match_parent"
                           android:layout_height="wrap_content"
                           android:orientation="horizontal"
                           android:background="@drawable/bg_input_login"
@@ -1687,7 +1686,8 @@ jobs:
           </LinearLayout>
           EOF
 
-      - name: Create item layouts        run: |
+      - name: Create item layouts
+        run: |
           cd android-app
           
           cat > app/src/main/res/layout/item_producto.xml << 'EOF'
@@ -2725,7 +2725,7 @@ jobs:
           }
           EOF
 
-      - name: Create VentasFragment - CORREGIDO
+      - name: Create VentasFragment
         run: |
           cd android-app
           
@@ -3520,7 +3520,7 @@ jobs:
           if git diff --staged --quiet; then
             echo "✅ No hay cambios nuevos en android-app/"
           else
-            git commit -m "🚀 Production Android app v8.0 - Fix registro de ventas [skip ci]"
+            git commit -m "🚀 Production Android app v8.0 - Fix syntax error [skip ci]"
             git push
             echo "✅ Archivos subidos al repositorio"
           fi
@@ -3562,7 +3562,7 @@ jobs:
           echo "   - ✅ Barra inferior: 'Principal' en lugar de 'Dashboard'"
           echo "   - ✅ Ventas: Título 'Ventas' centrado superior sin fecha"
           echo "   - ✅ Inventario: Título 'Inventario' centrado superior"
-          echo "   - ✅ Todos los textos mejorados y visibles"
+          echo "   - ✅ Corregido error de sintaxis en YAML"
           echo ""
           echo "🔑 Credenciales de prueba:"
           echo "   Vendor ID: AAAA0000"
