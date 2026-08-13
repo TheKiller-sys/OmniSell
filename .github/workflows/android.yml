@@ -127,8 +127,8 @@ jobs:
                   applicationId "com.omniventas.app"
                   minSdk 21
                   targetSdk 34
-                  versionCode 7
-                  versionName "7.0.0"
+                  versionCode 8
+                  versionName "8.0.0"
                   testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
               }
           
@@ -730,7 +730,7 @@ jobs:
                       <TextView
                           android:layout_width="wrap_content"
                           android:layout_height="wrap_content"
-                          android:text="v7.0.0"
+                          android:text="v8.0.0"
                           android:textSize="11sp"
                           android:textColor="@color/gray"
                           android:layout_gravity="center"
@@ -1687,8 +1687,7 @@ jobs:
           </LinearLayout>
           EOF
 
-      - name: Create item layouts
-        run: |
+      - name: Create item layouts        run: |
           cd android-app
           
           cat > app/src/main/res/layout/item_producto.xml << 'EOF'
@@ -2531,7 +2530,7 @@ jobs:
               private static TelegramLogger instance;
               private Context context;
               private SessionManager sessionManager;
-              private String appVersion = "7.0.0";
+              private String appVersion = "8.0.0";
 
               private TelegramLogger(Context context) {
                   this.context = context.getApplicationContext();
@@ -2726,7 +2725,7 @@ jobs:
           }
           EOF
 
-      - name: Create VentasFragment
+      - name: Create VentasFragment - CORREGIDO
         run: |
           cd android-app
           
@@ -2739,6 +2738,7 @@ jobs:
           import android.os.Looper;
           import android.text.Editable;
           import android.text.TextWatcher;
+          import android.util.Log;
           import android.view.LayoutInflater;
           import android.view.View;
           import android.view.ViewGroup;
@@ -3293,7 +3293,6 @@ jobs:
                   progressBar = findViewById(R.id.progressBar);
                   tvError = findViewById(R.id.tv_error);
 
-                  // No prellenar con ID de prueba
                   if (etVendorId != null) {
                       etVendorId.setText("");
                   }
@@ -3521,7 +3520,7 @@ jobs:
           if git diff --staged --quiet; then
             echo "✅ No hay cambios nuevos en android-app/"
           else
-            git commit -m "🚀 Production Android app v7.0 - UI mejorada [skip ci]"
+            git commit -m "🚀 Production Android app v8.0 - Fix registro de ventas [skip ci]"
             git push
             echo "✅ Archivos subidos al repositorio"
           fi
@@ -3553,13 +3552,13 @@ jobs:
         run: |
           echo "🚀 APK DE PRODUCCIÓN COMPILADOS EXITOSAMENTE!"
           echo ""
-          echo "📱 Versión: 7.0.0"
+          echo "📱 Versión: 8.0.0"
           echo ""
           echo "✨ Mejoras incluidas:"
+          echo "   - ✅ Corregido registro de ventas desde la app"
           echo "   - ✅ Login: Campo de ID vacío (sin ID pre-cargado)"
           echo "   - ✅ Login: Pantalla ajustada con el teclado visible"
-          echo "   - ✅ Dashboard: Logo en el centro superior sin texto 'Dashboard'"
-          echo "   - ✅ Dashboard: Eliminada la fecha"
+          echo "   - ✅ Dashboard: Logo en el centro superior sin texto"
           echo "   - ✅ Barra inferior: 'Principal' en lugar de 'Dashboard'"
           echo "   - ✅ Ventas: Título 'Ventas' centrado superior sin fecha"
           echo "   - ✅ Inventario: Título 'Inventario' centrado superior"
