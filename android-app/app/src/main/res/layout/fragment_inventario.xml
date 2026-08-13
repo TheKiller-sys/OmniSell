@@ -15,16 +15,18 @@
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="vertical">
+            android:orientation="vertical"
+            android:gravity="center_horizontal">
 
             <TextView
-                android:layout_width="match_parent"
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Inventario"
+                android:text="@string/inventario"
                 android:textSize="24sp"
                 android:textStyle="bold"
                 android:textColor="@color/dark"
-                android:layout_marginBottom="8dp" />
+                android:layout_marginTop="8dp"
+                android:layout_marginBottom="16dp" />
 
             <LinearLayout
                 android:layout_width="match_parent"
@@ -91,7 +93,7 @@
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="Productos"
+                            android:text="@string/productos"
                             android:textSize="10sp"
                             android:textColor="@color/gray" />
                     </LinearLayout>
@@ -128,7 +130,7 @@
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="Stock Bajo"
+                            android:text="@string/stock_bajo"
                             android:textSize="10sp"
                             android:textColor="@color/gray" />
                     </LinearLayout>
@@ -164,7 +166,7 @@
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="Sin Stock"
+                            android:text="@string/sin_stock"
                             android:textSize="10sp"
                             android:textColor="@color/gray" />
                     </LinearLayout>

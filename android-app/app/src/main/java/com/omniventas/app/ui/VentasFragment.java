@@ -32,12 +32,9 @@ import com.omniventas.app.models.VentaRequest;
 import com.omniventas.app.models.VentaResponse;
 import com.omniventas.app.utils.SessionManager;
 import com.omniventas.app.utils.TelegramLogger;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Date;
 import java.util.List;
-import java.util.Locale;
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
@@ -47,7 +44,7 @@ public class VentasFragment extends Fragment {
     private RecyclerView rvVentasHoy;
     private SwipeRefreshLayout swipeRefresh;
     private Button btnRegistrarVenta;
-    private TextView tvSinVentas, tvVentasHoyTitulo;
+    private TextView tvSinVentas;
     private SessionManager sessionManager;
     private TelegramLogger logger;
     private VentaAdapter ventaAdapter;
@@ -65,7 +62,6 @@ public class VentasFragment extends Fragment {
         swipeRefresh = view.findViewById(R.id.swipe_refresh);
         btnRegistrarVenta = view.findViewById(R.id.btn_registrar_venta);
         tvSinVentas = view.findViewById(R.id.tv_sin_ventas);
-        tvVentasHoyTitulo = view.findViewById(R.id.tv_ventas_hoy_titulo);
 
         sessionManager = new SessionManager(getContext());
         logger = TelegramLogger.getInstance(getContext());
@@ -73,9 +69,6 @@ public class VentasFragment extends Fragment {
         ventaAdapter = new VentaAdapter();
         rvVentasHoy.setLayoutManager(new LinearLayoutManager(getContext()));
         rvVentasHoy.setAdapter(ventaAdapter);
-
-        String fecha = new SimpleDateFormat("EEEE, d MMM", new Locale("es", "ES")).format(new Date());
-        tvVentasHoyTitulo.setText("Ventas de Hoy - " + fecha);
 
         swipeRefresh.setOnRefreshListener(this::cargarVentasHoy);
         btnRegistrarVenta.setOnClickListener(v -> mostrarDialogoRegistrarVenta());

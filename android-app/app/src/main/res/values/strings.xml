@@ -25,4 +25,6 @@
     <string name="mis_estadisticas">Mis Estadísticas</string>
     <string name="ventas_totales">Ventas Totales</string>
     <string name="productos_vendidos">Productos Vendidos</string>
+    <string name="principal">Principal</string>
+    <string name="ventas">Ventas</string>
 </resources>

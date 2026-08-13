@@ -65,7 +65,7 @@
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="Mis Estadísticas"
+                            android:text="@string/mis_estadisticas"
                             android:textSize="18sp"
                             android:textStyle="bold"
                             android:textColor="@color/dark"
@@ -97,7 +97,7 @@
                                 <TextView
                                     android:layout_width="wrap_content"
                                     android:layout_height="wrap_content"
-                                    android:text="Ventas Totales"
+                                    android:text="@string/ventas_totales"
                                     android:textSize="12sp"
                                     android:textColor="@color/gray" />
                             </LinearLayout>
@@ -122,7 +122,7 @@
                                 <TextView
                                     android:layout_width="wrap_content"
                                     android:layout_height="wrap_content"
-                                    android:text="Productos Vendidos"
+                                    android:text="@string/productos_vendidos"
                                     android:textSize="12sp"
                                     android:textColor="@color/gray" />
                             </LinearLayout>
@@ -193,7 +193,7 @@
                     android:id="@+id/btn_cerrar_sesion"
                     android:layout_width="match_parent"
                     android:layout_height="56dp"
-                    android:text="Cerrar Sesión"
+                    android:text="@string/cerrar_sesion"
                     android:textSize="16sp"
                     android:textStyle="bold"
                     android:textColor="@color/white"

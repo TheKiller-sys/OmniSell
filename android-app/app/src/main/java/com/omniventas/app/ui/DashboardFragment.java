@@ -22,17 +22,14 @@ import com.omniventas.app.models.DashboardResponse;
 import com.omniventas.app.models.Venta;
 import com.omniventas.app.utils.SessionManager;
 import com.omniventas.app.utils.TelegramLogger;
-import java.text.SimpleDateFormat;
-import java.util.Date;
 import java.util.List;
-import java.util.Locale;
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
 
 public class DashboardFragment extends Fragment {
 
-    private TextView tvVentasHoy, tvIngresosHoy, tvVentasMes, tvIngresosMes, tvBajoStock, tvFecha;
+    private TextView tvVentasHoy, tvIngresosHoy, tvVentasMes, tvIngresosMes, tvBajoStock;
     private RecyclerView rvVentasRecientes;
     private SwipeRefreshLayout swipeRefresh;
     private SessionManager sessionManager;
@@ -51,7 +48,6 @@ public class DashboardFragment extends Fragment {
         tvVentasMes = view.findViewById(R.id.tv_ventas_mes);
         tvIngresosMes = view.findViewById(R.id.tv_ingresos_mes);
         tvBajoStock = view.findViewById(R.id.tv_bajo_stock);
-        tvFecha = view.findViewById(R.id.tv_fecha);
         rvVentasRecientes = view.findViewById(R.id.rv_ventas_recientes);
         swipeRefresh = view.findViewById(R.id.swipe_refresh);
 
@@ -61,9 +57,6 @@ public class DashboardFragment extends Fragment {
         ventaAdapter = new VentaAdapter();
         rvVentasRecientes.setLayoutManager(new LinearLayoutManager(getContext()));
         rvVentasRecientes.setAdapter(ventaAdapter);
-
-        String fecha = new SimpleDateFormat("EEEE, d MMM", new Locale("es", "ES")).format(new Date());
-        tvFecha.setText(fecha);
 
         swipeRefresh.setOnRefreshListener(this::cargarDashboard);
 

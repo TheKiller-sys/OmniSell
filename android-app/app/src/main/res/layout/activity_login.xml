@@ -6,7 +6,8 @@
     android:orientation="vertical"
     android:gravity="center"
     android:padding="24dp"
-    android:background="@color/white">
+    android:background="@color/white"
+    android:fitsSystemWindows="true">
 
     <ImageView
         android:id="@+id/iv_logo"
@@ -93,7 +94,8 @@
                     android:textColor="@color/dark"
                     android:maxLength="8"
                     android:fontFamily="sans-serif-medium"
-                    android:imeOptions="actionDone" />
+                    android:imeOptions="actionDone"
+                    android:importantForAutofill="no" />
             </LinearLayout>
 
             <TextView
@@ -142,7 +144,7 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="v6.0.0"
+                android:text="v7.0.0"
                 android:textSize="11sp"
                 android:textColor="@color/gray"
                 android:layout_gravity="center"
