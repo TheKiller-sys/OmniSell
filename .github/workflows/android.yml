@@ -127,8 +127,8 @@ jobs:
                   applicationId "com.omniventas.app"
                   minSdk 21
                   targetSdk 34
-                  versionCode 3
-                  versionName "3.0.0"
+                  versionCode 4
+                  versionName "4.0.0"
                   testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
               }
           
@@ -659,8 +659,7 @@ jobs:
                   android:fillColor="@color/primary"
                   android:pathData="M20,4H4c-1.1,0 -2,0.9 -2,2v12c0,1.1 0.9,2 2,2h16c1.1,0 2,-0.9 2,-2V6c0,-1.1 -0.9,-2 -2,-2zM4,6h16v2H4V6zM4,12h4v2H4v-2zM10,12h4v2h-4v-2zM16,12h4v2h-4v-2zM4,10V8h4v2H4zM10,10V8h4v2h-4zM16,10V8h4v2h-4z"/>
           </vector>
-          EOF
-          
+          EOF          
           cat > app/src/main/res/drawable/ic_search.xml << 'EOF'
           <?xml version="1.0" encoding="utf-8"?>
           <vector xmlns:android="http://schemas.android.com/apk/res/android"
@@ -878,7 +877,7 @@ jobs:
                       <TextView
                           android:layout_width="wrap_content"
                           android:layout_height="wrap_content"
-                          android:text="v3.0.0"
+                          android:text="v4.0.0"
                           android:textSize="11sp"
                           android:textColor="@color/gray"
                           android:layout_gravity="center"
@@ -1401,6 +1400,7 @@ jobs:
       - name: Create Inventario Layout
         run: |
           cd android-app
+          
           cat > app/src/main/res/layout/fragment_inventario.xml << 'EOF'
           <?xml version="1.0" encoding="utf-8"?>
           <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
@@ -2040,6 +2040,29 @@ jobs:
           }
           EOF
 
+      - name: Create RespuestaProductos
+        run: |
+          cd android-app
+          
+          cat > app/src/main/java/com/omniventas/app/models/RespuestaProductos.java << 'EOF'
+          package com.omniventas.app.models;
+
+          import java.util.List;
+
+          public class RespuestaProductos {
+              private boolean success;
+              private List<Producto> productos;
+              private int total;
+
+              public boolean isSuccess() { return success; }
+              public void setSuccess(boolean success) { this.success = success; }
+              public List<Producto> getProductos() { return productos; }
+              public void setProductos(List<Producto> productos) { this.productos = productos; }
+              public int getTotal() { return total; }
+              public void setTotal(int total) { this.total = total; }
+          }
+          EOF
+
       - name: Create API classes
         run: |
           cd android-app
@@ -2130,6 +2153,7 @@ jobs:
           import com.omniventas.app.models.DashboardResponse;
           import com.omniventas.app.models.LoginResponse;
           import com.omniventas.app.models.Producto;
+          import com.omniventas.app.models.RespuestaProductos;
           import com.omniventas.app.models.Venta;
           import com.omniventas.app.models.VendorLoginRequest;
           import com.omniventas.app.models.VentaRequest;
@@ -2147,7 +2171,7 @@ jobs:
               Call<LoginResponse> loginVendor(@Body VendorLoginRequest request);
 
               @GET("api/productos")
-              Call<List<Producto>> getProductos(@Header("Authorization") String token);
+              Call<RespuestaProductos> getProductos(@Header("Authorization") String token);
 
               @POST("api/registrar-venta-app")
               Call<VentaResponse> registrarVenta(@Header("Authorization") String token, @Body VentaRequest request);
@@ -2411,7 +2435,7 @@ jobs:
               private static TelegramLogger instance;
               private Context context;
               private SessionManager sessionManager;
-              private String appVersion = "3.0.0";
+              private String appVersion = "4.0.0";
 
               private TelegramLogger(Context context) {
                   this.context = context.getApplicationContext();
@@ -2624,6 +2648,7 @@ jobs:
           import com.omniventas.app.api.ApiService;
           import com.omniventas.app.api.RetrofitClient;
           import com.omniventas.app.models.Producto;
+          import com.omniventas.app.models.RespuestaProductos;
           import com.omniventas.app.models.Venta;
           import com.omniventas.app.models.VentaRequest;
           import com.omniventas.app.models.VentaResponse;
@@ -2702,16 +2727,19 @@ jobs:
                   if (token == null || token.isEmpty()) return;
 
                   ApiService apiService = RetrofitClient.getInstance(getContext()).getApiService();
-                  apiService.getProductos("Bearer " + token).enqueue(new Callback<List<Producto>>() {
+                  apiService.getProductos("Bearer " + token).enqueue(new Callback<RespuestaProductos>() {
                       @Override
-                      public void onResponse(Call<List<Producto>> call, Response<List<Producto>> response) {
-                          if (response.isSuccessful() && response.body() != null) {
-                              productosGlobales = response.body();
+                      public void onResponse(Call<RespuestaProductos> call, Response<RespuestaProductos> response) {
+                          if (response.isSuccessful() && response.body() != null && response.body().isSuccess()) {
+                              productosGlobales = response.body().getProductos();
+                          } else {
+                              Toast.makeText(getContext(), "Error al cargar productos", Toast.LENGTH_SHORT).show();
                           }
                       }
                       @Override
-                      public void onFailure(Call<List<Producto>> call, Throwable t) {
+                      public void onFailure(Call<RespuestaProductos> call, Throwable t) {
                           logger.networkError(t);
+                          Toast.makeText(getContext(), "Error de conexión al cargar productos", Toast.LENGTH_SHORT).show();
                       }
                   });
               }
@@ -2854,6 +2882,7 @@ jobs:
           import com.omniventas.app.api.ApiService;
           import com.omniventas.app.api.RetrofitClient;
           import com.omniventas.app.models.Producto;
+          import com.omniventas.app.models.RespuestaProductos;
           import com.omniventas.app.utils.SessionManager;
           import com.omniventas.app.utils.TelegramLogger;
           import java.util.ArrayList;
@@ -2907,17 +2936,18 @@ jobs:
                   }
 
                   ApiService apiService = RetrofitClient.getInstance(getContext()).getApiService();
-                  apiService.getProductos("Bearer " + token).enqueue(new Callback<List<Producto>>() {
+                  apiService.getProductos("Bearer " + token).enqueue(new Callback<RespuestaProductos>() {
                       @Override
-                      public void onResponse(Call<List<Producto>> call, Response<List<Producto>> response) {
+                      public void onResponse(Call<RespuestaProductos> call, Response<RespuestaProductos> response) {
                           swipeRefresh.setRefreshing(false);
-                          if (response.isSuccessful() && response.body() != null) {
-                              productos = response.body();
-                              inventarioAdapter.setProductos(productos);
+                          if (response.isSuccessful() && response.body() != null && response.body().isSuccess()) {
+                              List<Producto> productosData = response.body().getProductos();
+                              productos = productosData;
+                              inventarioAdapter.setProductos(productosData);
 
-                              int total = productos.size();
+                              int total = productosData.size();
                               int bajo = 0, sinStock = 0;
-                              for (Producto p : productos) {
+                              for (Producto p : productosData) {
                                   if (p.getStock() == 0) sinStock++;
                                   else if (p.getStock() <= 3) bajo++;
                               }
@@ -2926,7 +2956,7 @@ jobs:
                               tvStockBajo.setText(String.valueOf(bajo));
                               tvSinStock.setText(String.valueOf(sinStock));
 
-                              if (productos.isEmpty()) {
+                              if (productosData.isEmpty()) {
                                   tvInventarioVacio.setVisibility(View.VISIBLE);
                                   rvInventario.setVisibility(View.GONE);
                               } else {
@@ -2939,7 +2969,7 @@ jobs:
                       }
 
                       @Override
-                      public void onFailure(Call<List<Producto>> call, Throwable t) {
+                      public void onFailure(Call<RespuestaProductos> call, Throwable t) {
                           swipeRefresh.setRefreshing(false);
                           Toast.makeText(getContext(), "Error de conexión", Toast.LENGTH_SHORT).show();
                           logger.networkError(t);
@@ -3234,7 +3264,7 @@ jobs:
           if git diff --staged --quiet; then
             echo "✅ No hay cambios nuevos en android-app/"
           else
-            git commit -m "🚀 Production Android app v3.0 - Fixed duplication [skip ci]"
+            git commit -m "🚀 Production Android app v4.0 - Fixed API response handling [skip ci]"
             git push
             echo "✅ Archivos subidos al repositorio"
           fi
@@ -3266,20 +3296,19 @@ jobs:
         run: |
           echo "🚀 APK DE PRODUCCIÓN COMPILADOS EXITOSAMENTE!"
           echo ""
-          echo "📱 Versión: 3.0.0"
+          echo "📱 Versión: 4.0.0"
           echo "🎨 Diseño: Premium con animaciones, gradientes y iconos vectoriales"
           echo "🔗 API: https://prueba-1-omni.onrender.com"
           echo ""
           echo "✨ Mejoras incluidas:"
-          echo "   - Icono de la app corregido en el login"
-          echo "   - Dashboard con cards gradientes y estadísticas"
-          echo "   - Ventas con modal de registro (búsqueda de productos)"
-          echo "   - Inventario con cards de estado de stock"
-          echo "   - Conexión API en todos los fragments"
-          echo "   - Eliminados atributos colorSchemeColors (no válidos)"
-          echo "   - Corregido error de compilación en VentasFragment"
-          echo "   - Corregido archivo ic_store.xml"
-          echo "   - Eliminados pasos duplicados en el workflow"
+          echo "   - ✅ Fix: Respuesta de productos ahora maneja BEGINOBJECT correctamente"
+          echo "   - ✅ Nuevo modelo RespuestaProductos"
+          echo "   - ✅ Actualizado ApiService y fragments"
+          echo "   - ✅ Icono de la app corregido en el login"
+          echo "   - ✅ Dashboard con cards gradientes y estadísticas"
+          echo "   - ✅ Ventas con modal de registro (búsqueda de productos)"
+          echo "   - ✅ Inventario con cards de estado de stock"
+          echo "   - ✅ Conexión API en todos los fragments"
           echo ""
           echo "🔑 Credenciales de prueba:"
           echo "   Vendor ID: AAAA0000"
