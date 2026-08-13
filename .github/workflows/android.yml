@@ -1401,7 +1401,6 @@ jobs:
       - name: Create Inventario Layout
         run: |
           cd android-app
-          
           cat > app/src/main/res/layout/fragment_inventario.xml << 'EOF'
           <?xml version="1.0" encoding="utf-8"?>
           <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
@@ -1593,7 +1592,9 @@ jobs:
                   </LinearLayout>
               </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
           </LinearLayout>
-          EOF      - name: Create item layouts
+          EOF
+
+      - name: Create item layouts
         run: |
           cd android-app
           
@@ -3233,7 +3234,7 @@ jobs:
           if git diff --staged --quiet; then
             echo "✅ No hay cambios nuevos en android-app/"
           else
-            git commit -m "🚀 Production Android app v3.0 - Fixed ic_store.xml [skip ci]"
+            git commit -m "🚀 Production Android app v3.0 - Fixed duplication [skip ci]"
             git push
             echo "✅ Archivos subidos al repositorio"
           fi
@@ -3278,6 +3279,7 @@ jobs:
           echo "   - Eliminados atributos colorSchemeColors (no válidos)"
           echo "   - Corregido error de compilación en VentasFragment"
           echo "   - Corregido archivo ic_store.xml"
+          echo "   - Eliminados pasos duplicados en el workflow"
           echo ""
           echo "🔑 Credenciales de prueba:"
           echo "   Vendor ID: AAAA0000"
