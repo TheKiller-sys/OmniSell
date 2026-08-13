@@ -659,7 +659,8 @@ jobs:
                   android:fillColor="@color/primary"
                   android:pathData="M20,4H4c-1.1,0 -2,0.9 -2,2v12c0,1.1 0.9,2 2,2h16c1.1,0 2,-0.9 2,-2V6c0,-1.1 -0.9,-2 -2,-2zM4,6h16v2H4V6zM4,12h4v2H4v-2zM10,12h4v2h-4v-2zM16,12h4v2h-4v-2zM4,10V8h4v2H4zM10,10V8h4v2h-4zM16,10V8h4v2h-4z"/>
           </vector>
-          EOF          
+          EOF
+          
           cat > app/src/main/res/drawable/ic_search.xml << 'EOF'
           <?xml version="1.0" encoding="utf-8"?>
           <vector xmlns:android="http://schemas.android.com/apk/res/android"
@@ -1592,9 +1593,7 @@ jobs:
                   </LinearLayout>
               </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
           </LinearLayout>
-          EOF
-
-      - name: Create item layouts
+          EOF      - name: Create item layouts
         run: |
           cd android-app
           
@@ -3234,7 +3233,7 @@ jobs:
           if git diff --staged --quiet; then
             echo "✅ No hay cambios nuevos en android-app/"
           else
-            git commit -m "🚀 Production Android app v3.0 - Fixed compilation errors [skip ci]"
+            git commit -m "🚀 Production Android app v3.0 - Fixed ic_store.xml [skip ci]"
             git push
             echo "✅ Archivos subidos al repositorio"
           fi
@@ -3278,6 +3277,7 @@ jobs:
           echo "   - Conexión API en todos los fragments"
           echo "   - Eliminados atributos colorSchemeColors (no válidos)"
           echo "   - Corregido error de compilación en VentasFragment"
+          echo "   - Corregido archivo ic_store.xml"
           echo ""
           echo "🔑 Credenciales de prueba:"
           echo "   Vendor ID: AAAA0000"
