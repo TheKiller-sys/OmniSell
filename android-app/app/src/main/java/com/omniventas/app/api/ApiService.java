@@ -3,6 +3,7 @@ package com.omniventas.app.api;
 import com.omniventas.app.models.DashboardResponse;
 import com.omniventas.app.models.LoginResponse;
 import com.omniventas.app.models.Producto;
+import com.omniventas.app.models.RespuestaProductos;
 import com.omniventas.app.models.Venta;
 import com.omniventas.app.models.VendorLoginRequest;
 import com.omniventas.app.models.VentaRequest;
@@ -20,7 +21,7 @@ public interface ApiService {
     Call<LoginResponse> loginVendor(@Body VendorLoginRequest request);
 
     @GET("api/productos")
-    Call<List<Producto>> getProductos(@Header("Authorization") String token);
+    Call<RespuestaProductos> getProductos(@Header("Authorization") String token);
 
     @POST("api/registrar-venta-app")
     Call<VentaResponse> registrarVenta(@Header("Authorization") String token, @Body VentaRequest request);
