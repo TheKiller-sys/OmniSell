@@ -9,6 +9,7 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.omniventas.app.R;
 import com.omniventas.app.models.Producto;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 public class ProductoAdapter extends RecyclerView.Adapter<ProductoAdapter.ViewHolder> {
@@ -50,7 +51,12 @@ public class ProductoAdapter extends RecyclerView.Adapter<ProductoAdapter.ViewHo
 
     public void setProductos(List<Producto> productos) {
         this.productos = productos != null ? productos : new ArrayList<>();
+        Collections.sort(this.productos, (p1, p2) -> p1.getNombre().compareToIgnoreCase(p2.getNombre()));
         notifyDataSetChanged();
+    }
+
+    public void filter(String query) {
+        // El filtrado se maneja desde el fragmento
     }
 
     static class ViewHolder extends RecyclerView.ViewHolder {

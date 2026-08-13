@@ -25,6 +25,7 @@ import com.omniventas.app.models.RespuestaProductos;
 import com.omniventas.app.utils.SessionManager;
 import com.omniventas.app.utils.TelegramLogger;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import retrofit2.Call;
 import retrofit2.Callback;
@@ -35,8 +36,8 @@ public class InventarioFragment extends Fragment {
     private RecyclerView rvInventario;
     private SwipeRefreshLayout swipeRefresh;
     private TextView tvTotalProductos, tvStockBajo, tvSinStock, tvInventarioVacio;
-    private EditText etFiltroCategoria, etFiltroPrecio;
-    private Button btnFiltrar;
+    private EditText etBuscarProducto;
+    private Button btnLimpiarFiltro;
     private SessionManager sessionManager;
     private TelegramLogger logger;
     private InventarioAdapter inventarioAdapter;
@@ -54,9 +55,8 @@ public class InventarioFragment extends Fragment {
         tvStockBajo = view.findViewById(R.id.tv_stock_bajo);
         tvSinStock = view.findViewById(R.id.tv_sin_stock);
         tvInventarioVacio = view.findViewById(R.id.tv_inventario_vacio);
-        etFiltroCategoria = view.findViewById(R.id.et_filtro_categoria);
-        etFiltroPrecio = view.findViewById(R.id.et_filtro_precio);
-        btnFiltrar = view.findViewById(R.id.btn_filtrar);
+        etBuscarProducto = view.findViewById(R.id.et_buscar_producto);
+        btnLimpiarFiltro = view.findViewById(R.id.btn_limpiar_filtro);
 
         sessionManager = new SessionManager(getContext());
         logger = TelegramLogger.getInstance(getContext());
@@ -67,15 +67,12 @@ public class InventarioFragment extends Fragment {
 
         swipeRefresh.setOnRefreshListener(this::cargarInventario);
 
-        btnFiltrar.setOnClickListener(v -> aplicarFiltros());
-
-        etFiltroCategoria.addTextChangedListener(new TextWatcher() {
-            @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
-            @Override public void onTextChanged(CharSequence s, int start, int before, int count) {}
-            @Override public void afterTextChanged(Editable s) { aplicarFiltros(); }
+        btnLimpiarFiltro.setOnClickListener(v -> {
+            etBuscarProducto.setText("");
+            aplicarFiltros();
         });
 
-        etFiltroPrecio.addTextChangedListener(new TextWatcher() {
+        etBuscarProducto.addTextChangedListener(new TextWatcher() {
             @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
             @Override public void onTextChanged(CharSequence s, int start, int before, int count) {}
             @Override public void afterTextChanged(Editable s) { aplicarFiltros(); }
@@ -101,6 +98,7 @@ public class InventarioFragment extends Fragment {
                 swipeRefresh.setRefreshing(false);
                 if (response.isSuccessful() && response.body() != null && response.body().isSuccess()) {
                     productosOriginales = response.body().getProductos();
+                    Collections.sort(productosOriginales, (p1, p2) -> p1.getNombre().compareToIgnoreCase(p2.getNombre()));
                     productosFiltrados = new ArrayList<>(productosOriginales);
                     actualizarUI();
                 } else {
@@ -118,29 +116,17 @@ public class InventarioFragment extends Fragment {
     }
 
     private void aplicarFiltros() {
-        String categoria = etFiltroCategoria.getText().toString().toLowerCase().trim();
-        String precioMaxStr = etFiltroPrecio.getText().toString().trim();
+        String query = etBuscarProducto.getText().toString().toLowerCase().trim();
 
         productosFiltrados = new ArrayList<>();
         for (Producto p : productosOriginales) {
-            boolean cumpleCategoria = true;
-            boolean cumplePrecio = true;
-
-            if (!categoria.isEmpty()) {
-                cumpleCategoria = p.getSeccion() != null && p.getSeccion().toLowerCase().contains(categoria);
-            }
-
-            if (!precioMaxStr.isEmpty()) {
-                try {
-                    double precioMax = Double.parseDouble(precioMaxStr);
-                    cumplePrecio = p.getPrecio() <= precioMax;
-                } catch (NumberFormatException e) {
-                    cumplePrecio = true;
-                }
-            }
-
-            if (cumpleCategoria && cumplePrecio) {
+            if (query.isEmpty()) {
                 productosFiltrados.add(p);
+            } else {
+                if (p.getNombre().toLowerCase().contains(query) ||
+                    (p.getSeccion() != null && p.getSeccion().toLowerCase().contains(query))) {
+                    productosFiltrados.add(p);
+                }
             }
         }
 
@@ -148,6 +134,7 @@ public class InventarioFragment extends Fragment {
     }
 
     private void actualizarUI() {
+        Collections.sort(productosFiltrados, (p1, p2) -> p1.getNombre().compareToIgnoreCase(p2.getNombre()));
         inventarioAdapter.setProductos(productosFiltrados);
 
         int total = productosFiltrados.size();

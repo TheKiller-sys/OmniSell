@@ -33,33 +33,24 @@
                 android:layout_marginBottom="12dp">
 
                 <EditText
-                    android:id="@+id/et_filtro_categoria"
+                    android:id="@+id/et_buscar_producto"
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
-                    android:hint="Filtrar por categoría"
+                    android:hint="Buscar producto..."
+                    android:drawableStart="@drawable/ic_search"
+                    android:drawablePadding="12dp"
                     android:padding="12dp"
                     android:background="@drawable/bg_input_login"
                     android:layout_marginEnd="8dp" />
 
-                <EditText
-                    android:id="@+id/et_filtro_precio"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:hint="Precio máx."
-                    android:inputType="numberDecimal"
-                    android:padding="12dp"
-                    android:background="@drawable/bg_input_login" />
-
                 <Button
-                    android:id="@+id/btn_filtrar"
+                    android:id="@+id/btn_limpiar_filtro"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Filtrar"
-                    android:backgroundTint="@color/primary"
+                    android:text="Limpiar"
+                    android:backgroundTint="@color/gray"
                     android:padding="12dp"
-                    android:layout_marginStart="8dp"
                     app:cornerRadius="8dp" />
 
             </LinearLayout>

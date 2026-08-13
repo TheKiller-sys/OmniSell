@@ -34,6 +34,8 @@ import com.omniventas.app.utils.SessionManager;
 import com.omniventas.app.utils.TelegramLogger;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
@@ -91,6 +93,7 @@ public class VentasFragment extends Fragment {
         handler.postDelayed(actualizacionAutomatica, 5000);
 
         cargarVentasHoy();
+        cargarProductos();
 
         return view;
     }
@@ -102,6 +105,7 @@ public class VentasFragment extends Fragment {
     }
 
     private void cargarVentasHoy() {
+        // Aquí se cargarían las ventas reales desde la API
         ventasHoy.clear();
         actualizarUI();
         swipeRefresh.setRefreshing(false);
@@ -128,6 +132,7 @@ public class VentasFragment extends Fragment {
             public void onResponse(Call<RespuestaProductos> call, Response<RespuestaProductos> response) {
                 if (response.isSuccessful() && response.body() != null && response.body().isSuccess()) {
                     productosGlobales = response.body().getProductos();
+                    Collections.sort(productosGlobales, (p1, p2) -> p1.getNombre().compareToIgnoreCase(p2.getNombre()));
                 }
             }
             @Override
@@ -146,6 +151,7 @@ public class VentasFragment extends Fragment {
         RecyclerView rvProductosBusqueda = dialog.findViewById(R.id.rv_productos_busqueda);
         EditText etCantidad = dialog.findViewById(R.id.et_cantidad);
         TextView tvTotalVenta = dialog.findViewById(R.id.tv_total_venta);
+        TextView tvProductoSeleccionado = dialog.findViewById(R.id.tv_producto_seleccionado);
         Button btnCancelar = dialog.findViewById(R.id.btn_cancelar_venta);
         Button btnRegistrar = dialog.findViewById(R.id.btn_registrar_venta_dialog);
 
@@ -154,6 +160,8 @@ public class VentasFragment extends Fragment {
         }
 
         ProductoAdapter productoAdapter = new ProductoAdapter(producto -> {
+            tvProductoSeleccionado.setText("Producto seleccionado: " + producto.getNombre());
+            tvProductoSeleccionado.setVisibility(View.VISIBLE);
             tvTotalVenta.setTag(producto);
             double precio = producto.getPrecio();
             int cantidad = 1;
@@ -173,7 +181,8 @@ public class VentasFragment extends Fragment {
                 String query = s.toString().toLowerCase().trim();
                 List<Producto> filtrados = new ArrayList<>();
                 for (Producto p : productosGlobales) {
-                    if (p.getNombre().toLowerCase().contains(query)) {
+                    if (p.getNombre().toLowerCase().contains(query) ||
+                        (p.getSeccion() != null && p.getSeccion().toLowerCase().contains(query))) {
                         filtrados.add(p);
                     }
                 }
