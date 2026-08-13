@@ -127,8 +127,8 @@ jobs:
                   applicationId "com.omniventas.app"
                   minSdk 21
                   targetSdk 34
-                  versionCode 6
-                  versionName "6.0.0"
+                  versionCode 7
+                  versionName "7.0.0"
                   testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
               }
           
@@ -328,6 +328,8 @@ jobs:
               <string name="mis_estadisticas">Mis Estadísticas</string>
               <string name="ventas_totales">Ventas Totales</string>
               <string name="productos_vendidos">Productos Vendidos</string>
+              <string name="principal">Principal</string>
+              <string name="ventas">Ventas</string>
           </resources>
           EOF
 
@@ -562,11 +564,11 @@ jobs:
               <item
                   android:id="@+id/nav_dashboard"
                   android:icon="@drawable/ic_dashboard"
-                  android:title="Dashboard" />
+                  android:title="@string/principal" />
               <item
                   android:id="@+id/nav_ventas"
                   android:icon="@drawable/ic_ventas"
-                  android:title="Ventas" />
+                  android:title="@string/ventas" />
               <item
                   android:id="@+id/nav_inventario"
                   android:icon="@drawable/ic_inventario"
@@ -574,7 +576,7 @@ jobs:
               <item
                   android:id="@+id/nav_usuario"
                   android:icon="@drawable/ic_user"
-                  android:title="Usuario" />
+                  android:title="@string/usuario" />
           </menu>
           EOF
 
@@ -590,7 +592,8 @@ jobs:
               android:orientation="vertical"
               android:gravity="center"
               android:padding="24dp"
-              android:background="@color/white">
+              android:background="@color/white"
+              android:fitsSystemWindows="true">
           
               <ImageView
                   android:id="@+id/iv_logo"
@@ -677,7 +680,8 @@ jobs:
                               android:textColor="@color/dark"
                               android:maxLength="8"
                               android:fontFamily="sans-serif-medium"
-                              android:imeOptions="actionDone" />
+                              android:imeOptions="actionDone"
+                              android:importantForAutofill="no" />
                       </LinearLayout>
           
                       <TextView
@@ -726,7 +730,7 @@ jobs:
                       <TextView
                           android:layout_width="wrap_content"
                           android:layout_height="wrap_content"
-                          android:text="v6.0.0"
+                          android:text="v7.0.0"
                           android:textSize="11sp"
                           android:textColor="@color/gray"
                           android:layout_gravity="center"
@@ -795,25 +799,16 @@ jobs:
                       <LinearLayout
                           android:layout_width="match_parent"
                           android:layout_height="wrap_content"
-                          android:orientation="vertical">
+                          android:orientation="vertical"
+                          android:gravity="center_horizontal">
           
-                          <TextView
-                              android:layout_width="match_parent"
-                              android:layout_height="wrap_content"
-                              android:text="Dashboard"
-                              android:textSize="24sp"
-                              android:textStyle="bold"
-                              android:textColor="@color/dark"
-                              android:layout_marginBottom="8dp" />
-          
-                          <TextView
-                              android:id="@+id/tv_fecha"
-                              android:layout_width="match_parent"
-                              android:layout_height="wrap_content"
-                              android:text="Hoy"
-                              android:textSize="14sp"
-                              android:textColor="@color/gray"
-                              android:layout_marginBottom="16dp" />
+                          <ImageView
+                              android:layout_width="80dp"
+                              android:layout_height="80dp"
+                              android:src="@mipmap/ic_launcher"
+                              android:layout_marginTop="16dp"
+                              android:layout_marginBottom="16dp"
+                              android:scaleType="centerInside" />
           
                           <LinearLayout
                               android:layout_width="match_parent"
@@ -1059,24 +1054,17 @@ jobs:
                   <LinearLayout
                       android:layout_width="match_parent"
                       android:layout_height="wrap_content"
-                      android:orientation="vertical">
+                      android:orientation="vertical"
+                      android:gravity="center_horizontal">
           
                       <TextView
-                          android:layout_width="match_parent"
+                          android:layout_width="wrap_content"
                           android:layout_height="wrap_content"
-                          android:text="Ventas"
+                          android:text="@string/ventas"
                           android:textSize="24sp"
                           android:textStyle="bold"
                           android:textColor="@color/dark"
-                          android:layout_marginBottom="8dp" />
-          
-                      <TextView
-                          android:id="@+id/tv_ventas_hoy_titulo"
-                          android:layout_width="match_parent"
-                          android:layout_height="wrap_content"
-                          android:text="Ventas de Hoy"
-                          android:textSize="16sp"
-                          android:textColor="@color/gray"
+                          android:layout_marginTop="8dp"
                           android:layout_marginBottom="16dp" />
           
                       <Button
@@ -1280,16 +1268,18 @@ jobs:
                   <LinearLayout
                       android:layout_width="match_parent"
                       android:layout_height="wrap_content"
-                      android:orientation="vertical">
+                      android:orientation="vertical"
+                      android:gravity="center_horizontal">
           
                       <TextView
-                          android:layout_width="match_parent"
+                          android:layout_width="wrap_content"
                           android:layout_height="wrap_content"
-                          android:text="Inventario"
+                          android:text="@string/inventario"
                           android:textSize="24sp"
                           android:textStyle="bold"
                           android:textColor="@color/dark"
-                          android:layout_marginBottom="8dp" />
+                          android:layout_marginTop="8dp"
+                          android:layout_marginBottom="16dp" />
           
                       <LinearLayout
                           android:layout_width="match_parent"
@@ -1356,7 +1346,7 @@ jobs:
                                   <TextView
                                       android:layout_width="wrap_content"
                                       android:layout_height="wrap_content"
-                                      android:text="Productos"
+                                      android:text="@string/productos"
                                       android:textSize="10sp"
                                       android:textColor="@color/gray" />
                               </LinearLayout>
@@ -1393,7 +1383,7 @@ jobs:
                                   <TextView
                                       android:layout_width="wrap_content"
                                       android:layout_height="wrap_content"
-                                      android:text="Stock Bajo"
+                                      android:text="@string/stock_bajo"
                                       android:textSize="10sp"
                                       android:textColor="@color/gray" />
                               </LinearLayout>
@@ -1429,7 +1419,7 @@ jobs:
                                   <TextView
                                       android:layout_width="wrap_content"
                                       android:layout_height="wrap_content"
-                                      android:text="Sin Stock"
+                                      android:text="@string/sin_stock"
                                       android:textSize="10sp"
                                       android:textColor="@color/gray" />
                               </LinearLayout>
@@ -1556,7 +1546,7 @@ jobs:
                                   <TextView
                                       android:layout_width="wrap_content"
                                       android:layout_height="wrap_content"
-                                      android:text="Mis Estadísticas"
+                                      android:text="@string/mis_estadisticas"
                                       android:textSize="18sp"
                                       android:textStyle="bold"
                                       android:textColor="@color/dark"
@@ -1588,7 +1578,7 @@ jobs:
                                           <TextView
                                               android:layout_width="wrap_content"
                                               android:layout_height="wrap_content"
-                                              android:text="Ventas Totales"
+                                              android:text="@string/ventas_totales"
                                               android:textSize="12sp"
                                               android:textColor="@color/gray" />
                                       </LinearLayout>
@@ -1613,7 +1603,7 @@ jobs:
                                           <TextView
                                               android:layout_width="wrap_content"
                                               android:layout_height="wrap_content"
-                                              android:text="Productos Vendidos"
+                                              android:text="@string/productos_vendidos"
                                               android:textSize="12sp"
                                               android:textColor="@color/gray" />
                                       </LinearLayout>
@@ -1684,7 +1674,7 @@ jobs:
                               android:id="@+id/btn_cerrar_sesion"
                               android:layout_width="match_parent"
                               android:layout_height="56dp"
-                              android:text="Cerrar Sesión"
+                              android:text="@string/cerrar_sesion"
                               android:textSize="16sp"
                               android:textStyle="bold"
                               android:textColor="@color/white"
@@ -2541,7 +2531,7 @@ jobs:
               private static TelegramLogger instance;
               private Context context;
               private SessionManager sessionManager;
-              private String appVersion = "6.0.0";
+              private String appVersion = "7.0.0";
 
               private TelegramLogger(Context context) {
                   this.context = context.getApplicationContext();
@@ -2635,17 +2625,14 @@ jobs:
           import com.omniventas.app.models.Venta;
           import com.omniventas.app.utils.SessionManager;
           import com.omniventas.app.utils.TelegramLogger;
-          import java.text.SimpleDateFormat;
-          import java.util.Date;
           import java.util.List;
-          import java.util.Locale;
           import retrofit2.Call;
           import retrofit2.Callback;
           import retrofit2.Response;
 
           public class DashboardFragment extends Fragment {
 
-              private TextView tvVentasHoy, tvIngresosHoy, tvVentasMes, tvIngresosMes, tvBajoStock, tvFecha;
+              private TextView tvVentasHoy, tvIngresosHoy, tvVentasMes, tvIngresosMes, tvBajoStock;
               private RecyclerView rvVentasRecientes;
               private SwipeRefreshLayout swipeRefresh;
               private SessionManager sessionManager;
@@ -2664,7 +2651,6 @@ jobs:
                   tvVentasMes = view.findViewById(R.id.tv_ventas_mes);
                   tvIngresosMes = view.findViewById(R.id.tv_ingresos_mes);
                   tvBajoStock = view.findViewById(R.id.tv_bajo_stock);
-                  tvFecha = view.findViewById(R.id.tv_fecha);
                   rvVentasRecientes = view.findViewById(R.id.rv_ventas_recientes);
                   swipeRefresh = view.findViewById(R.id.swipe_refresh);
 
@@ -2674,9 +2660,6 @@ jobs:
                   ventaAdapter = new VentaAdapter();
                   rvVentasRecientes.setLayoutManager(new LinearLayoutManager(getContext()));
                   rvVentasRecientes.setAdapter(ventaAdapter);
-
-                  String fecha = new SimpleDateFormat("EEEE, d MMM", new Locale("es", "ES")).format(new Date());
-                  tvFecha.setText(fecha);
 
                   swipeRefresh.setOnRefreshListener(this::cargarDashboard);
 
@@ -2782,12 +2765,9 @@ jobs:
           import com.omniventas.app.models.VentaResponse;
           import com.omniventas.app.utils.SessionManager;
           import com.omniventas.app.utils.TelegramLogger;
-          import java.text.SimpleDateFormat;
           import java.util.ArrayList;
           import java.util.Collections;
-          import java.util.Date;
           import java.util.List;
-          import java.util.Locale;
           import retrofit2.Call;
           import retrofit2.Callback;
           import retrofit2.Response;
@@ -2797,7 +2777,7 @@ jobs:
               private RecyclerView rvVentasHoy;
               private SwipeRefreshLayout swipeRefresh;
               private Button btnRegistrarVenta;
-              private TextView tvSinVentas, tvVentasHoyTitulo;
+              private TextView tvSinVentas;
               private SessionManager sessionManager;
               private TelegramLogger logger;
               private VentaAdapter ventaAdapter;
@@ -2815,7 +2795,6 @@ jobs:
                   swipeRefresh = view.findViewById(R.id.swipe_refresh);
                   btnRegistrarVenta = view.findViewById(R.id.btn_registrar_venta);
                   tvSinVentas = view.findViewById(R.id.tv_sin_ventas);
-                  tvVentasHoyTitulo = view.findViewById(R.id.tv_ventas_hoy_titulo);
 
                   sessionManager = new SessionManager(getContext());
                   logger = TelegramLogger.getInstance(getContext());
@@ -2823,9 +2802,6 @@ jobs:
                   ventaAdapter = new VentaAdapter();
                   rvVentasHoy.setLayoutManager(new LinearLayoutManager(getContext()));
                   rvVentasHoy.setAdapter(ventaAdapter);
-
-                  String fecha = new SimpleDateFormat("EEEE, d MMM", new Locale("es", "ES")).format(new Date());
-                  tvVentasHoyTitulo.setText("Ventas de Hoy - " + fecha);
 
                   swipeRefresh.setOnRefreshListener(this::cargarVentasHoy);
                   btnRegistrarVenta.setOnClickListener(v -> mostrarDialogoRegistrarVenta());
@@ -3317,8 +3293,9 @@ jobs:
                   progressBar = findViewById(R.id.progressBar);
                   tvError = findViewById(R.id.tv_error);
 
+                  // No prellenar con ID de prueba
                   if (etVendorId != null) {
-                      etVendorId.setText("AAAA0000");
+                      etVendorId.setText("");
                   }
 
                   if (cardLogin != null) {
@@ -3544,7 +3521,7 @@ jobs:
           if git diff --staged --quiet; then
             echo "✅ No hay cambios nuevos en android-app/"
           else
-            git commit -m "🚀 Production Android app v6.0 - Fixed dialog layout [skip ci]"
+            git commit -m "🚀 Production Android app v7.0 - UI mejorada [skip ci]"
             git push
             echo "✅ Archivos subidos al repositorio"
           fi
@@ -3576,17 +3553,17 @@ jobs:
         run: |
           echo "🚀 APK DE PRODUCCIÓN COMPILADOS EXITOSAMENTE!"
           echo ""
-          echo "📱 Versión: 6.0.0"
+          echo "📱 Versión: 7.0.0"
           echo ""
           echo "✨ Mejoras incluidas:"
-          echo "   - ✅ Búsqueda de productos en Ventas con filtro por nombre y categoría"
-          echo "   - ✅ Productos ordenados A-Z en Ventas e Inventario"
-          echo "   - ✅ Texto de producto seleccionado en el diálogo de Ventas"
-          echo "   - ✅ Inventario con búsqueda por nombre/categoría"
-          echo "   - ✅ Botón 'Limpiar' en Inventario"
-          echo "   - ✅ Actualización automática en tiempo real"
-          echo "   - ✅ Conexión API para registro de ventas"
-          echo "   - ✅ Corregido layout del diálogo de registro de ventas"
+          echo "   - ✅ Login: Campo de ID vacío (sin ID pre-cargado)"
+          echo "   - ✅ Login: Pantalla ajustada con el teclado visible"
+          echo "   - ✅ Dashboard: Logo en el centro superior sin texto 'Dashboard'"
+          echo "   - ✅ Dashboard: Eliminada la fecha"
+          echo "   - ✅ Barra inferior: 'Principal' en lugar de 'Dashboard'"
+          echo "   - ✅ Ventas: Título 'Ventas' centrado superior sin fecha"
+          echo "   - ✅ Inventario: Título 'Inventario' centrado superior"
+          echo "   - ✅ Todos los textos mejorados y visibles"
           echo ""
           echo "🔑 Credenciales de prueba:"
           echo "   Vendor ID: AAAA0000"
