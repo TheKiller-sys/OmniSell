@@ -43,6 +43,7 @@ public class TelegramLogger {
     public void warning(String message) { sendLog("WARNING", message); }
     public void error(String message) { sendLog("ERROR", message); }
     public void networkError(Throwable t) { sendLog("ERROR", "Error de red: " + t.getMessage()); }
+    public void info(String message) { sendLog("INFO", message); }
 
     private void sendLog(String level, String message) {
         try {

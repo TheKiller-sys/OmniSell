@@ -138,7 +138,7 @@ public class VentasFragment extends Fragment {
     }
 
     private void mostrarDialogoRegistrarVenta() {
-        Dialog dialog = new Dialog(getContext(), R.style.DialogStyle);
+        Dialog dialog = new Dialog(getContext());
         dialog.requestWindowFeature(Window.FEATURE_NO_TITLE);
         dialog.setContentView(R.layout.dialog_registrar_venta);
 
