@@ -659,7 +659,8 @@ jobs:
                   android:fillColor="@color/primary"
                   android:pathData="M20,4H4c-1.1,0 -2,0.9 -2,2v12c0,1.1 0.9,2 2,2h16c1.1,0 2,-0.9 2,-2V6c0,-1.1 -0.9,-2 -2,-2zM4,6h16v2H4V6zM4,12h4v2H4v-2zM10,12h4v2h-4v-2zM16,12h4v2h-4v-2zM4,10V8h4v2H4zM10,10V8h4v2h-4zM16,10V8h4v2h-4z"/>
           </vector>
-          EOF          
+          EOF
+          
           cat > app/src/main/res/drawable/ic_search.xml << 'EOF'
           <?xml version="1.0" encoding="utf-8"?>
           <vector xmlns:android="http://schemas.android.com/apk/res/android"
@@ -3264,7 +3265,7 @@ jobs:
           if git diff --staged --quiet; then
             echo "✅ No hay cambios nuevos en android-app/"
           else
-            git commit -m "🚀 Production Android app v4.0 - Fixed API response handling [skip ci]"
+            git commit -m "🚀 Production Android app v4.0 - Fixed ic_store.xml [skip ci]"
             git push
             echo "✅ Archivos subidos al repositorio"
           fi
@@ -3304,6 +3305,7 @@ jobs:
           echo "   - ✅ Fix: Respuesta de productos ahora maneja BEGINOBJECT correctamente"
           echo "   - ✅ Nuevo modelo RespuestaProductos"
           echo "   - ✅ Actualizado ApiService y fragments"
+          echo "   - ✅ Corregido ic_store.xml (contenido extra eliminado)"
           echo "   - ✅ Icono de la app corregido en el login"
           echo "   - ✅ Dashboard con cards gradientes y estadísticas"
           echo "   - ✅ Ventas con modal de registro (búsqueda de productos)"
