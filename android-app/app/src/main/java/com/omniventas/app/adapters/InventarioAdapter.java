@@ -56,10 +56,6 @@ public class InventarioAdapter extends RecyclerView.Adapter<InventarioAdapter.Vi
         notifyDataSetChanged();
     }
 
-    public void filter(String query) {
-        // El filtrado se maneja desde el fragmento
-    }
-
     static class ViewHolder extends RecyclerView.ViewHolder {
         TextView tvNombre, tvSeccion, tvPrecio, tvStock;
         CardView cardView;

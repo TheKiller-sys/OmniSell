@@ -35,7 +35,6 @@ import com.omniventas.app.utils.TelegramLogger;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
@@ -105,7 +104,6 @@ public class VentasFragment extends Fragment {
     }
 
     private void cargarVentasHoy() {
-        // Aquí se cargarían las ventas reales desde la API
         ventasHoy.clear();
         actualizarUI();
         swipeRefresh.setRefreshing(false);
