@@ -51,7 +51,6 @@ public class LoginActivity extends AppCompatActivity {
         progressBar = findViewById(R.id.progressBar);
         tvError = findViewById(R.id.tv_error);
 
-        // No prellenar con ID de prueba
         if (etVendorId != null) {
             etVendorId.setText("");
         }
