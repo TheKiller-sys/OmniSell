@@ -2556,6 +2556,7 @@ jobs:
               public void warning(String message) { sendLog("WARNING", message); }
               public void error(String message) { sendLog("ERROR", message); }
               public void networkError(Throwable t) { sendLog("ERROR", "Error de red: " + t.getMessage()); }
+              public void info(String message) { sendLog("INFO", message); }
 
               private void sendLog(String level, String message) {
                   try {
@@ -2880,7 +2881,7 @@ jobs:
               }
 
               private void mostrarDialogoRegistrarVenta() {
-                  Dialog dialog = new Dialog(getContext(), R.style.DialogStyle);
+                  Dialog dialog = new Dialog(getContext());
                   dialog.requestWindowFeature(Window.FEATURE_NO_TITLE);
                   dialog.setContentView(R.layout.dialog_registrar_venta);
 
@@ -3542,7 +3543,7 @@ jobs:
           if git diff --staged --quiet; then
             echo "✅ No hay cambios nuevos en android-app/"
           else
-            git commit -m "🚀 Production Android app v5.0 - Real-time updates [skip ci]"
+            git commit -m "🚀 Production Android app v5.0 - Fixed compilation errors [skip ci]"
             git push
             echo "✅ Archivos subidos al repositorio"
           fi
@@ -3585,6 +3586,7 @@ jobs:
           echo "   - ✅ Menú 'Usuario' con estadísticas del vendedor"
           echo "   - ✅ Sesiones persistentes"
           echo "   - ✅ Cerrar sesión desde el perfil"
+          echo "   - ✅ Corregido error de compilación (DialogStyle, TelegramLogger.info)"
           echo ""
           echo "🔑 Credenciales de prueba:"
           echo "   Vendor ID: AAAA0000"
