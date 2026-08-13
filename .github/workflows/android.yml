@@ -354,7 +354,7 @@ jobs:
           </resources>
           EOF
 
-      - name: Create drawables - Login (fondo blanco)
+      - name: Create drawables - Login
         run: |
           cd android-app
           
@@ -578,7 +578,7 @@ jobs:
           </menu>
           EOF
 
-      - name: Create Login Layout (fondo blanco)
+      - name: Create Login Layout
         run: |
           cd android-app
           cat > app/src/main/res/layout/activity_login.xml << 'EOF'
@@ -2608,7 +2608,6 @@ jobs:
           import android.os.Bundle;
           import android.os.Handler;
           import android.os.Looper;
-          import android.util.Log;
           import android.view.LayoutInflater;
           import android.view.View;
           import android.view.ViewGroup;
@@ -2638,7 +2637,6 @@ jobs:
 
           public class DashboardFragment extends Fragment {
 
-              private static final String TAG = "DashboardFragment";
               private TextView tvVentasHoy, tvIngresosHoy, tvVentasMes, tvIngresosMes, tvBajoStock, tvFecha;
               private RecyclerView rvVentasRecientes;
               private SwipeRefreshLayout swipeRefresh;
@@ -2674,7 +2672,6 @@ jobs:
 
                   swipeRefresh.setOnRefreshListener(this::cargarDashboard);
 
-                  // Actualización automática cada 10 segundos
                   actualizacionAutomatica = new Runnable() {
                       @Override
                       public void run() {
@@ -2720,7 +2717,6 @@ jobs:
 
                               List<Venta> ventas = data.getVentasRecientes();
                               if (ventas != null) {
-                                  // Solo mostrar los últimos 5
                                   if (ventas.size() > 5) {
                                       ventas = ventas.subList(0, 5);
                                   }
@@ -2789,7 +2785,6 @@ jobs:
 
           public class VentasFragment extends Fragment {
 
-              private static final String TAG = "VentasFragment";
               private RecyclerView rvVentasHoy;
               private SwipeRefreshLayout swipeRefresh;
               private Button btnRegistrarVenta;
@@ -2826,7 +2821,6 @@ jobs:
                   swipeRefresh.setOnRefreshListener(this::cargarVentasHoy);
                   btnRegistrarVenta.setOnClickListener(v -> mostrarDialogoRegistrarVenta());
 
-                  // Actualización automática cada 5 segundos
                   actualizacionAutomatica = new Runnable() {
                       @Override
                       public void run() {
@@ -2850,7 +2844,6 @@ jobs:
               }
 
               private void cargarVentasHoy() {
-                  // Aquí se cargarían las ventas reales desde la API
                   ventasHoy.clear();
                   actualizarUI();
                   swipeRefresh.setRefreshing(false);
@@ -3076,7 +3069,6 @@ jobs:
 
                   btnFiltrar.setOnClickListener(v -> aplicarFiltros());
 
-                  // Filtro automático al escribir
                   etFiltroCategoria.addTextChangedListener(new TextWatcher() {
                       @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
                       @Override public void onTextChanged(CharSequence s, int start, int before, int count) {}
@@ -3230,7 +3222,6 @@ jobs:
                   sessionManager = new SessionManager(getContext());
                   logger = TelegramLogger.getInstance(getContext());
 
-                  // Cargar datos del vendedor desde la sesión
                   String nombre = sessionManager.getVendorName();
                   String id = sessionManager.getVendorId();
 
@@ -3241,7 +3232,6 @@ jobs:
                       tvVendorId.setText("ID: " + id);
                   }
 
-                  // Datos de ejemplo - en producción vendrían de la API
                   tvTotalVentas.setText("42");
                   tvProductosVendidos.setText("156");
                   tvVentasHoy.setText("5");
@@ -3258,7 +3248,6 @@ jobs:
                   });
 
                   swipeRefresh.setOnRefreshListener(() -> {
-                      // Recargar estadísticas
                       swipeRefresh.setRefreshing(false);
                       Toast.makeText(getContext(), "Estadísticas actualizadas", Toast.LENGTH_SHORT).show();
                   });
@@ -3278,7 +3267,6 @@ jobs:
           import android.animation.ObjectAnimator;
           import android.content.Intent;
           import android.os.Bundle;
-          import android.util.Log;
           import android.view.View;
           import android.view.animation.AnimationUtils;
           import android.view.inputmethod.EditorInfo;
@@ -3300,7 +3288,6 @@ jobs:
           import retrofit2.Response;
 
           public class LoginActivity extends AppCompatActivity {
-              private static final String TAG = "LoginActivity";
               private EditText etVendorId;
               private Button btnLogin;
               private CardView cardLogin;
@@ -3317,7 +3304,6 @@ jobs:
                   sessionManager = new SessionManager(this);
                   logger = TelegramLogger.getInstance(this);
 
-                  // Verificar si ya hay sesión activa
                   if (sessionManager.isLoggedIn()) {
                       irAlDashboard();
                       return;
@@ -3567,7 +3553,8 @@ jobs:
           ./gradlew assembleDebug --no-daemon
 
       - name: Upload Debug APK
-        uses: actions/upload-artifact@v4        with:
+        uses: actions/upload-artifact@v4
+        with:
           name: app-debug
           path: android-app/app/build/outputs/apk/debug/*.apk
 
