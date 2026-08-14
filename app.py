@@ -382,7 +382,7 @@ def get_productos():
 @app.route('/api/registrar-venta', methods=['POST'])
 @token_required
 def registrar_venta():
-    """Registrar venta desde la app Android (endpoint principal)"""
+    """Registrar venta desde la app Android"""
     try:
         data = request.json
         producto_id = data.get('producto_id')
@@ -476,13 +476,6 @@ def registrar_venta():
         except:
             pass
         return jsonify({'success': False, 'message': str(e)}), 500
-
-
-@app.route('/api/registrar-venta-app', methods=['POST'])
-@token_required
-def registrar_venta_app():
-    """Registrar venta desde la app Android (alias para compatibilidad con versiones anteriores)"""
-    return registrar_venta()
 
 
 @app.route('/api/dashboard-app', methods=['GET'])
@@ -910,7 +903,8 @@ def eliminar_vendedor_web(vendor_id):
     """Eliminar un vendedor (desde panel web)"""
     try:
         if current_user.role != 'admin':
-            return jsonify({'success': False, 'message': 'Solo administradores pueden eliminar vendedores'}), 403        
+            return jsonify({'success': False, 'message': 'Solo administradores pueden eliminar vendedores'}), 403
+        
         from database.db_manager import DatabaseManager
         db = DatabaseManager(current_user.business_id)
         is_postgres = 'RENDER' in os.environ and os.environ.get('DATABASE_URL')
