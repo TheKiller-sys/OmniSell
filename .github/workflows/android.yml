@@ -127,8 +127,8 @@ jobs:
                   applicationId "com.omniventas.app"
                   minSdk 21
                   targetSdk 34
-                  versionCode 10
-                  versionName "8.0.2"
+                  versionCode 11
+                  versionName "8.0.3"
                   testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
               }
           
@@ -730,7 +730,7 @@ jobs:
                       <TextView
                           android:layout_width="wrap_content"
                           android:layout_height="wrap_content"
-                          android:text="v8.0.2"
+                          android:text="v8.0.3"
                           android:textSize="11sp"
                           android:textColor="@color/gray"
                           android:layout_gravity="center"
@@ -2160,7 +2160,7 @@ jobs:
           }
           EOF
 
-      - name: Create API classes
+      - name: Create API classes (CORREGIDO - con setLenient)
         run: |
           cd android-app
           
@@ -2186,7 +2186,7 @@ jobs:
               private static final String TAG = "RetrofitClient";
               private static RetrofitClient instance;
               private ApiService apiService;
-              private static final String API_URL = "https://prueba-1-omni.onrender.com";
+              private static final String API_URL = "https://prueba-1-omni.onrender.com/";
               private Context context;
 
               private RetrofitClient(Context context) {
@@ -2209,22 +2209,53 @@ jobs:
                       return chain.proceed(original);
                   };
 
+                  // ✅ Interceptor para loguear respuestas y depurar
+                  Interceptor responseInterceptor = chain -> {
+                      Request request = chain.request();
+                      Response response = chain.proceed(request);
+                      
+                      Log.d(TAG, "📡 Código de respuesta: " + response.code());
+                      Log.d(TAG, "📡 Mensaje: " + response.message());
+                      
+                      try {
+                          String bodyString = response.body().string();
+                          Log.d(TAG, "📡 Cuerpo de la respuesta: " + bodyString);
+                          
+                          okhttp3.MediaType contentType = response.body().contentType();
+                          okhttp3.ResponseBody newBody = okhttp3.ResponseBody.create(contentType, bodyString);
+                          
+                          return response.newBuilder()
+                              .body(newBody)
+                              .build();
+                      } catch (Exception e) {
+                          Log.e(TAG, "❌ Error leyendo respuesta: " + e.getMessage());
+                          return response;
+                      }
+                  };
+
                   OkHttpClient client = new OkHttpClient.Builder()
                       .addInterceptor(logging)
                       .addInterceptor(authInterceptor)
+                      .addInterceptor(responseInterceptor)
                       .connectTimeout(30, TimeUnit.SECONDS)
                       .readTimeout(30, TimeUnit.SECONDS)
                       .writeTimeout(30, TimeUnit.SECONDS)
                       .build();
 
+                  // ✅ CREAR GSON CON LENIENTE ACTIVADO PARA ACEPTAR JSON MAL FORMADO
+                  com.google.gson.Gson gson = new com.google.gson.GsonBuilder()
+                      .setLenient()
+                      .create();
+
                   Retrofit retrofit = new Retrofit.Builder()
                       .baseUrl(API_URL)
-                      .addConverterFactory(GsonConverterFactory.create())
+                      .addConverterFactory(GsonConverterFactory.create(gson))
                       .client(client)
                       .build();
 
                   apiService = retrofit.create(ApiService.class);
                   Log.d(TAG, "✅ API URL: " + API_URL);
+                  Log.d(TAG, "✅ Gson con setLenient(true) activado");
               }
 
               public static synchronized RetrofitClient getInstance(Context context) {
@@ -2531,7 +2562,7 @@ jobs:
               private static TelegramLogger instance;
               private Context context;
               private SessionManager sessionManager;
-              private String appVersion = "8.0.2";
+              private String appVersion = "8.0.3";
 
               private TelegramLogger(Context context) {
                   this.context = context.getApplicationContext();
@@ -2596,7 +2627,7 @@ jobs:
           }
           EOF
 
-      - name: Create UI Fragments - Dashboard (CORREGIDO - método público)
+      - name: Create UI Fragments - Dashboard
         run: |
           cd android-app
           
@@ -2685,7 +2716,6 @@ jobs:
                   handler.removeCallbacks(actualizacionAutomatica);
               }
 
-              // ✅ MÉTODO PÚBLICO para que VentasFragment pueda llamarlo
               public void cargarDashboard() {
                   String token = sessionManager.getToken();
                   if (token == null || token.isEmpty()) {
@@ -2727,7 +2757,7 @@ jobs:
           }
           EOF
 
-      - name: Create VentasFragment
+      - name: Create VentasFragment (CORREGIDO - mejor manejo de errores)
         run: |
           cd android-app
           
@@ -2767,6 +2797,7 @@ jobs:
           import com.omniventas.app.models.VentaResponse;
           import com.omniventas.app.utils.SessionManager;
           import com.omniventas.app.utils.TelegramLogger;
+          import org.json.JSONObject;
           import java.util.ArrayList;
           import java.util.Collections;
           import java.util.List;
@@ -2962,7 +2993,6 @@ jobs:
                                               logger.success("Venta registrada: " + productoSeleccionado.getNombre() + " x" + cantidadFinal);
                                               dialog.dismiss();
                                               cargarVentasHoy();
-                                              // ✅ Notificar al Dashboard para que se actualice
                                               if (getActivity() != null) {
                                                   DashboardFragment dashboard = (DashboardFragment) getActivity()
                                                       .getSupportFragmentManager()
@@ -2972,12 +3002,39 @@ jobs:
                                                   }
                                               }
                                           } else {
-                                              Toast.makeText(getContext(), "Error al registrar venta", Toast.LENGTH_SHORT).show();
+                                              // ✅ Manejar errores de respuesta
+                                              String errorMsg = "Error al registrar venta";
+                                              try {
+                                                  if (response.errorBody() != null) {
+                                                      String errorBody = response.errorBody().string();
+                                                      Log.e("VentasFragment", "❌ Error body: " + errorBody);
+                                                      
+                                                      try {
+                                                          JSONObject jsonError = new JSONObject(errorBody);
+                                                          errorMsg = jsonError.optString("message", errorMsg);
+                                                      } catch (Exception e) {
+                                                          // Si no es JSON, usar el texto plano
+                                                          errorMsg = errorBody;
+                                                      }
+                                                  }
+                                              } catch (Exception e) {
+                                                  Log.e("VentasFragment", "❌ Error leyendo errorBody", e);
+                                              }
+                                              Toast.makeText(getContext(), "❌ " + errorMsg, Toast.LENGTH_LONG).show();
+                                              logger.error("Error en venta: " + errorMsg);
                                           }
                                       }
+
                                       @Override
                                       public void onFailure(Call<VentaResponse> call, Throwable t) {
-                                          Toast.makeText(getContext(), "Error de conexión", Toast.LENGTH_SHORT).show();
+                                          String errorMsg = "Error de conexión";
+                                          if (t.getMessage() != null) {
+                                              errorMsg = t.getMessage();
+                                              if (errorMsg.length() > 100) {
+                                                  errorMsg = errorMsg.substring(0, 100) + "...";
+                                              }
+                                          }
+                                          Toast.makeText(getContext(), "❌ " + errorMsg, Toast.LENGTH_LONG).show();
                                           logger.networkError(t);
                                       }
                                   });
@@ -3531,7 +3588,7 @@ jobs:
           if git diff --staged --quiet; then
             echo "✅ No hay cambios nuevos en android-app/"
           else
-            git commit -m "🚀 Production Android app v8.0.2 - Fix: cargarDashboard() ahora es público [skip ci]"
+            git commit -m "🚀 Production Android app v8.0.3 - Fix JSON malformed con setLenient y mejor manejo de errores [skip ci]"
             git push
             echo "✅ Archivos subidos al repositorio"
           fi
@@ -3563,15 +3620,17 @@ jobs:
         run: |
           echo "🚀 APK DE PRODUCCIÓN COMPILADOS EXITOSAMENTE!"
           echo ""
-          echo "📱 Versión: 8.0.2"
+          echo "📱 Versión: 8.0.3"
           echo ""
-          echo "✨ CORRECCIÓN CRÍTICA:"
-          echo "   - ✅ FIX: cargarDashboard() ahora es público (antes era private)"
-          echo "   - ✅ VentasFragment puede actualizar el Dashboard después de registrar una venta"
+          echo "✨ CORRECCIONES CRÍTICAS:"
+          echo "   - ✅ FIX: Error 'Use JsonReader.setLenient(true)' - Gson ahora usa setLenient()"
+          echo "   - ✅ FIX: Mejor manejo de errores en VentasFragment"
+          echo "   - ✅ FIX: Interceptor para depurar respuestas del servidor"
+          echo "   - ✅ FIX: URL base con barra final correcta"
           echo ""
           echo "🔧 Cambios incluidos:"
-          echo "   - ✅ ENDPOINT CORREGIDO: /api/registrar-venta (antes /api/registrar-venta-app)"
-          echo "   - ✅ Sincronización en tiempo real: Al registrar una venta, se actualiza el Dashboard"
+          echo "   - ✅ ENDPOINT CORREGIDO: /api/registrar-venta"
+          echo "   - ✅ Sincronización en tiempo real: Dashboard se actualiza al registrar venta"
           echo "   - ✅ Login: Campo de ID vacío (sin ID pre-cargado)"
           echo "   - ✅ Barra inferior: 'Principal' en lugar de 'Dashboard'"
           echo ""
