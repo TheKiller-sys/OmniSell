@@ -228,6 +228,15 @@ public class VentasFragment extends Fragment {
                                     logger.success("Venta registrada: " + productoSeleccionado.getNombre() + " x" + cantidadFinal);
                                     dialog.dismiss();
                                     cargarVentasHoy();
+                                    // Notificar al Dashboard
+                                    if (getActivity() != null) {
+                                        DashboardFragment dashboard = (DashboardFragment) getActivity()
+                                            .getSupportFragmentManager()
+                                            .findFragmentByTag("dashboard");
+                                        if (dashboard != null) {
+                                            dashboard.cargarDashboard();
+                                        }
+                                    }
                                 } else {
                                     Toast.makeText(getContext(), "Error al registrar venta", Toast.LENGTH_SHORT).show();
                                 }

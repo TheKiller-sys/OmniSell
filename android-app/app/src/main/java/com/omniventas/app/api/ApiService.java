@@ -22,7 +22,7 @@ public interface ApiService {
     @GET("api/productos")
     Call<RespuestaProductos> getProductos(@Header("Authorization") String token);
 
-    @POST("api/registrar-venta-app")
+    @POST("api/registrar-venta")
     Call<VentaResponse> registrarVenta(@Header("Authorization") String token, @Body VentaRequest request);
 
     @GET("api/dashboard-app")
