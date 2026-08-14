@@ -10,6 +10,7 @@ import datetime
 import bcrypt
 import requests
 from functools import wraps
+from flask_cors import CORS
 
 from flask_login import login_required, current_user
 
@@ -24,6 +25,16 @@ logger = logging.getLogger(__name__)
 from web.dashboard import create_app
 app = create_app()
 socketio = SocketIO(app, async_mode='threading', cors_allowed_origins="*")
+
+# ==================== CONFIGURACIÓN CORS ====================
+# Permitir CORS para todas las rutas API
+CORS(app, resources={
+    r"/api/*": {
+        "origins": "*",
+        "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+        "allow_headers": ["Content-Type", "Authorization", "Accept"]
+    }
+})
 
 # ==================== CONFIGURACIÓN DEL BOT DE TELEGRAM PARA LOGS ====================
 TELEGRAM_BOT_TOKEN = os.environ.get('TELEGRAM_BOT_TOKEN', '')
@@ -98,7 +109,7 @@ def send_telegram_message(message, parse_mode='Markdown'):
         if response.status_code == 200:
             return True
         else:
-            logger.error(f"Error enviando mensaje a Telegram: {response.status_code}")
+            logger.error(f"Error enviando mensaje a Telegram: {response.status_code} - {response.text}")
             return False
             
     except Exception as e:
@@ -106,17 +117,34 @@ def send_telegram_message(message, parse_mode='Markdown'):
         return False
 
 
-@app.route('/api/send-log', methods=['POST'])
+@app.route('/api/send-log', methods=['POST', 'OPTIONS'])
 def send_log_to_telegram():
     """
     Recibe logs desde la app Android y los envía al bot de Telegram del programador.
     NO requiere autenticación, es un endpoint público para logs.
     """
+    # Manejar preflight CORS
+    if request.method == 'OPTIONS':
+        response = jsonify({'success': True})
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization,Accept')
+        response.headers.add('Access-Control-Allow-Methods', 'POST,OPTIONS')
+        return response
+    
     try:
+        # Verificar que el bot esté configurado
+        if not TELEGRAM_BOT_TOKEN or not TELEGRAM_ADMIN_CHAT_ID:
+            logger.warning("Telegram bot no configurado para enviar log")
+            response = jsonify({'success': False, 'message': 'Bot not configured'})
+            response.headers.add('Access-Control-Allow-Origin', '*')
+            return response, 500
+        
         data = request.json
         
         if not data:
-            return jsonify({'success': False, 'message': 'No data received'}), 400
+            response = jsonify({'success': False, 'message': 'No data received'})
+            response.headers.add('Access-Control-Allow-Origin', '*')
+            return response, 400
         
         log_level = data.get('level', 'INFO')
         log_message = data.get('message', '')
@@ -130,12 +158,9 @@ def send_log_to_telegram():
         android_version = data.get('android_version', 'DESCONOCIDO')
         
         if not log_message:
-            return jsonify({'success': False, 'message': 'message required'}), 400
-        
-        # Verificar que el bot esté configurado
-        if not TELEGRAM_BOT_TOKEN or not TELEGRAM_ADMIN_CHAT_ID:
-            logger.warning("Telegram bot no configurado para enviar log")
-            return jsonify({'success': False, 'message': 'Bot not configured'}), 500
+            response = jsonify({'success': False, 'message': 'message required'})
+            response.headers.add('Access-Control-Allow-Origin', '*')
+            return response, 400
         
         # Emojis por nivel
         emoji = {
@@ -176,15 +201,37 @@ def send_log_to_telegram():
         # Enviar mensaje a Telegram
         success = send_telegram_message(message)
         
+        response = jsonify({
+            'success': success,
+            'message': 'Log sent to Telegram' if success else 'Failed to send Telegram message'
+        })
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        
         if success:
             logger.info(f"Log enviado a Telegram: {log_level} - {log_message[:50]}")
-            return jsonify({'success': True, 'message': 'Log sent to Telegram'})
+            return response
         else:
-            return jsonify({'success': False, 'message': 'Failed to send Telegram message'}), 500
+            return response, 500
             
     except Exception as e:
         logger.error(f"Error en send_log_to_telegram: {e}")
-        return jsonify({'success': False, 'message': str(e)}), 500
+        response = jsonify({'success': False, 'message': str(e)})
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        return response, 500
+
+
+@app.route('/api/telegram-status', methods=['GET'])
+def telegram_status():
+    """Verificar el estado del bot de Telegram"""
+    response = jsonify({
+        'bot_configured': bool(TELEGRAM_BOT_TOKEN and TELEGRAM_ADMIN_CHAT_ID),
+        'token_present': bool(TELEGRAM_BOT_TOKEN),
+        'chat_id_present': bool(TELEGRAM_ADMIN_CHAT_ID),
+        'token_preview': TELEGRAM_BOT_TOKEN[:10] + '...' if TELEGRAM_BOT_TOKEN else None,
+        'chat_id_preview': TELEGRAM_ADMIN_CHAT_ID[:10] + '...' if TELEGRAM_ADMIN_CHAT_ID else None
+    })
+    response.headers.add('Access-Control-Allow-Origin', '*')
+    return response
 
 
 @app.route('/api/test-log', methods=['GET'])
@@ -218,7 +265,7 @@ def login_vendedor():
     """Login para vendedores con ID de 8 caracteres"""
     try:
         data = request.json
-        vendor_id = data.get('vendor_id', '').strip()
+        vendor_id = data.get('vendor_id', '').strip().upper()
         
         # Validar formato del ID (8 caracteres alfanuméricos)
         if not vendor_id:
@@ -364,8 +411,8 @@ def get_productos():
                     'nombre': row[1],
                     'seccion': row[2],
                     'precio': float(row[3]),
-                    'stock': row[4],
-                    'descripcion': row[5] if len(row) > 5 else ''
+                    'stock': row[4] if row[4] is not None else 0,
+                    'descripcion': row[5] if len(row) > 5 and row[5] else ''
                 })
         
         return jsonify({
@@ -380,10 +427,18 @@ def get_productos():
 
 
 # ==================== ENDPOINT PARA REGISTRAR VENTAS DESDE APP ANDROID ====================
-@app.route('/api/registrar-venta', methods=['POST'])
+@app.route('/api/registrar-venta', methods=['POST', 'OPTIONS'])
 @token_required
 def registrar_venta_app():
     """Registrar venta desde la app Android (con token JWT)"""
+    # Manejar preflight CORS
+    if request.method == 'OPTIONS':
+        response = jsonify({'success': True})
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization,Accept')
+        response.headers.add('Access-Control-Allow-Methods', 'POST,OPTIONS')
+        return response
+    
     try:
         # 🔍 LOG: Ver qué está llegando
         logger.info(f"📥 Solicitud POST a /api/registrar-venta")
@@ -393,7 +448,9 @@ def registrar_venta_app():
         
         data = request.json
         if not data:
-            return jsonify({'success': False, 'message': 'No se recibió JSON'}), 400
+            response = jsonify({'success': False, 'message': 'No se recibió JSON'})
+            response.headers.add('Access-Control-Allow-Origin', '*')
+            return response, 400
         
         # Extraer datos con valores por defecto
         producto_id = data.get('producto_id')
@@ -405,19 +462,31 @@ def registrar_venta_app():
         
         # Validar que los campos existan y no sean None
         if producto_id is None:
-            return jsonify({'success': False, 'message': 'Campo producto_id no enviado'}), 400
+            response = jsonify({'success': False, 'message': 'Campo producto_id no enviado'})
+            response.headers.add('Access-Control-Allow-Origin', '*')
+            return response, 400
         if cantidad is None:
-            return jsonify({'success': False, 'message': 'Campo cantidad no enviado'}), 400
+            response = jsonify({'success': False, 'message': 'Campo cantidad no enviado'})
+            response.headers.add('Access-Control-Allow-Origin', '*')
+            return response, 400
         if precio_unitario is None:
-            return jsonify({'success': False, 'message': 'Campo precio_unitario no enviado'}), 400
+            response = jsonify({'success': False, 'message': 'Campo precio_unitario no enviado'})
+            response.headers.add('Access-Control-Allow-Origin', '*')
+            return response, 400
         
         # Validar que los campos no estén vacíos
         if producto_id == '':
-            return jsonify({'success': False, 'message': 'producto_id vacío'}), 400
+            response = jsonify({'success': False, 'message': 'producto_id vacío'})
+            response.headers.add('Access-Control-Allow-Origin', '*')
+            return response, 400
         if cantidad == '':
-            return jsonify({'success': False, 'message': 'cantidad vacía'}), 400
+            response = jsonify({'success': False, 'message': 'cantidad vacía'})
+            response.headers.add('Access-Control-Allow-Origin', '*')
+            return response, 400
         if precio_unitario == '':
-            return jsonify({'success': False, 'message': 'precio_unitario vacío'}), 400
+            response = jsonify({'success': False, 'message': 'precio_unitario vacío'})
+            response.headers.add('Access-Control-Allow-Origin', '*')
+            return response, 400
         
         # Intentar convertir a los tipos correctos
         try:
@@ -426,7 +495,9 @@ def registrar_venta_app():
             precio_unitario = float(precio_unitario)
         except (ValueError, TypeError) as e:
             logger.error(f"Error de conversión de tipos: {e}")
-            return jsonify({'success': False, 'message': f'Error en formato de datos: {str(e)}'}), 400
+            response = jsonify({'success': False, 'message': f'Error en formato de datos: {str(e)}'})
+            response.headers.add('Access-Control-Allow-Origin', '*')
+            return response, 400
         
         from database.db_manager import DatabaseManager
         db = DatabaseManager(request.business_id)
@@ -437,17 +508,21 @@ def registrar_venta_app():
         stock_result = db.execute_query(stock_query, (producto_id,))
         
         if not stock_result:
-            return jsonify({'success': False, 'message': 'Producto no encontrado'}), 404
+            response = jsonify({'success': False, 'message': 'Producto no encontrado'})
+            response.headers.add('Access-Control-Allow-Origin', '*')
+            return response, 404
         
         stock_disponible = stock_result[0][0]
         nombre_producto = stock_result[0][1] if len(stock_result[0]) > 1 else 'Producto'
         
         if stock_disponible < cantidad:
-            return jsonify({
+            response = jsonify({
                 'success': False, 
                 'message': f'Stock insuficiente. Disponible: {stock_disponible}',
                 'stock_disponible': stock_disponible
-            }), 400
+            })
+            response.headers.add('Access-Control-Allow-Origin', '*')
+            return response, 400
         
         # Registrar venta (usar vendor_id)
         usuario_id = request.vendor_id if hasattr(request, 'vendor_id') and request.vendor_id else request.user_id
@@ -468,9 +543,10 @@ def registrar_venta_app():
         total = cantidad * precio_unitario
         
         # Enviar log de venta registrada
+        origen = "APP" if hasattr(request, 'vendor_id') else "WEB"
         try:
             send_telegram_message(f"""
-✅ *Nueva venta registrada desde App Android*
+✅ *Nueva venta registrada desde {origen}*
 
 🆔 *Vendedor:* `{request.vendor_id}` ({request.vendor_name})
 🏪 *Negocio:* `{request.business_id}`
@@ -481,10 +557,10 @@ def registrar_venta_app():
 📦 *Stock restante:* {stock_disponible - cantidad}
 🕐 *Timestamp:* `{datetime.datetime.now().isoformat()}`
             """.strip())
-        except:
-            pass
+        except Exception as e:
+            logger.error(f"Error enviando log a Telegram: {e}")
         
-        return jsonify({
+        response = jsonify({
             'success': True,
             'message': f'Venta registrada: {cantidad} x {nombre_producto}',
             'venta': {
@@ -496,6 +572,8 @@ def registrar_venta_app():
             },
             'stock_restante': stock_disponible - cantidad
         })
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        return response
         
     except Exception as e:
         logger.error(f"Error en registrar_venta_app: {e}")
@@ -511,9 +589,11 @@ def registrar_venta_app():
 📝 *Error:* `{str(e)}`
 🕐 *Timestamp:* `{datetime.datetime.now().isoformat()}`
             """.strip())
-        except:
-            pass
-        return jsonify({'success': False, 'message': str(e)}), 500
+        except Exception as e2:
+            logger.error(f"Error enviando error a Telegram: {e2}")
+        response = jsonify({'success': False, 'message': str(e)})
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        return response, 500
 
 
 @app.route('/api/dashboard-app', methods=['GET'])
@@ -596,9 +676,9 @@ def dashboard_app():
             for row in ventas_recientes:
                 recientes.append({
                     'producto': row[0],
-                    'cantidad': row[1],
+                    'cantidad': row[1] if row[1] is not None else 0,
                     'fecha': row[2],
-                    'total': float(row[3])
+                    'total': float(row[3]) if row[3] else 0
                 })
         
         return jsonify({
@@ -670,9 +750,9 @@ def ventas_app():
                 ventas.append({
                     'id': row[0],
                     'producto': row[1],
-                    'cantidad': row[2],
-                    'precio_unitario': float(row[3]),
-                    'total': float(row[4]),
+                    'cantidad': row[2] if row[2] is not None else 0,
+                    'precio_unitario': float(row[3]) if row[3] else 0,
+                    'total': float(row[4]) if row[4] else 0,
                     'fecha': row[5]
                 })
         
