@@ -127,8 +127,8 @@ jobs:
                   applicationId "com.omniventas.app"
                   minSdk 21
                   targetSdk 34
-                  versionCode 12
-                  versionName "8.0.4"
+                  versionCode 13
+                  versionName "8.0.5"
                   testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
               }
           
@@ -731,7 +731,7 @@ jobs:
                       <TextView
                           android:layout_width="wrap_content"
                           android:layout_height="wrap_content"
-                          android:text="v8.0.4"
+                          android:text="v8.0.5"
                           android:textSize="11sp"
                           android:textColor="@color/gray"
                           android:layout_gravity="center"
@@ -2222,6 +2222,13 @@ jobs:
                           String bodyString = response.body().string();
                           Log.d(TAG, "📡 Cuerpo de la respuesta: " + bodyString);
                           
+                          // VERIFICAR SI LA RESPUESTA ES JSON VÁLIDO
+                          String trimmed = bodyString.trim();
+                          if (!trimmed.startsWith("{") && !trimmed.startsWith("[")) {
+                              Log.e(TAG, "❌ La respuesta NO es JSON. Es texto plano o HTML");
+                              Log.e(TAG, "🔍 Contenido: " + trimmed.substring(0, Math.min(trimmed.length(), 200)));
+                          }
+                          
                           okhttp3.MediaType contentType = response.body().contentType();
                           okhttp3.ResponseBody newBody = okhttp3.ResponseBody.create(contentType, bodyString);
                           
@@ -2565,7 +2572,7 @@ jobs:
               private static TelegramLogger instance;
               private Context context;
               private SessionManager sessionManager;
-              private String appVersion = "8.0.4";
+              private String appVersion = "8.0.5";
           
               private TelegramLogger(Context context) {
                   this.context = context.getApplicationContext();
@@ -2598,7 +2605,16 @@ jobs:
               }
           
               public void networkError(Throwable t) {
-                  sendLog("ERROR", "Error de red: " + (t.getMessage() != null ? t.getMessage() : "Desconocido"));
+                  String errorMsg = "Error de red: ";
+                  if (t.getMessage() != null) {
+                      errorMsg += t.getMessage();
+                      if (errorMsg.length() > 200) {
+                          errorMsg = errorMsg.substring(0, 200) + "...";
+                      }
+                  } else {
+                      errorMsg += "Desconocido";
+                  }
+                  sendLog("ERROR", errorMsg);
               }
           
               public void info(String message) {
@@ -3032,15 +3048,21 @@ jobs:
                                                       String errorBody = response.errorBody().string();
                                                       Log.e("VentasFragment", "❌ Error body: " + errorBody);
                                                       
-                                                      try {
-                                                          JSONObject jsonError = new JSONObject(errorBody);
-                                                          errorMsg = jsonError.optString("message", errorMsg);
-                                                      } catch (Exception e) {
-                                                          errorMsg = errorBody;
+                                                      // Verificar si el error es HTML
+                                                      if (errorBody.trim().startsWith("<!DOCTYPE") || errorBody.trim().startsWith("<html")) {
+                                                          errorMsg = "Error del servidor (HTML)";
+                                                      } else {
+                                                          try {
+                                                              JSONObject jsonError = new JSONObject(errorBody);
+                                                              errorMsg = jsonError.optString("message", errorMsg);
+                                                          } catch (Exception e) {
+                                                              errorMsg = errorBody;
+                                                          }
                                                       }
                                                   }
                                               } catch (Exception e) {
                                                   Log.e("VentasFragment", "❌ Error leyendo errorBody", e);
+                                                  errorMsg = "Error al procesar la respuesta del servidor";
                                               }
                                               Toast.makeText(getContext(), "❌ " + errorMsg, Toast.LENGTH_LONG).show();
                                               logger.error("Error en venta: " + errorMsg);
@@ -3052,12 +3074,16 @@ jobs:
                                           String errorMsg = "Error de conexión";
                                           if (t.getMessage() != null) {
                                               errorMsg = t.getMessage();
+                                              // Verificar si el error es de JSON
+                                              if (errorMsg.contains("BEGIN_OBJECT")) {
+                                                  errorMsg = "El servidor devolvió texto plano en lugar de JSON";
+                                              }
                                               if (errorMsg.length() > 100) {
                                                   errorMsg = errorMsg.substring(0, 100) + "...";
                                               }
                                           }
                                           Toast.makeText(getContext(), "❌ " + errorMsg, Toast.LENGTH_LONG).show();
-                                          logger.networkError(t);
+                                          logger.error("Error en venta: " + errorMsg);
                                       }
                                   });
                               } else {
@@ -3610,7 +3636,7 @@ jobs:
           if git diff --staged --quiet; then
             echo "✅ No hay cambios nuevos en android-app/"
           else
-            git commit -m "🚀 Production Android app v8.0.4 - Usa mismo endpoint que web /api/registrar-venta [skip ci]"
+            git commit -m "🚀 Production Android app v8.0.5 - Mejor manejo de errores y logs [skip ci]"
             git push
             echo "✅ Archivos subidos al repositorio"
           fi
@@ -3642,17 +3668,14 @@ jobs:
         run: |
           echo "🚀 APK DE PRODUCCIÓN COMPILADOS EXITOSAMENTE!"
           echo ""
-          echo "📱 Versión: 8.0.4"
+          echo "📱 Versión: 8.0.5"
           echo ""
-          echo "✨ CAMBIO CRÍTICO:"
-          echo "   - ✅ ENDPOINT UNIFICADO: Ahora usa /api/registrar-venta (el mismo que la web)"
-          echo "   - ✅ ScalarsConverterFactory para manejar respuestas de texto plano"
-          echo "   - ✅ Mejor manejo de errores JSON mal formados"
-          echo ""
-          echo "🔧 Cambios incluidos:"
-          echo "   - ✅ Sincronización en tiempo real: Dashboard se actualiza al registrar venta"
-          echo "   - ✅ Login: Campo de ID vacío (sin ID pre-cargado)"
-          echo "   - ✅ Barra inferior: 'Principal' en lugar de 'Dashboard'"
+          echo "✨ MEJORAS INCLUIDAS:"
+          echo "   - ✅ Mejor manejo de errores en RetrofitClient"
+          echo "   - ✅ Mejor manejo de errores en VentasFragment"
+          echo "   - ✅ Detección de respuestas HTML en lugar de JSON"
+          echo "   - ✅ Mensajes de error más claros para el usuario"
+          echo "   - ✅ Logs mejorados con más información de depuración"
           echo ""
           echo "🔑 Credenciales de prueba:"
           echo "   Vendor ID: AAAA0000"
