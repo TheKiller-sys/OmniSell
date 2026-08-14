@@ -82,7 +82,8 @@ public class DashboardFragment extends Fragment {
         handler.removeCallbacks(actualizacionAutomatica);
     }
 
-    private void cargarDashboard() {
+    // ✅ MÉTODO PÚBLICO para que VentasFragment pueda llamarlo
+    public void cargarDashboard() {
         String token = sessionManager.getToken();
         if (token == null || token.isEmpty()) {
             Toast.makeText(getContext(), "Sesión expirada", Toast.LENGTH_SHORT).show();

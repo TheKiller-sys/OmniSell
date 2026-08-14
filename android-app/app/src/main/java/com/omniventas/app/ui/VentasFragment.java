@@ -228,7 +228,7 @@ public class VentasFragment extends Fragment {
                                     logger.success("Venta registrada: " + productoSeleccionado.getNombre() + " x" + cantidadFinal);
                                     dialog.dismiss();
                                     cargarVentasHoy();
-                                    // Notificar al Dashboard
+                                    // ✅ Notificar al Dashboard para que se actualice
                                     if (getActivity() != null) {
                                         DashboardFragment dashboard = (DashboardFragment) getActivity()
                                             .getSupportFragmentManager()
