@@ -127,8 +127,8 @@ jobs:
                   applicationId "com.omniventas.app"
                   minSdk 21
                   targetSdk 34
-                  versionCode 9
-                  versionName "8.0.1"
+                  versionCode 10
+                  versionName "8.0.2"
                   testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
               }
           
@@ -730,7 +730,7 @@ jobs:
                       <TextView
                           android:layout_width="wrap_content"
                           android:layout_height="wrap_content"
-                          android:text="v8.0.1"
+                          android:text="v8.0.2"
                           android:textSize="11sp"
                           android:textColor="@color/gray"
                           android:layout_gravity="center"
@@ -2531,7 +2531,7 @@ jobs:
               private static TelegramLogger instance;
               private Context context;
               private SessionManager sessionManager;
-              private String appVersion = "8.0.1";
+              private String appVersion = "8.0.2";
 
               private TelegramLogger(Context context) {
                   this.context = context.getApplicationContext();
@@ -2596,7 +2596,7 @@ jobs:
           }
           EOF
 
-      - name: Create UI Fragments - Dashboard
+      - name: Create UI Fragments - Dashboard (CORREGIDO - método público)
         run: |
           cd android-app
           
@@ -2685,7 +2685,8 @@ jobs:
                   handler.removeCallbacks(actualizacionAutomatica);
               }
 
-              private void cargarDashboard() {
+              // ✅ MÉTODO PÚBLICO para que VentasFragment pueda llamarlo
+              public void cargarDashboard() {
                   String token = sessionManager.getToken();
                   if (token == null || token.isEmpty()) {
                       Toast.makeText(getContext(), "Sesión expirada", Toast.LENGTH_SHORT).show();
@@ -2961,7 +2962,7 @@ jobs:
                                               logger.success("Venta registrada: " + productoSeleccionado.getNombre() + " x" + cantidadFinal);
                                               dialog.dismiss();
                                               cargarVentasHoy();
-                                              // Notificar al Dashboard
+                                              // ✅ Notificar al Dashboard para que se actualice
                                               if (getActivity() != null) {
                                                   DashboardFragment dashboard = (DashboardFragment) getActivity()
                                                       .getSupportFragmentManager()
@@ -3530,7 +3531,7 @@ jobs:
           if git diff --staged --quiet; then
             echo "✅ No hay cambios nuevos en android-app/"
           else
-            git commit -m "🚀 Production Android app v8.0.1 - Fix endpoint y sincronización [skip ci]"
+            git commit -m "🚀 Production Android app v8.0.2 - Fix: cargarDashboard() ahora es público [skip ci]"
             git push
             echo "✅ Archivos subidos al repositorio"
           fi
@@ -3562,20 +3563,17 @@ jobs:
         run: |
           echo "🚀 APK DE PRODUCCIÓN COMPILADOS EXITOSAMENTE!"
           echo ""
-          echo "📱 Versión: 8.0.1"
+          echo "📱 Versión: 8.0.2"
           echo ""
-          echo "✨ CORRECCIONES CRÍTICAS:"
-          echo "   - ✅ CORREGIDO ENDPOINT: Ahora usa /api/registrar-venta (era /api/registrar-venta-app)"
+          echo "✨ CORRECCIÓN CRÍTICA:"
+          echo "   - ✅ FIX: cargarDashboard() ahora es público (antes era private)"
+          echo "   - ✅ VentasFragment puede actualizar el Dashboard después de registrar una venta"
+          echo ""
+          echo "🔧 Cambios incluidos:"
+          echo "   - ✅ ENDPOINT CORREGIDO: /api/registrar-venta (antes /api/registrar-venta-app)"
           echo "   - ✅ Sincronización en tiempo real: Al registrar una venta, se actualiza el Dashboard"
-          echo "   - ✅ Mejorado el manejo de errores en el registro de ventas"
-          echo ""
-          echo "🔧 Mejoras incluidas:"
           echo "   - ✅ Login: Campo de ID vacío (sin ID pre-cargado)"
-          echo "   - ✅ Login: Pantalla ajustada con el teclado visible"
-          echo "   - ✅ Dashboard: Logo en el centro superior sin texto"
           echo "   - ✅ Barra inferior: 'Principal' en lugar de 'Dashboard'"
-          echo "   - ✅ Ventas: Título 'Ventas' centrado superior sin fecha"
-          echo "   - ✅ Inventario: Título 'Inventario' centrado superior"
           echo ""
           echo "🔑 Credenciales de prueba:"
           echo "   Vendor ID: AAAA0000"
