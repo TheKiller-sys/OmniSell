@@ -14,6 +14,7 @@ import okhttp3.Response;
 import okhttp3.logging.HttpLoggingInterceptor;
 import retrofit2.Retrofit;
 import retrofit2.converter.gson.GsonConverterFactory;
+import retrofit2.converter.scalars.ScalarsConverterFactory;
 
 public class RetrofitClient {
     private static final String TAG = "RetrofitClient";
@@ -75,13 +76,15 @@ public class RetrofitClient {
             .writeTimeout(30, TimeUnit.SECONDS)
             .build();
 
-        // ✅ CREAR GSON CON LENIENTE ACTIVADO PARA ACEPTAR JSON MAL FORMADO
+        // ✅ CREAR GSON CON LENIENTE ACTIVADO
         com.google.gson.Gson gson = new com.google.gson.GsonBuilder()
             .setLenient()
             .create();
 
+        // ✅ RETROFIT CON SCALARS PRIMERO (para texto plano) y GSON después (para JSON)
         Retrofit retrofit = new Retrofit.Builder()
             .baseUrl(API_URL)
+            .addConverterFactory(ScalarsConverterFactory.create())
             .addConverterFactory(GsonConverterFactory.create(gson))
             .client(client)
             .build();
@@ -89,6 +92,7 @@ public class RetrofitClient {
         apiService = retrofit.create(ApiService.class);
         Log.d(TAG, "✅ API URL: " + API_URL);
         Log.d(TAG, "✅ Gson con setLenient(true) activado");
+        Log.d(TAG, "✅ ScalarsConverterFactory activado para manejar texto plano");
     }
 
     public static synchronized RetrofitClient getInstance(Context context) {

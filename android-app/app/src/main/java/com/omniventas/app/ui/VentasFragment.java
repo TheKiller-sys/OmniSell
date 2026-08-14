@@ -238,7 +238,6 @@ public class VentasFragment extends Fragment {
                                         }
                                     }
                                 } else {
-                                    // ✅ Manejar errores de respuesta
                                     String errorMsg = "Error al registrar venta";
                                     try {
                                         if (response.errorBody() != null) {
@@ -249,7 +248,6 @@ public class VentasFragment extends Fragment {
                                                 JSONObject jsonError = new JSONObject(errorBody);
                                                 errorMsg = jsonError.optString("message", errorMsg);
                                             } catch (Exception e) {
-                                                // Si no es JSON, usar el texto plano
                                                 errorMsg = errorBody;
                                             }
                                         }
