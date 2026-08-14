@@ -43,7 +43,6 @@ public class RetrofitClient {
             return chain.proceed(original);
         };
 
-        // ✅ Interceptor para loguear respuestas y depurar
         Interceptor responseInterceptor = chain -> {
             Request request = chain.request();
             Response response = chain.proceed(request);
@@ -76,12 +75,10 @@ public class RetrofitClient {
             .writeTimeout(30, TimeUnit.SECONDS)
             .build();
 
-        // ✅ CREAR GSON CON LENIENTE ACTIVADO
         com.google.gson.Gson gson = new com.google.gson.GsonBuilder()
             .setLenient()
             .create();
 
-        // ✅ RETROFIT CON SCALARS PRIMERO (para texto plano) y GSON después (para JSON)
         Retrofit retrofit = new Retrofit.Builder()
             .baseUrl(API_URL)
             .addConverterFactory(ScalarsConverterFactory.create())
