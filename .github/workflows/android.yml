@@ -2161,7 +2161,7 @@ jobs:
           }
           EOF
 
-      - name: Create API classes (CORREGIDO - con ScalarsConverterFactory)
+      - name: Create API classes
         run: |
           cd android-app
           
@@ -2211,7 +2211,6 @@ jobs:
                       return chain.proceed(original);
                   };
 
-                  // ✅ Interceptor para loguear respuestas y depurar
                   Interceptor responseInterceptor = chain -> {
                       Request request = chain.request();
                       Response response = chain.proceed(request);
@@ -2244,12 +2243,10 @@ jobs:
                       .writeTimeout(30, TimeUnit.SECONDS)
                       .build();
 
-                  // ✅ CREAR GSON CON LENIENTE ACTIVADO
                   com.google.gson.Gson gson = new com.google.gson.GsonBuilder()
                       .setLenient()
                       .create();
 
-                  // ✅ RETROFIT CON SCALARS PRIMERO (para texto plano) y GSON después (para JSON)
                   Retrofit retrofit = new Retrofit.Builder()
                       .baseUrl(API_URL)
                       .addConverterFactory(ScalarsConverterFactory.create())
@@ -2484,11 +2481,11 @@ jobs:
           
           cat > app/src/main/java/com/omniventas/app/utils/SessionManager.java << 'EOF'
           package com.omniventas.app.utils;
-
+          
           import android.content.Context;
           import android.content.SharedPreferences;
           import android.util.Log;
-
+          
           public class SessionManager {
               private static final String TAG = "SessionManager";
               private static final String PREF_NAME = "OmniVentasSession";
@@ -2497,13 +2494,13 @@ jobs:
               private static final String KEY_VENDOR_NAME = "vendor_name";
               private static final String KEY_BUSINESS_NAME = "business_name";
               private static final String KEY_IS_LOGGED_IN = "is_logged_in";
-
+          
               private SharedPreferences sharedPreferences;
-
+          
               public SessionManager(Context context) {
                   sharedPreferences = context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE);
               }
-
+          
               public void saveUser(String token, String vendorId, String vendorName, String businessName) {
                   sharedPreferences.edit()
                       .putString(KEY_TOKEN, token)
@@ -2514,27 +2511,27 @@ jobs:
                       .apply();
                   Log.d(TAG, "✅ Sesión guardada");
               }
-
+          
               public String getToken() {
                   return sharedPreferences.getString(KEY_TOKEN, null);
               }
-
+          
               public String getVendorId() {
                   return sharedPreferences.getString(KEY_VENDOR_ID, null);
               }
-
+          
               public String getVendorName() {
                   return sharedPreferences.getString(KEY_VENDOR_NAME, null);
               }
-
+          
               public String getBusinessName() {
                   return sharedPreferences.getString(KEY_BUSINESS_NAME, null);
               }
-
+          
               public boolean isLoggedIn() {
                   return sharedPreferences.getBoolean(KEY_IS_LOGGED_IN, false) && getToken() != null;
               }
-
+          
               public void clearSession() {
                   sharedPreferences.edit().clear().apply();
                   Log.d(TAG, "🧹 Sesión limpiada");
@@ -2544,58 +2541,76 @@ jobs:
           
           cat > app/src/main/java/com/omniventas/app/utils/TelegramLogger.java << 'EOF'
           package com.omniventas.app.utils;
-
+          
           import android.content.Context;
           import android.content.pm.PackageInfo;
           import android.content.pm.PackageManager;
           import android.os.Build;
           import android.util.Log;
-          import com.omniventas.app.api.ApiService;
-          import com.omniventas.app.api.RetrofitClient;
+          
           import com.google.gson.JsonObject;
+          import com.omniventas.app.api.RetrofitClient;
+          
           import java.text.SimpleDateFormat;
           import java.util.Date;
           import java.util.Locale;
           import java.util.TimeZone;
+          
           import retrofit2.Call;
           import retrofit2.Callback;
           import retrofit2.Response;
-
+          
           public class TelegramLogger {
               private static final String TAG = "TelegramLogger";
               private static TelegramLogger instance;
               private Context context;
               private SessionManager sessionManager;
               private String appVersion = "8.0.4";
-
+          
               private TelegramLogger(Context context) {
                   this.context = context.getApplicationContext();
                   this.sessionManager = new SessionManager(context);
                   try {
                       PackageInfo pInfo = context.getPackageManager().getPackageInfo(context.getPackageName(), 0);
                       appVersion = pInfo.versionName;
-                  } catch (PackageManager.NameNotFoundException e) {}
+                  } catch (PackageManager.NameNotFoundException e) {
+                      Log.e(TAG, "Error obteniendo versión: " + e.getMessage());
+                  }
               }
-
+          
               public static synchronized TelegramLogger getInstance(Context context) {
                   if (instance == null) {
                       instance = new TelegramLogger(context);
                   }
                   return instance;
               }
-
-              public void success(String message) { sendLog("SUCCESS", message); }
-              public void warning(String message) { sendLog("WARNING", message); }
-              public void error(String message) { sendLog("ERROR", message); }
-              public void networkError(Throwable t) { sendLog("ERROR", "Error de red: " + t.getMessage()); }
-              public void info(String message) { sendLog("INFO", message); }
-
+          
+              public void success(String message) {
+                  sendLog("SUCCESS", message);
+              }
+          
+              public void warning(String message) {
+                  sendLog("WARNING", message);
+              }
+          
+              public void error(String message) {
+                  sendLog("ERROR", message);
+              }
+          
+              public void networkError(Throwable t) {
+                  sendLog("ERROR", "Error de red: " + (t.getMessage() != null ? t.getMessage() : "Desconocido"));
+              }
+          
+              public void info(String message) {
+                  sendLog("INFO", message);
+              }
+          
               private void sendLog(String level, String message) {
                   try {
                       String vendorId = sessionManager.isLoggedIn() ? sessionManager.getVendorId() : "DESCONOCIDO";
                       String vendorName = sessionManager.isLoggedIn() ? sessionManager.getVendorName() : "DESCONOCIDO";
                       String businessName = sessionManager.isLoggedIn() ? sessionManager.getBusinessName() : "DESCONOCIDO";
-
+          
                       JsonObject jsonData = new JsonObject();
                       jsonData.addProperty("level", level);
                       jsonData.addProperty("message", message);
@@ -2606,13 +2621,18 @@ jobs:
                       jsonData.addProperty("app_version", appVersion);
                       jsonData.addProperty("device_model", Build.MANUFACTURER + " " + Build.MODEL);
                       jsonData.addProperty("android_version", Build.VERSION.RELEASE);
-
+          
                       RetrofitClient.getInstance(context).getApiService().sendLog(jsonData)
                           .enqueue(new Callback<Void>() {
                               @Override
                               public void onResponse(Call<Void> call, Response<Void> response) {
-                                  if (response.isSuccessful()) Log.d(TAG, "✅ Log enviado");
+                                  if (response.isSuccessful()) {
+                                      Log.d(TAG, "✅ Log enviado correctamente");
+                                  } else {
+                                      Log.w(TAG, "⚠️ Log enviado con código: " + response.code());
+                                  }
                               }
+          
                               @Override
                               public void onFailure(Call<Void> call, Throwable t) {
                                   Log.e(TAG, "❌ Error enviando log: " + t.getMessage());
@@ -2622,146 +2642,146 @@ jobs:
                       Log.e(TAG, "❌ Error en sendLog: " + e.getMessage());
                   }
               }
-
+          
               private String getCurrentTimestamp() {
                   SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault());
                   sdf.setTimeZone(TimeZone.getTimeZone("UTC"));
                   return sdf.format(new Date());
               }
           }
-          EOF    
+          EOF
+
+      - name: Create UI Fragments - Dashboard
+        run: |
+          cd android-app
           
-          - name: Create UI Fragments - Dashboard
-            run: |
-              cd android-app
-          
-              cat > app/src/main/java/com/omniventas/app/ui/DashboardFragment.java << 'EOF'
-              package com.omniventas.app.ui;
+          cat > app/src/main/java/com/omniventas/app/ui/DashboardFragment.java << 'EOF'
+          package com.omniventas.app.ui;
 
-              import android.os.Bundle;
-              import android.os.Handler;
-              import android.os.Looper;
-              import android.view.LayoutInflater;
-              import android.view.View;
-              import android.view.ViewGroup;
-              import android.widget.TextView;
-              import android.widget.Toast;
-              import androidx.annotation.NonNull;
-              import androidx.annotation.Nullable;
-              import androidx.fragment.app.Fragment;
-              import androidx.recyclerview.widget.LinearLayoutManager;
-              import androidx.recyclerview.widget.RecyclerView;
-              import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
-              import com.omniventas.app.R;
-              import com.omniventas.app.adapters.VentaAdapter;
-              import com.omniventas.app.api.ApiService;
-              import com.omniventas.app.api.RetrofitClient;
-              import com.omniventas.app.models.DashboardResponse;
-              import com.omniventas.app.models.Venta;
-              import com.omniventas.app.utils.SessionManager;
-              import com.omniventas.app.utils.TelegramLogger;
-              import java.util.List;
-              import retrofit2.Call;
-              import retrofit2.Callback;
-              import retrofit2.Response;
+          import android.os.Bundle;
+          import android.os.Handler;
+          import android.os.Looper;
+          import android.view.LayoutInflater;
+          import android.view.View;
+          import android.view.ViewGroup;
+          import android.widget.TextView;
+          import android.widget.Toast;
+          import androidx.annotation.NonNull;
+          import androidx.annotation.Nullable;
+          import androidx.fragment.app.Fragment;
+          import androidx.recyclerview.widget.LinearLayoutManager;
+          import androidx.recyclerview.widget.RecyclerView;
+          import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
+          import com.omniventas.app.R;
+          import com.omniventas.app.adapters.VentaAdapter;
+          import com.omniventas.app.api.ApiService;
+          import com.omniventas.app.api.RetrofitClient;
+          import com.omniventas.app.models.DashboardResponse;
+          import com.omniventas.app.models.Venta;
+          import com.omniventas.app.utils.SessionManager;
+          import com.omniventas.app.utils.TelegramLogger;
+          import java.util.List;
+          import retrofit2.Call;
+          import retrofit2.Callback;
+          import retrofit2.Response;
 
-              public class DashboardFragment extends Fragment {
+          public class DashboardFragment extends Fragment {
 
-                  private TextView tvVentasHoy, tvIngresosHoy, tvVentasMes, tvIngresosMes, tvBajoStock;
-                  private RecyclerView rvVentasRecientes;
-                  private SwipeRefreshLayout swipeRefresh;
-                  private SessionManager sessionManager;
-                  private TelegramLogger logger;
-                  private VentaAdapter ventaAdapter;
-                  private Handler handler = new Handler(Looper.getMainLooper());
-                  private Runnable actualizacionAutomatica;
+              private TextView tvVentasHoy, tvIngresosHoy, tvVentasMes, tvIngresosMes, tvBajoStock;
+              private RecyclerView rvVentasRecientes;
+              private SwipeRefreshLayout swipeRefresh;
+              private SessionManager sessionManager;
+              private TelegramLogger logger;
+              private VentaAdapter ventaAdapter;
+              private Handler handler = new Handler(Looper.getMainLooper());
+              private Runnable actualizacionAutomatica;
 
-                  @Nullable
-                  @Override
-                  public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
-                      View view = inflater.inflate(R.layout.fragment_dashboard, container, false);
+              @Nullable
+              @Override
+              public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
+                  View view = inflater.inflate(R.layout.fragment_dashboard, container, false);
 
-                      tvVentasHoy = view.findViewById(R.id.tv_ventas_hoy);
-                      tvIngresosHoy = view.findViewById(R.id.tv_ingresos_hoy);
-                      tvVentasMes = view.findViewById(R.id.tv_ventas_mes);
-                      tvIngresosMes = view.findViewById(R.id.tv_ingresos_mes);
-                      tvBajoStock = view.findViewById(R.id.tv_bajo_stock);
-                      rvVentasRecientes = view.findViewById(R.id.rv_ventas_recientes);
-                      swipeRefresh = view.findViewById(R.id.swipe_refresh);
+                  tvVentasHoy = view.findViewById(R.id.tv_ventas_hoy);
+                  tvIngresosHoy = view.findViewById(R.id.tv_ingresos_hoy);
+                  tvVentasMes = view.findViewById(R.id.tv_ventas_mes);
+                  tvIngresosMes = view.findViewById(R.id.tv_ingresos_mes);
+                  tvBajoStock = view.findViewById(R.id.tv_bajo_stock);
+                  rvVentasRecientes = view.findViewById(R.id.rv_ventas_recientes);
+                  swipeRefresh = view.findViewById(R.id.swipe_refresh);
 
-                      sessionManager = new SessionManager(getContext());
-                      logger = TelegramLogger.getInstance(getContext());
+                  sessionManager = new SessionManager(getContext());
+                  logger = TelegramLogger.getInstance(getContext());
 
-                      ventaAdapter = new VentaAdapter();
-                      rvVentasRecientes.setLayoutManager(new LinearLayoutManager(getContext()));
-                      rvVentasRecientes.setAdapter(ventaAdapter);
+                  ventaAdapter = new VentaAdapter();
+                  rvVentasRecientes.setLayoutManager(new LinearLayoutManager(getContext()));
+                  rvVentasRecientes.setAdapter(ventaAdapter);
 
-                      swipeRefresh.setOnRefreshListener(this::cargarDashboard);
+                  swipeRefresh.setOnRefreshListener(this::cargarDashboard);
 
-                      actualizacionAutomatica = new Runnable() {
-                          @Override
-                          public void run() {
-                              if (isAdded()) {
-                                  cargarDashboard();
-                                  handler.postDelayed(this, 10000);
+                  actualizacionAutomatica = new Runnable() {
+                      @Override
+                      public void run() {
+                          if (isAdded()) {
+                              cargarDashboard();
+                              handler.postDelayed(this, 10000);
+                          }
+                      }
+                  };
+                  handler.postDelayed(actualizacionAutomatica, 10000);
+
+                  cargarDashboard();
+
+                  return view;
+              }
+
+              @Override
+              public void onDestroyView() {
+                  super.onDestroyView();
+                  handler.removeCallbacks(actualizacionAutomatica);
+              }
+
+              public void cargarDashboard() {
+                  String token = sessionManager.getToken();
+                  if (token == null || token.isEmpty()) {
+                      Toast.makeText(getContext(), "Sesión expirada", Toast.LENGTH_SHORT).show();
+                      swipeRefresh.setRefreshing(false);
+                      return;
+                  }
+
+                  ApiService apiService = RetrofitClient.getInstance(getContext()).getApiService();
+                  apiService.getDashboard("Bearer " + token).enqueue(new Callback<DashboardResponse>() {
+                      @Override
+                      public void onResponse(Call<DashboardResponse> call, Response<DashboardResponse> response) {
+                          swipeRefresh.setRefreshing(false);
+                          if (response.isSuccessful() && response.body() != null && response.body().isSuccess()) {
+                              DashboardResponse.DashboardData data = response.body().getDashboard();
+                              tvVentasHoy.setText(String.valueOf(data.getVentasHoy()));
+                              tvIngresosHoy.setText("$" + String.format("%.2f", data.getIngresosHoy()));
+                              tvVentasMes.setText(String.valueOf(data.getVentasMes()));
+                              tvIngresosMes.setText("$" + String.format("%.2f", data.getIngresosMes()));
+                              tvBajoStock.setText(String.valueOf(data.getProductosBajoStock()));
+
+                              List<Venta> ventas = data.getVentasRecientes();
+                              if (ventas != null) {
+                                  if (ventas.size() > 5) {
+                                      ventas = ventas.subList(0, 5);
+                                  }
+                                  ventaAdapter.setVentas(ventas);
                               }
                           }
-                      };
-                      handler.postDelayed(actualizacionAutomatica, 10000);
-
-                      cargarDashboard();
-
-                      return view;
-                  }
-
-                  @Override
-                  public void onDestroyView() {
-                      super.onDestroyView();
-                      handler.removeCallbacks(actualizacionAutomatica);
-                  }
-
-                  public void cargarDashboard() {
-                      String token = sessionManager.getToken();
-                      if (token == null || token.isEmpty()) {
-                          Toast.makeText(getContext(), "Sesión expirada", Toast.LENGTH_SHORT).show();
-                          swipeRefresh.setRefreshing(false);
-                          return;
                       }
 
-                      ApiService apiService = RetrofitClient.getInstance(getContext()).getApiService();
-                      apiService.getDashboard("Bearer " + token).enqueue(new Callback<DashboardResponse>() {
-                          @Override
-                          public void onResponse(Call<DashboardResponse> call, Response<DashboardResponse> response) {
-                              swipeRefresh.setRefreshing(false);
-                              if (response.isSuccessful() && response.body() != null && response.body().isSuccess()) {
-                                  DashboardResponse.DashboardData data = response.body().getDashboard();
-                                  tvVentasHoy.setText(String.valueOf(data.getVentasHoy()));
-                                  tvIngresosHoy.setText("$" + String.format("%.2f", data.getIngresosHoy()));
-                                  tvVentasMes.setText(String.valueOf(data.getVentasMes()));
-                                  tvIngresosMes.setText("$" + String.format("%.2f", data.getIngresosMes()));
-                                  tvBajoStock.setText(String.valueOf(data.getProductosBajoStock()));
-
-                                  List<Venta> ventas = data.getVentasRecientes();
-                                  if (ventas != null) {
-                                      if (ventas.size() > 5) {
-                                          ventas = ventas.subList(0, 5);
-                                      }
-                                      ventaAdapter.setVentas(ventas);
-                                  }
-                              }
-                          }
-
-                          @Override
-                          public void onFailure(Call<DashboardResponse> call, Throwable t) {
-                              swipeRefresh.setRefreshing(false);
-                              logger.networkError(t);
-                          }
-                      });
-                  }
+                      @Override
+                      public void onFailure(Call<DashboardResponse> call, Throwable t) {
+                          swipeRefresh.setRefreshing(false);
+                          logger.networkError(t);
+                      }
+                  });
               }
-              EOF
+          }
+          EOF
 
-      - name: Create VentasFragment (CORREGIDO - mejor manejo de errores)
+      - name: Create VentasFragment
         run: |
           cd android-app
           
