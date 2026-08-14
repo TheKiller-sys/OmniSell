@@ -1,5 +1,5 @@
 # web/dashboard.py - Panel de administración web unificado (SIN TELEGRAM)
-from flask import Flask, render_template, request, redirect, url_for, jsonify, g, session
+from flask import Flask, render_template, request, redirect, url_for, jsonify, g, session, flash
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
 from flask_socketio import SocketIO
 from database.db_manager import DatabaseManager
@@ -316,6 +316,18 @@ def create_app():
         business_name = session.get('business_name', 'Negocio')
         business_id = session.get('business_id')
         return render_template('configuracion.html', business_name=business_name, business_id=business_id)
+
+    @app.route('/vendedores')
+    @login_required
+    def vendedores_page():
+        """Página de gestión de vendedores"""
+        # Verificar que el usuario sea admin
+        if current_user.role != 'admin':
+            flash('No tienes permisos para acceder a esta página', 'danger')
+            return redirect(url_for('dashboard'))
+        
+        business_name = session.get('business_name', 'Negocio')
+        return render_template('vendedores.html', business_name=business_name)
 
     @app.route('/initial_setup')
     def initial_setup():
@@ -1213,20 +1225,6 @@ def create_app():
             logger.error(f"Error en api_finanzas: {str(e)}")
             return jsonify({'error': str(e)}), 500
 
-    # En web/dashboard.py - Agregar esta ruta
-
-    @app.route('/vendedores')
-    @login_required
-    def vendedores_page():
-        """Página de gestión de vendedores"""
-    # Verificar que el usuario sea admin
-        if current_user.role != 'admin':
-            flash('No tienes permisos para acceder a esta página', 'danger')
-            return redirect(url_for('dashboard'))
-    
-        business_name = session.get('business_name', 'Negocio')
-        return render_template('vendedores.html', business_name=business_name)
-    
     @app.route('/api/analisis')
     @login_required
     def api_analisis():
@@ -1557,4 +1555,3 @@ def create_app():
         logger.info(f"Cliente desconectado: {request.sid}")
 
     return app
-
