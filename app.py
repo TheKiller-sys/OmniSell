@@ -45,6 +45,45 @@ if TELEGRAM_BOT_TOKEN and TELEGRAM_ADMIN_CHAT_ID:
 else:
     logger.warning("⚠️ Bot de Telegram NO configurado. Los logs no se enviarán.")
 
+# ==================== MANEJADOR DE ERRORES GLOBAL ====================
+
+@app.errorhandler(404)
+def not_found(error):
+    """Manejar errores 404 devolviendo JSON"""
+    response = jsonify({
+        'success': False,
+        'message': 'Endpoint no encontrado',
+        'error': str(error)
+    })
+    response.status_code = 404
+    response.headers.add('Access-Control-Allow-Origin', '*')
+    return response
+
+@app.errorhandler(500)
+def internal_error(error):
+    """Manejar errores 500 devolviendo JSON"""
+    response = jsonify({
+        'success': False,
+        'message': 'Error interno del servidor',
+        'error': str(error)
+    })
+    response.status_code = 500
+    response.headers.add('Access-Control-Allow-Origin', '*')
+    return response
+
+@app.errorhandler(Exception)
+def handle_exception(error):
+    """Manejar cualquier excepción devolviendo JSON"""
+    logger.error(f"Error no manejado: {error}")
+    response = jsonify({
+        'success': False,
+        'message': 'Error interno del servidor',
+        'error': str(error)
+    })
+    response.status_code = 500
+    response.headers.add('Access-Control-Allow-Origin', '*')
+    return response
+
 # ==================== DECORADOR DE AUTENTICACIÓN ====================
 
 def token_required(f):
@@ -438,6 +477,7 @@ def registrar_venta_app():
         response.headers.add('Access-Control-Allow-Methods', 'POST,OPTIONS')
         return response
     
+    # Envolver todo en un try-except para asegurar respuesta JSON
     try:
         # 🔍 LOG: Ver qué está llegando
         logger.info(f"📥 Solicitud POST a /api/registrar-venta")
@@ -1240,6 +1280,58 @@ def apk_status():
         })
     except Exception as e:
         return jsonify({'exists': False, 'error': str(e)})
+
+# ==================== ENDPOINT DE PRUEBA ====================
+
+@app.route('/api/test', methods=['GET'])
+def test_endpoint():
+    """Endpoint de prueba para verificar que el servidor responde JSON"""
+    response = jsonify({
+        'success': True,
+        'message': 'Test endpoint working',
+        'timestamp': datetime.datetime.now().isoformat()
+    })
+    response.headers.add('Access-Control-Allow-Origin', '*')
+    return response
+
+@app.route('/api/venta-diagnostico', methods=['GET'])
+def venta_diagnostico():
+    """Endpoint para diagnosticar problemas de ventas"""
+    return jsonify({
+        'success': True,
+        'message': 'Endpoint de diagnóstico funcionando',
+        'telegram_configured': bool(TELEGRAM_BOT_TOKEN and TELEGRAM_ADMIN_CHAT_ID),
+        'telegram_token': TELEGRAM_BOT_TOKEN[:10] + '...' if TELEGRAM_BOT_TOKEN else None,
+        'telegram_chat_id': TELEGRAM_ADMIN_CHAT_ID[:10] + '...' if TELEGRAM_ADMIN_CHAT_ID else None,
+        'timestamp': datetime.datetime.now().isoformat()
+    })
+
+@app.route('/api/diagnostico', methods=['GET'])
+def diagnostico():
+    """Endpoint de diagnóstico completo"""
+    import platform
+    import sys
+    
+    return jsonify({
+        'success': True,
+        'servidor': 'OmniVentas API',
+        'version': '2.0',
+        'python_version': sys.version,
+        'platform': platform.platform(),
+        'telegram_configured': bool(TELEGRAM_BOT_TOKEN and TELEGRAM_ADMIN_CHAT_ID),
+        'timestamp': datetime.datetime.now().isoformat(),
+        'endpoints_disponibles': [
+            '/api/login-vendedor',
+            '/api/productos',
+            '/api/registrar-venta',
+            '/api/dashboard-app',
+            '/api/send-log',
+            '/api/telegram-status',
+            '/api/diagnostico',
+            '/api/test',
+            '/api/venta-diagnostico'
+        ]
+    })
 
 # ==================== INICIO ====================
 
