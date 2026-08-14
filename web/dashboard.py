@@ -1092,7 +1092,7 @@ def create_app():
 
     @app.route('/api/registrar-venta', methods=['POST'])
     @login_required
-    def registrar_venta():
+    def registrar_venta_web():
         """Registrar una venta desde el panel web"""
         try:
             data = request.json
