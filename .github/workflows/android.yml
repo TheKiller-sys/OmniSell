@@ -127,8 +127,8 @@ jobs:
                   applicationId "com.omniventas.app"
                   minSdk 21
                   targetSdk 34
-                  versionCode 11
-                  versionName "8.0.3"
+                  versionCode 12
+                  versionName "8.0.4"
                   testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
               }
           
@@ -159,6 +159,7 @@ jobs:
               implementation 'androidx.security:security-crypto:1.1.0-alpha06'
               implementation 'com.squareup.retrofit2:retrofit:2.9.0'
               implementation 'com.squareup.retrofit2:converter-gson:2.9.0'
+              implementation 'com.squareup.retrofit2:converter-scalars:2.9.0'
               implementation 'com.squareup.okhttp3:logging-interceptor:4.11.0'
               implementation 'com.auth0:java-jwt:4.4.0'
               implementation 'com.google.code.gson:gson:2.10.1'
@@ -730,7 +731,7 @@ jobs:
                       <TextView
                           android:layout_width="wrap_content"
                           android:layout_height="wrap_content"
-                          android:text="v8.0.3"
+                          android:text="v8.0.4"
                           android:textSize="11sp"
                           android:textColor="@color/gray"
                           android:layout_gravity="center"
@@ -2160,7 +2161,7 @@ jobs:
           }
           EOF
 
-      - name: Create API classes (CORREGIDO - con setLenient)
+      - name: Create API classes (CORREGIDO - con ScalarsConverterFactory)
         run: |
           cd android-app
           
@@ -2181,6 +2182,7 @@ jobs:
           import okhttp3.logging.HttpLoggingInterceptor;
           import retrofit2.Retrofit;
           import retrofit2.converter.gson.GsonConverterFactory;
+          import retrofit2.converter.scalars.ScalarsConverterFactory;
 
           public class RetrofitClient {
               private static final String TAG = "RetrofitClient";
@@ -2242,13 +2244,15 @@ jobs:
                       .writeTimeout(30, TimeUnit.SECONDS)
                       .build();
 
-                  // ✅ CREAR GSON CON LENIENTE ACTIVADO PARA ACEPTAR JSON MAL FORMADO
+                  // ✅ CREAR GSON CON LENIENTE ACTIVADO
                   com.google.gson.Gson gson = new com.google.gson.GsonBuilder()
                       .setLenient()
                       .create();
 
+                  // ✅ RETROFIT CON SCALARS PRIMERO (para texto plano) y GSON después (para JSON)
                   Retrofit retrofit = new Retrofit.Builder()
                       .baseUrl(API_URL)
+                      .addConverterFactory(ScalarsConverterFactory.create())
                       .addConverterFactory(GsonConverterFactory.create(gson))
                       .client(client)
                       .build();
@@ -2256,6 +2260,7 @@ jobs:
                   apiService = retrofit.create(ApiService.class);
                   Log.d(TAG, "✅ API URL: " + API_URL);
                   Log.d(TAG, "✅ Gson con setLenient(true) activado");
+                  Log.d(TAG, "✅ ScalarsConverterFactory activado para manejar texto plano");
               }
 
               public static synchronized RetrofitClient getInstance(Context context) {
@@ -2281,7 +2286,6 @@ jobs:
           import com.omniventas.app.models.DashboardResponse;
           import com.omniventas.app.models.LoginResponse;
           import com.omniventas.app.models.RespuestaProductos;
-          import com.omniventas.app.models.Venta;
           import com.omniventas.app.models.VendorLoginRequest;
           import com.omniventas.app.models.VentaRequest;
           import com.omniventas.app.models.VentaResponse;
@@ -2562,7 +2566,7 @@ jobs:
               private static TelegramLogger instance;
               private Context context;
               private SessionManager sessionManager;
-              private String appVersion = "8.0.3";
+              private String appVersion = "8.0.4";
 
               private TelegramLogger(Context context) {
                   this.context = context.getApplicationContext();
@@ -2625,9 +2629,7 @@ jobs:
                   return sdf.format(new Date());
               }
           }
-          EOF
-
-      - name: Create UI Fragments - Dashboard
+          EOF      - name: Create UI Fragments - Dashboard
         run: |
           cd android-app
           
@@ -3002,7 +3004,6 @@ jobs:
                                                   }
                                               }
                                           } else {
-                                              // ✅ Manejar errores de respuesta
                                               String errorMsg = "Error al registrar venta";
                                               try {
                                                   if (response.errorBody() != null) {
@@ -3013,7 +3014,6 @@ jobs:
                                                           JSONObject jsonError = new JSONObject(errorBody);
                                                           errorMsg = jsonError.optString("message", errorMsg);
                                                       } catch (Exception e) {
-                                                          // Si no es JSON, usar el texto plano
                                                           errorMsg = errorBody;
                                                       }
                                                   }
@@ -3588,7 +3588,7 @@ jobs:
           if git diff --staged --quiet; then
             echo "✅ No hay cambios nuevos en android-app/"
           else
-            git commit -m "🚀 Production Android app v8.0.3 - Fix JSON malformed con setLenient y mejor manejo de errores [skip ci]"
+            git commit -m "🚀 Production Android app v8.0.4 - Usa mismo endpoint que web /api/registrar-venta [skip ci]"
             git push
             echo "✅ Archivos subidos al repositorio"
           fi
@@ -3620,16 +3620,14 @@ jobs:
         run: |
           echo "🚀 APK DE PRODUCCIÓN COMPILADOS EXITOSAMENTE!"
           echo ""
-          echo "📱 Versión: 8.0.3"
+          echo "📱 Versión: 8.0.4"
           echo ""
-          echo "✨ CORRECCIONES CRÍTICAS:"
-          echo "   - ✅ FIX: Error 'Use JsonReader.setLenient(true)' - Gson ahora usa setLenient()"
-          echo "   - ✅ FIX: Mejor manejo de errores en VentasFragment"
-          echo "   - ✅ FIX: Interceptor para depurar respuestas del servidor"
-          echo "   - ✅ FIX: URL base con barra final correcta"
+          echo "✨ CAMBIO CRÍTICO:"
+          echo "   - ✅ ENDPOINT UNIFICADO: Ahora usa /api/registrar-venta (el mismo que la web)"
+          echo "   - ✅ ScalarsConverterFactory para manejar respuestas de texto plano"
+          echo "   - ✅ Mejor manejo de errores JSON mal formados"
           echo ""
           echo "🔧 Cambios incluidos:"
-          echo "   - ✅ ENDPOINT CORREGIDO: /api/registrar-venta"
           echo "   - ✅ Sincronización en tiempo real: Dashboard se actualiza al registrar venta"
           echo "   - ✅ Login: Campo de ID vacío (sin ID pre-cargado)"
           echo "   - ✅ Barra inferior: 'Principal' en lugar de 'Dashboard'"
