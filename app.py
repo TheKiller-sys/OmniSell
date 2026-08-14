@@ -379,10 +379,11 @@ def get_productos():
         return jsonify({'success': False, 'message': str(e)}), 500
 
 
+# ==================== ENDPOINT PARA REGISTRAR VENTAS DESDE APP ANDROID ====================
 @app.route('/api/registrar-venta', methods=['POST'])
 @token_required
-def registrar_venta():
-    """Registrar venta desde la app Android"""
+def registrar_venta_app():
+    """Registrar venta desde la app Android (con token JWT)"""
     try:
         data = request.json
         producto_id = data.get('producto_id')
@@ -413,7 +414,7 @@ def registrar_venta():
                 'stock_disponible': stock_disponible
             }), 400
         
-        # Registrar venta (usar vendor_id si existe, sino user_id)
+        # Registrar venta (usar vendor_id)
         usuario_id = request.vendor_id if hasattr(request, 'vendor_id') and request.vendor_id else request.user_id
         
         insert_query = """
@@ -434,7 +435,7 @@ def registrar_venta():
         # Enviar log de venta registrada
         try:
             send_telegram_message(f"""
-✅ *Nueva venta registrada*
+✅ *Nueva venta registrada desde App Android*
 
 🆔 *Vendedor:* `{request.vendor_id}` ({request.vendor_name})
 🏪 *Negocio:* `{request.business_id}`
@@ -462,11 +463,11 @@ def registrar_venta():
         })
         
     except Exception as e:
-        logger.error(f"Error en registrar_venta: {e}")
+        logger.error(f"Error en registrar_venta_app: {e}")
         # Enviar log de error
         try:
             send_telegram_message(f"""
-❌ *Error al registrar venta*
+❌ *Error al registrar venta desde App Android*
 
 🆔 *Vendedor:* `{request.vendor_id if hasattr(request, 'vendor_id') else 'DESCONOCIDO'}`
 🏪 *Negocio:* `{request.business_id if hasattr(request, 'business_id') else 'DESCONOCIDO'}`
