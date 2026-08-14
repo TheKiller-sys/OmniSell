@@ -90,19 +90,23 @@ def health_check():
 
 # ==================== ENDPOINT: LOGS POR TELEGRAM (BOT ÚNICO) ====================
 
-def send_telegram_message(message, parse_mode='Markdown'):
-    """Función interna para enviar mensajes a Telegram"""
+def send_telegram_message(message, parse_mode=None):
+    """Función interna para enviar mensajes a Telegram (sin formato para evitar errores)"""
     try:
         if not TELEGRAM_BOT_TOKEN or not TELEGRAM_ADMIN_CHAT_ID:
             logger.warning("Telegram no configurado, mensaje no enviado")
             return False
         
+        # Enviar sin parse_mode para evitar errores de formato
         url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
         payload = {
             'chat_id': TELEGRAM_ADMIN_CHAT_ID,
-            'text': message,
-            'parse_mode': parse_mode
+            'text': message
         }
+        
+        # Solo agregar parse_mode si se especifica y es válido
+        if parse_mode and parse_mode in ['Markdown', 'HTML']:
+            payload['parse_mode'] = parse_mode
         
         response = requests.post(url, json=payload, timeout=10)
         
@@ -172,33 +176,31 @@ def send_log_to_telegram():
             'CRITICAL': '🔥'
         }.get(log_level, '📱')
         
-        # Construir mensaje formateado
-        data_str = ""
+        # Construir mensaje formateado (sin Markdown para evitar errores)
+        message_lines = [
+            f"{emoji} [{log_level}] Log desde App Android",
+            "",
+            f"App: OmniVentas v{app_version}",
+            f"Vendedor: {vendor_id} ({vendor_name})",
+            f"Negocio: {business_name}",
+            f"Dispositivo: {device_model} (Android {android_version})",
+            f"Timestamp: {timestamp}",
+            "",
+            f"Mensaje: {log_message}"
+        ]
+        
         if log_data:
             try:
                 if isinstance(log_data, dict):
-                    data_str = f"\n📦 *Data:*\n```json\n{json.dumps(log_data, indent=2, default=str)}\n```"
+                    message_lines.append(f"Data: {json.dumps(log_data, indent=2, default=str)}")
                 else:
-                    data_str = f"\n📦 *Data:* `{str(log_data)}`"
+                    message_lines.append(f"Data: {str(log_data)}")
             except Exception as e:
-                data_str = f"\n📦 *Data:* `{str(log_data)}`"
+                message_lines.append(f"Data: {str(log_data)}")
         
-        # Construir mensaje completo
-        message = f"""
-{emoji} *[{log_level}] Log desde App Android*
-
-📱 *App:* OmniVentas v{app_version}
-🆔 *Vendedor:* `{vendor_id}` ({vendor_name})
-🏪 *Negocio:* `{business_name}`
-📱 *Dispositivo:* {device_model} (Android {android_version})
-🕐 *Timestamp:* `{timestamp}`
-
-📝 *Mensaje:*
-{log_message}
-{data_str}
-        """.strip()
+        message = "\n".join(message_lines)
         
-        # Enviar mensaje a Telegram
+        # Enviar mensaje a Telegram (sin parse_mode para evitar errores)
         success = send_telegram_message(message)
         
         response = jsonify({
@@ -336,17 +338,15 @@ def login_vendedor():
             'exp': datetime.datetime.utcnow() + datetime.timedelta(days=7)
         }, os.environ.get('JWT_SECRET', 'secret-key'), algorithm='HS256')
         
-        # Enviar log de login exitoso al programador
-        log_message = f"✅ Login exitoso: {vendor_data[1]} (ID: {vendor_data[0]}) - {vendor_data[3]}"
+        # Enviar log de login exitoso al programador (sin formato)
         try:
-            send_telegram_message(f"""
-✅ *Login exitoso desde App Android*
-
-🆔 *Vendedor:* `{vendor_data[0]}` ({vendor_data[1]})
-🏪 *Negocio:* `{vendor_data[3]}`
-🕐 *Timestamp:* `{datetime.datetime.now().isoformat()}`
-📝 *Estado:* Conexión exitosa
-            """.strip())
+            send_telegram_message(
+                f"✅ Login exitoso desde App Android\n"
+                f"Vendedor: {vendor_data[0]} ({vendor_data[1]})\n"
+                f"Negocio: {vendor_data[3]}\n"
+                f"Timestamp: {datetime.datetime.now().isoformat()}\n"
+                f"Estado: Conexión exitosa"
+            )
         except:
             pass
         
@@ -366,12 +366,11 @@ def login_vendedor():
         logger.error(f"Error en login_vendedor: {e}")
         # Enviar log de error al programador
         try:
-            send_telegram_message(f"""
-❌ *Error en login*
-
-🕐 *Timestamp:* `{datetime.datetime.now().isoformat()}`
-📝 *Error:* `{str(e)}`
-            """.strip())
+            send_telegram_message(
+                f"❌ Error en login\n"
+                f"Timestamp: {datetime.datetime.now().isoformat()}\n"
+                f"Error: {str(e)}"
+            )
         except:
             pass
         return jsonify({'success': False, 'message': str(e)}), 500
@@ -443,10 +442,20 @@ def registrar_venta_app():
         # 🔍 LOG: Ver qué está llegando
         logger.info(f"📥 Solicitud POST a /api/registrar-venta")
         logger.info(f"📥 Headers: {dict(request.headers)}")
-        logger.info(f"📥 Raw data: {request.get_data(as_text=True)}")
-        logger.info(f"📥 JSON: {request.json}")
         
-        data = request.json
+        # Obtener datos crudos para debug
+        raw_data = request.get_data(as_text=True)
+        logger.info(f"📥 Raw data: {raw_data}")
+        
+        # Intentar parsear JSON
+        try:
+            data = request.json
+        except Exception as e:
+            logger.error(f"Error parseando JSON: {e}")
+            response = jsonify({'success': False, 'message': f'Error parseando JSON: {str(e)}'})
+            response.headers.add('Access-Control-Allow-Origin', '*')
+            return response, 400
+        
         if not data:
             response = jsonify({'success': False, 'message': 'No se recibió JSON'})
             response.headers.add('Access-Control-Allow-Origin', '*')
@@ -542,21 +551,20 @@ def registrar_venta_app():
         
         total = cantidad * precio_unitario
         
-        # Enviar log de venta registrada
+        # Enviar log de venta registrada (sin formato para evitar errores)
         origen = "APP" if hasattr(request, 'vendor_id') else "WEB"
         try:
-            send_telegram_message(f"""
-✅ *Nueva venta registrada desde {origen}*
-
-🆔 *Vendedor:* `{request.vendor_id}` ({request.vendor_name})
-🏪 *Negocio:* `{request.business_id}`
-📦 *Producto:* {nombre_producto} (ID: {producto_id})
-📊 *Cantidad:* {cantidad}
-💰 *Precio unitario:* ${precio_unitario:.2f}
-💵 *Total:* ${total:.2f}
-📦 *Stock restante:* {stock_disponible - cantidad}
-🕐 *Timestamp:* `{datetime.datetime.now().isoformat()}`
-            """.strip())
+            send_telegram_message(
+                f"✅ NUEVA VENTA desde {origen}\n"
+                f"Vendedor: {request.vendor_id} ({request.vendor_name})\n"
+                f"Negocio: {request.business_id}\n"
+                f"Producto: {nombre_producto} (ID: {producto_id})\n"
+                f"Cantidad: {cantidad}\n"
+                f"Precio unitario: ${precio_unitario:.2f}\n"
+                f"Total: ${total:.2f}\n"
+                f"Stock restante: {stock_disponible - cantidad}\n"
+                f"Timestamp: {datetime.datetime.now().isoformat()}"
+            )
         except Exception as e:
             logger.error(f"Error enviando log a Telegram: {e}")
         
@@ -579,18 +587,19 @@ def registrar_venta_app():
         logger.error(f"Error en registrar_venta_app: {e}")
         import traceback
         logger.error(traceback.format_exc())
-        # Enviar log de error
+        
+        # Intentar enviar error a Telegram
         try:
-            send_telegram_message(f"""
-❌ *Error al registrar venta desde App Android*
-
-🆔 *Vendedor:* `{request.vendor_id if hasattr(request, 'vendor_id') else 'DESCONOCIDO'}`
-🏪 *Negocio:* `{request.business_id if hasattr(request, 'business_id') else 'DESCONOCIDO'}`
-📝 *Error:* `{str(e)}`
-🕐 *Timestamp:* `{datetime.datetime.now().isoformat()}`
-            """.strip())
+            send_telegram_message(
+                f"❌ ERROR al registrar venta desde App\n"
+                f"Vendedor: {request.vendor_id if hasattr(request, 'vendor_id') else 'DESCONOCIDO'}\n"
+                f"Negocio: {request.business_id if hasattr(request, 'business_id') else 'DESCONOCIDO'}\n"
+                f"Error: {str(e)}\n"
+                f"Timestamp: {datetime.datetime.now().isoformat()}"
+            )
         except Exception as e2:
             logger.error(f"Error enviando error a Telegram: {e2}")
+        
         response = jsonify({'success': False, 'message': str(e)})
         response.headers.add('Access-Control-Allow-Origin', '*')
         return response, 500
@@ -933,16 +942,15 @@ def crear_vendedor_web():
                 VALUES (?, ?, ?, ?, ?)
             """, (vendor_id, name, current_user.business_id, 'vendedor', 1))
         
-        # Enviar log de vendedor creado
+        # Enviar log de vendedor creado (sin formato)
         try:
-            send_telegram_message(f"""
-✅ *Nuevo vendedor creado desde panel web*
-
-🆔 *ID:* `{vendor_id}`
-👤 *Nombre:* {name}
-🏪 *Negocio:* `{current_user.business_id}`
-🕐 *Timestamp:* `{datetime.datetime.now().isoformat()}`
-            """.strip())
+            send_telegram_message(
+                f"✅ Nuevo vendedor creado desde panel web\n"
+                f"ID: {vendor_id}\n"
+                f"Nombre: {name}\n"
+                f"Negocio: {current_user.business_id}\n"
+                f"Timestamp: {datetime.datetime.now().isoformat()}"
+            )
         except:
             pass
         
@@ -1146,17 +1154,16 @@ def crear_vendedor_app():
                 VALUES (?, ?, ?, ?, ?)
             """, (vendor_id, name, request.business_id, 'vendedor', 1))
         
-        # Enviar log de vendedor creado desde app
+        # Enviar log de vendedor creado desde app (sin formato)
         try:
-            send_telegram_message(f"""
-✅ *Nuevo vendedor creado desde App Android*
-
-🆔 *ID:* `{vendor_id}`
-👤 *Nombre:* {name}
-🏪 *Negocio:* `{request.business_id}`
-📱 *Creado por:* `{request.vendor_id}` ({request.vendor_name})
-🕐 *Timestamp:* `{datetime.datetime.now().isoformat()}`
-            """.strip())
+            send_telegram_message(
+                f"✅ Nuevo vendedor creado desde App Android\n"
+                f"ID: {vendor_id}\n"
+                f"Nombre: {name}\n"
+                f"Negocio: {request.business_id}\n"
+                f"Creado por: {request.vendor_id} ({request.vendor_name})\n"
+                f"Timestamp: {datetime.datetime.now().isoformat()}"
+            )
         except:
             pass
         
