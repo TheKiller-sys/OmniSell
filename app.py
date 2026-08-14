@@ -381,16 +381,52 @@ def get_productos():
 
 # ==================== ENDPOINT PARA REGISTRAR VENTAS DESDE APP ANDROID ====================
 @app.route('/api/registrar-venta', methods=['POST'])
+@token_required
 def registrar_venta_app():
     """Registrar venta desde la app Android (con token JWT)"""
     try:
+        # 🔍 LOG: Ver qué está llegando
+        logger.info(f"📥 Solicitud POST a /api/registrar-venta")
+        logger.info(f"📥 Headers: {dict(request.headers)}")
+        logger.info(f"📥 Raw data: {request.get_data(as_text=True)}")
+        logger.info(f"📥 JSON: {request.json}")
+        
         data = request.json
+        if not data:
+            return jsonify({'success': False, 'message': 'No se recibió JSON'}), 400
+        
+        # Extraer datos con valores por defecto
         producto_id = data.get('producto_id')
         cantidad = data.get('cantidad')
         precio_unitario = data.get('precio_unitario')
         
-        if not all([producto_id, cantidad, precio_unitario]):
-            return jsonify({'success': False, 'message': 'Faltan datos: producto_id, cantidad y precio_unitario son requeridos'}), 400
+        # 🔍 LOG: Ver qué extrajo
+        logger.info(f"📥 producto_id: {producto_id}, cantidad: {cantidad}, precio_unitario: {precio_unitario}")
+        
+        # Validar que los campos existan y no sean None
+        if producto_id is None:
+            return jsonify({'success': False, 'message': 'Campo producto_id no enviado'}), 400
+        if cantidad is None:
+            return jsonify({'success': False, 'message': 'Campo cantidad no enviado'}), 400
+        if precio_unitario is None:
+            return jsonify({'success': False, 'message': 'Campo precio_unitario no enviado'}), 400
+        
+        # Validar que los campos no estén vacíos
+        if producto_id == '':
+            return jsonify({'success': False, 'message': 'producto_id vacío'}), 400
+        if cantidad == '':
+            return jsonify({'success': False, 'message': 'cantidad vacía'}), 400
+        if precio_unitario == '':
+            return jsonify({'success': False, 'message': 'precio_unitario vacío'}), 400
+        
+        # Intentar convertir a los tipos correctos
+        try:
+            producto_id = int(producto_id)
+            cantidad = int(cantidad)
+            precio_unitario = float(precio_unitario)
+        except (ValueError, TypeError) as e:
+            logger.error(f"Error de conversión de tipos: {e}")
+            return jsonify({'success': False, 'message': f'Error en formato de datos: {str(e)}'}), 400
         
         from database.db_manager import DatabaseManager
         db = DatabaseManager(request.business_id)
@@ -429,7 +465,7 @@ def registrar_venta_app():
         update_query = "UPDATE productos SET stock = stock - %s WHERE id = %s" if is_postgres else "UPDATE productos SET stock = stock - ? WHERE id = ?"
         db.execute_query(update_query, (cantidad, producto_id))
         
-        total = cantidad * float(precio_unitario)
+        total = cantidad * precio_unitario
         
         # Enviar log de venta registrada
         try:
@@ -440,7 +476,7 @@ def registrar_venta_app():
 🏪 *Negocio:* `{request.business_id}`
 📦 *Producto:* {nombre_producto} (ID: {producto_id})
 📊 *Cantidad:* {cantidad}
-💰 *Precio unitario:* ${float(precio_unitario):.2f}
+💰 *Precio unitario:* ${precio_unitario:.2f}
 💵 *Total:* ${total:.2f}
 📦 *Stock restante:* {stock_disponible - cantidad}
 🕐 *Timestamp:* `{datetime.datetime.now().isoformat()}`
@@ -455,7 +491,7 @@ def registrar_venta_app():
                 'producto': nombre_producto,
                 'producto_id': producto_id,
                 'cantidad': cantidad,
-                'precio_unitario': float(precio_unitario),
+                'precio_unitario': precio_unitario,
                 'total': total
             },
             'stock_restante': stock_disponible - cantidad
@@ -463,6 +499,8 @@ def registrar_venta_app():
         
     except Exception as e:
         logger.error(f"Error en registrar_venta_app: {e}")
+        import traceback
+        logger.error(traceback.format_exc())
         # Enviar log de error
         try:
             send_telegram_message(f"""
