@@ -378,10 +378,11 @@ def get_productos():
         logger.error(f"Error en get_productos: {e}")
         return jsonify({'success': False, 'message': str(e)}), 500
 
-@app.route('/api/registrar-venta-app', methods=['POST'])
+
+@app.route('/api/registrar-venta', methods=['POST'])
 @token_required
-def registrar_venta_app():
-    """Registrar venta desde la app Android"""
+def registrar_venta():
+    """Registrar venta desde la app Android (endpoint principal)"""
     try:
         data = request.json
         producto_id = data.get('producto_id')
@@ -461,7 +462,7 @@ def registrar_venta_app():
         })
         
     except Exception as e:
-        logger.error(f"Error en registrar_venta_app: {e}")
+        logger.error(f"Error en registrar_venta: {e}")
         # Enviar log de error
         try:
             send_telegram_message(f"""
@@ -475,6 +476,14 @@ def registrar_venta_app():
         except:
             pass
         return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@app.route('/api/registrar-venta-app', methods=['POST'])
+@token_required
+def registrar_venta_app():
+    """Registrar venta desde la app Android (alias para compatibilidad con versiones anteriores)"""
+    return registrar_venta()
+
 
 @app.route('/api/dashboard-app', methods=['GET'])
 @token_required
@@ -579,6 +588,7 @@ def dashboard_app():
         logger.error(f"Error en dashboard_app: {e}")
         return jsonify({'success': False, 'message': str(e)}), 500
 
+
 @app.route('/api/ventas-app', methods=['GET'])
 @token_required
 def ventas_app():
@@ -655,6 +665,7 @@ def ventas_app():
     except Exception as e:
         logger.error(f"Error en ventas_app: {e}")
         return jsonify({'success': False, 'message': str(e)}), 500
+
 
 @app.route('/api/perfil-vendedor', methods=['GET'])
 @token_required
@@ -758,6 +769,7 @@ def get_vendedores_web():
         logger.error(f"Error en get_vendedores_web: {e}")
         return jsonify({'success': False, 'message': str(e)}), 500
 
+
 @app.route('/api/vendedor', methods=['POST'])
 @login_required
 def crear_vendedor_web():
@@ -834,6 +846,7 @@ def crear_vendedor_web():
         logger.error(f"Error en crear_vendedor_web: {e}")
         return jsonify({'success': False, 'message': str(e)}), 500
 
+
 @app.route('/api/vendedor/<vendor_id>', methods=['PUT'])
 @login_required
 def actualizar_vendedor_web(vendor_id):
@@ -890,14 +903,14 @@ def actualizar_vendedor_web(vendor_id):
         logger.error(f"Error en actualizar_vendedor_web: {e}")
         return jsonify({'success': False, 'message': str(e)}), 500
 
+
 @app.route('/api/vendedor/<vendor_id>', methods=['DELETE'])
 @login_required
 def eliminar_vendedor_web(vendor_id):
     """Eliminar un vendedor (desde panel web)"""
     try:
         if current_user.role != 'admin':
-            return jsonify({'success': False, 'message': 'Solo administradores pueden eliminar vendedores'}), 403
-        
+            return jsonify({'success': False, 'message': 'Solo administradores pueden eliminar vendedores'}), 403        
         from database.db_manager import DatabaseManager
         db = DatabaseManager(current_user.business_id)
         is_postgres = 'RENDER' in os.environ and os.environ.get('DATABASE_URL')
@@ -967,6 +980,7 @@ def get_vendedores_app():
     except Exception as e:
         logger.error(f"Error en get_vendedores_app: {e}")
         return jsonify({'success': False, 'message': str(e)}), 500
+
 
 @app.route('/api/vendedor-app', methods=['POST'])
 @token_required
@@ -1067,6 +1081,7 @@ def download_apk():
         logger.error(f"Error descargando APK: {e}")
         return jsonify({'error': str(e)}), 500
 
+
 @app.route('/download-apk-public')
 def download_apk_public():
     """Servir el archivo APK sin requerir login"""
@@ -1085,6 +1100,7 @@ def download_apk_public():
         
     except Exception as e:
         return f"❌ Error al descargar: {str(e)}", 500
+
 
 @app.route('/api/apk-status')
 def apk_status():
