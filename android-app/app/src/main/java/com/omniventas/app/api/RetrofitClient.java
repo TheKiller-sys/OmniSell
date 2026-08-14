@@ -19,7 +19,7 @@ public class RetrofitClient {
     private static final String TAG = "RetrofitClient";
     private static RetrofitClient instance;
     private ApiService apiService;
-    private static final String API_URL = "https://prueba-1-omni.onrender.com";
+    private static final String API_URL = "https://prueba-1-omni.onrender.com/";
     private Context context;
 
     private RetrofitClient(Context context) {
@@ -42,22 +42,53 @@ public class RetrofitClient {
             return chain.proceed(original);
         };
 
+        // ✅ Interceptor para loguear respuestas y depurar
+        Interceptor responseInterceptor = chain -> {
+            Request request = chain.request();
+            Response response = chain.proceed(request);
+            
+            Log.d(TAG, "📡 Código de respuesta: " + response.code());
+            Log.d(TAG, "📡 Mensaje: " + response.message());
+            
+            try {
+                String bodyString = response.body().string();
+                Log.d(TAG, "📡 Cuerpo de la respuesta: " + bodyString);
+                
+                okhttp3.MediaType contentType = response.body().contentType();
+                okhttp3.ResponseBody newBody = okhttp3.ResponseBody.create(contentType, bodyString);
+                
+                return response.newBuilder()
+                    .body(newBody)
+                    .build();
+            } catch (Exception e) {
+                Log.e(TAG, "❌ Error leyendo respuesta: " + e.getMessage());
+                return response;
+            }
+        };
+
         OkHttpClient client = new OkHttpClient.Builder()
             .addInterceptor(logging)
             .addInterceptor(authInterceptor)
+            .addInterceptor(responseInterceptor)
             .connectTimeout(30, TimeUnit.SECONDS)
             .readTimeout(30, TimeUnit.SECONDS)
             .writeTimeout(30, TimeUnit.SECONDS)
             .build();
 
+        // ✅ CREAR GSON CON LENIENTE ACTIVADO PARA ACEPTAR JSON MAL FORMADO
+        com.google.gson.Gson gson = new com.google.gson.GsonBuilder()
+            .setLenient()
+            .create();
+
         Retrofit retrofit = new Retrofit.Builder()
             .baseUrl(API_URL)
-            .addConverterFactory(GsonConverterFactory.create())
+            .addConverterFactory(GsonConverterFactory.create(gson))
             .client(client)
             .build();
 
         apiService = retrofit.create(ApiService.class);
         Log.d(TAG, "✅ API URL: " + API_URL);
+        Log.d(TAG, "✅ Gson con setLenient(true) activado");
     }
 
     public static synchronized RetrofitClient getInstance(Context context) {

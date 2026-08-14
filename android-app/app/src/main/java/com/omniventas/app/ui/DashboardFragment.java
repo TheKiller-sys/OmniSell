@@ -82,7 +82,6 @@ public class DashboardFragment extends Fragment {
         handler.removeCallbacks(actualizacionAutomatica);
     }
 
-    // ✅ MÉTODO PÚBLICO para que VentasFragment pueda llamarlo
     public void cargarDashboard() {
         String token = sessionManager.getToken();
         if (token == null || token.isEmpty()) {

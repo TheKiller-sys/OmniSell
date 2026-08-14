@@ -33,6 +33,7 @@ import com.omniventas.app.models.VentaRequest;
 import com.omniventas.app.models.VentaResponse;
 import com.omniventas.app.utils.SessionManager;
 import com.omniventas.app.utils.TelegramLogger;
+import org.json.JSONObject;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -228,7 +229,6 @@ public class VentasFragment extends Fragment {
                                     logger.success("Venta registrada: " + productoSeleccionado.getNombre() + " x" + cantidadFinal);
                                     dialog.dismiss();
                                     cargarVentasHoy();
-                                    // ✅ Notificar al Dashboard para que se actualice
                                     if (getActivity() != null) {
                                         DashboardFragment dashboard = (DashboardFragment) getActivity()
                                             .getSupportFragmentManager()
@@ -238,12 +238,39 @@ public class VentasFragment extends Fragment {
                                         }
                                     }
                                 } else {
-                                    Toast.makeText(getContext(), "Error al registrar venta", Toast.LENGTH_SHORT).show();
+                                    // ✅ Manejar errores de respuesta
+                                    String errorMsg = "Error al registrar venta";
+                                    try {
+                                        if (response.errorBody() != null) {
+                                            String errorBody = response.errorBody().string();
+                                            Log.e("VentasFragment", "❌ Error body: " + errorBody);
+                                            
+                                            try {
+                                                JSONObject jsonError = new JSONObject(errorBody);
+                                                errorMsg = jsonError.optString("message", errorMsg);
+                                            } catch (Exception e) {
+                                                // Si no es JSON, usar el texto plano
+                                                errorMsg = errorBody;
+                                            }
+                                        }
+                                    } catch (Exception e) {
+                                        Log.e("VentasFragment", "❌ Error leyendo errorBody", e);
+                                    }
+                                    Toast.makeText(getContext(), "❌ " + errorMsg, Toast.LENGTH_LONG).show();
+                                    logger.error("Error en venta: " + errorMsg);
                                 }
                             }
+
                             @Override
                             public void onFailure(Call<VentaResponse> call, Throwable t) {
-                                Toast.makeText(getContext(), "Error de conexión", Toast.LENGTH_SHORT).show();
+                                String errorMsg = "Error de conexión";
+                                if (t.getMessage() != null) {
+                                    errorMsg = t.getMessage();
+                                    if (errorMsg.length() > 100) {
+                                        errorMsg = errorMsg.substring(0, 100) + "...";
+                                    }
+                                }
+                                Toast.makeText(getContext(), "❌ " + errorMsg, Toast.LENGTH_LONG).show();
                                 logger.networkError(t);
                             }
                         });
