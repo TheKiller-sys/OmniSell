@@ -381,7 +381,6 @@ def get_productos():
 
 # ==================== ENDPOINT PARA REGISTRAR VENTAS DESDE APP ANDROID ====================
 @app.route('/api/registrar-venta', methods=['POST'])
-@token_required
 def registrar_venta_app():
     """Registrar venta desde la app Android (con token JWT)"""
     try:
