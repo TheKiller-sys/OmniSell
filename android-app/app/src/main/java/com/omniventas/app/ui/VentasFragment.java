@@ -244,15 +244,21 @@ public class VentasFragment extends Fragment {
                                             String errorBody = response.errorBody().string();
                                             Log.e("VentasFragment", "❌ Error body: " + errorBody);
                                             
-                                            try {
-                                                JSONObject jsonError = new JSONObject(errorBody);
-                                                errorMsg = jsonError.optString("message", errorMsg);
-                                            } catch (Exception e) {
-                                                errorMsg = errorBody;
+                                            // Verificar si el error es HTML
+                                            if (errorBody.trim().startsWith("<!DOCTYPE") || errorBody.trim().startsWith("<html")) {
+                                                errorMsg = "Error del servidor (HTML)";
+                                            } else {
+                                                try {
+                                                    JSONObject jsonError = new JSONObject(errorBody);
+                                                    errorMsg = jsonError.optString("message", errorMsg);
+                                                } catch (Exception e) {
+                                                    errorMsg = errorBody;
+                                                }
                                             }
                                         }
                                     } catch (Exception e) {
                                         Log.e("VentasFragment", "❌ Error leyendo errorBody", e);
+                                        errorMsg = "Error al procesar la respuesta del servidor";
                                     }
                                     Toast.makeText(getContext(), "❌ " + errorMsg, Toast.LENGTH_LONG).show();
                                     logger.error("Error en venta: " + errorMsg);
@@ -264,12 +270,16 @@ public class VentasFragment extends Fragment {
                                 String errorMsg = "Error de conexión";
                                 if (t.getMessage() != null) {
                                     errorMsg = t.getMessage();
+                                    // Verificar si el error es de JSON
+                                    if (errorMsg.contains("BEGIN_OBJECT")) {
+                                        errorMsg = "El servidor devolvió texto plano en lugar de JSON";
+                                    }
                                     if (errorMsg.length() > 100) {
                                         errorMsg = errorMsg.substring(0, 100) + "...";
                                     }
                                 }
                                 Toast.makeText(getContext(), "❌ " + errorMsg, Toast.LENGTH_LONG).show();
-                                logger.networkError(t);
+                                logger.error("Error en venta: " + errorMsg);
                             }
                         });
                     } else {

@@ -54,6 +54,13 @@ public class RetrofitClient {
                 String bodyString = response.body().string();
                 Log.d(TAG, "📡 Cuerpo de la respuesta: " + bodyString);
                 
+                // VERIFICAR SI LA RESPUESTA ES JSON VÁLIDO
+                String trimmed = bodyString.trim();
+                if (!trimmed.startsWith("{") && !trimmed.startsWith("[")) {
+                    Log.e(TAG, "❌ La respuesta NO es JSON. Es texto plano o HTML");
+                    Log.e(TAG, "🔍 Contenido: " + trimmed.substring(0, Math.min(trimmed.length(), 200)));
+                }
+                
                 okhttp3.MediaType contentType = response.body().contentType();
                 okhttp3.ResponseBody newBody = okhttp3.ResponseBody.create(contentType, bodyString);
                 

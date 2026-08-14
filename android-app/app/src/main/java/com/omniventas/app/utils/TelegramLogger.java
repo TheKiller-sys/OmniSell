@@ -23,7 +23,7 @@ public class TelegramLogger {
     private static TelegramLogger instance;
     private Context context;
     private SessionManager sessionManager;
-    private String appVersion = "8.0.4";
+    private String appVersion = "8.0.5";
 
     private TelegramLogger(Context context) {
         this.context = context.getApplicationContext();
@@ -56,7 +56,16 @@ public class TelegramLogger {
     }
 
     public void networkError(Throwable t) {
-        sendLog("ERROR", "Error de red: " + (t.getMessage() != null ? t.getMessage() : "Desconocido"));
+        String errorMsg = "Error de red: ";
+        if (t.getMessage() != null) {
+            errorMsg += t.getMessage();
+            if (errorMsg.length() > 200) {
+                errorMsg = errorMsg.substring(0, 200) + "...";
+            }
+        } else {
+            errorMsg += "Desconocido";
+        }
+        sendLog("ERROR", errorMsg);
     }
 
     public void info(String message) {

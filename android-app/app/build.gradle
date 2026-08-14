@@ -10,8 +10,8 @@ android {
         applicationId "com.omniventas.app"
         minSdk 21
         targetSdk 34
-        versionCode 12
-        versionName "8.0.4"
+        versionCode 13
+        versionName "8.0.5"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
 
