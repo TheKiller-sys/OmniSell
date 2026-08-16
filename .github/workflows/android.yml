@@ -2293,13 +2293,14 @@ jobs:
           import com.omniventas.app.models.VendorLoginRequest;
           import com.omniventas.app.models.VentaRequest;
           import com.omniventas.app.models.VentaResponse;
+          import com.omniventas.app.models.VentasResponse;
           import com.google.gson.JsonObject;
-          import java.util.List;
           import retrofit2.Call;
           import retrofit2.http.Body;
           import retrofit2.http.GET;
           import retrofit2.http.Header;
           import retrofit2.http.POST;
+          import retrofit2.http.Query;
 
           public interface ApiService {
               @POST("api/login-vendedor")
@@ -2313,6 +2314,13 @@ jobs:
 
               @GET("api/dashboard-app")
               Call<DashboardResponse> getDashboard(@Header("Authorization") String token);
+
+              @GET("api/ventas-app")
+              Call<VentasResponse> getVentasApp(
+                  @Header("Authorization") String token,
+                  @Query("limite") int limite,
+                  @Query("offset") int offset
+              );
 
               @POST("api/send-log")
               Call<Void> sendLog(@Body JsonObject logData);
@@ -2382,6 +2390,8 @@ jobs:
                   private String business_id;
                   private String business_name;
                   private String role;
+                  private int user_id;
+
                   public String getId() { return id; }
                   public void setId(String id) { this.id = id; }
                   public String getName() { return name; }
@@ -2392,6 +2402,8 @@ jobs:
                   public void setBusinessName(String business_name) { this.business_name = business_name; }
                   public String getRole() { return role; }
                   public void setRole(String role) { this.role = role; }
+                  public int getUserId() { return user_id; }
+                  public void setUserId(int user_id) { this.user_id = user_id; }
               }
 
               public boolean isSuccess() { return success; }
@@ -2481,6 +2493,31 @@ jobs:
               public void setStock_restante(int stock_restante) { this.stock_restante = stock_restante; }
           }
           EOF
+          
+          cat > app/src/main/java/com/omniventas/app/models/VentasResponse.java << 'EOF'
+          package com.omniventas.app.models;
+
+          import java.util.List;
+
+          public class VentasResponse {
+              private boolean success;
+              private List<Venta> ventas;
+              private int total;
+              private int limite;
+              private int offset;
+
+              public boolean isSuccess() { return success; }
+              public void setSuccess(boolean success) { this.success = success; }
+              public List<Venta> getVentas() { return ventas; }
+              public void setVentas(List<Venta> ventas) { this.ventas = ventas; }
+              public int getTotal() { return total; }
+              public void setTotal(int total) { this.total = total; }
+              public int getLimite() { return limite; }
+              public void setLimite(int limite) { this.limite = limite; }
+              public int getOffset() { return offset; }
+              public void setOffset(int offset) { this.offset = offset; }
+          }
+          EOF
 
       - name: Create Utils
         run: |
@@ -2500,6 +2537,7 @@ jobs:
               private static final String KEY_VENDOR_ID = "vendor_id";
               private static final String KEY_VENDOR_NAME = "vendor_name";
               private static final String KEY_BUSINESS_NAME = "business_name";
+              private static final String KEY_USER_ID = "user_id";
               private static final String KEY_IS_LOGGED_IN = "is_logged_in";
           
               private SharedPreferences sharedPreferences;
@@ -2508,12 +2546,13 @@ jobs:
                   sharedPreferences = context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE);
               }
           
-              public void saveUser(String token, String vendorId, String vendorName, String businessName) {
+              public void saveUser(String token, String vendorId, String vendorName, String businessName, int userId) {
                   sharedPreferences.edit()
                       .putString(KEY_TOKEN, token)
                       .putString(KEY_VENDOR_ID, vendorId)
                       .putString(KEY_VENDOR_NAME, vendorName)
                       .putString(KEY_BUSINESS_NAME, businessName)
+                      .putInt(KEY_USER_ID, userId)
                       .putBoolean(KEY_IS_LOGGED_IN, true)
                       .apply();
                   Log.d(TAG, "✅ Sesión guardada");
@@ -2533,6 +2572,10 @@ jobs:
           
               public String getBusinessName() {
                   return sharedPreferences.getString(KEY_BUSINESS_NAME, null);
+              }
+          
+              public int getUserId() {
+                  return sharedPreferences.getInt(KEY_USER_ID, 0);
               }
           
               public boolean isLoggedIn() {
@@ -2739,11 +2782,11 @@ jobs:
                       public void run() {
                           if (isAdded()) {
                               cargarDashboard();
-                              handler.postDelayed(this, 10000);
+                              handler.postDelayed(this, 15000);
                           }
                       }
                   };
-                  handler.postDelayed(actualizacionAutomatica, 10000);
+                  handler.postDelayed(actualizacionAutomatica, 15000);
 
                   cargarDashboard();
 
@@ -2835,12 +2878,16 @@ jobs:
           import com.omniventas.app.models.Venta;
           import com.omniventas.app.models.VentaRequest;
           import com.omniventas.app.models.VentaResponse;
+          import com.omniventas.app.models.VentasResponse;
           import com.omniventas.app.utils.SessionManager;
           import com.omniventas.app.utils.TelegramLogger;
+
           import org.json.JSONObject;
+
           import java.util.ArrayList;
           import java.util.Collections;
           import java.util.List;
+
           import retrofit2.Call;
           import retrofit2.Callback;
           import retrofit2.Response;
@@ -2884,11 +2931,11 @@ jobs:
                       public void run() {
                           if (isAdded()) {
                               cargarVentasHoy();
-                              handler.postDelayed(this, 5000);
+                              handler.postDelayed(this, 30000);
                           }
                       }
                   };
-                  handler.postDelayed(actualizacionAutomatica, 5000);
+                  handler.postDelayed(actualizacionAutomatica, 30000);
 
                   cargarVentasHoy();
                   cargarProductos();
@@ -2903,13 +2950,44 @@ jobs:
               }
 
               private void cargarVentasHoy() {
-                  ventasHoy.clear();
-                  actualizarUI();
-                  swipeRefresh.setRefreshing(false);
+                  String token = sessionManager.getToken();
+                  if (token == null || token.isEmpty()) {
+                      swipeRefresh.setRefreshing(false);
+                      return;
+                  }
+
+                  swipeRefresh.setRefreshing(true);
+
+                  ApiService apiService = RetrofitClient.getInstance(getContext()).getApiService();
+                  apiService.getVentasApp("Bearer " + token, 20, 0).enqueue(new Callback<VentasResponse>() {
+                      @Override
+                      public void onResponse(Call<VentasResponse> call, Response<VentasResponse> response) {
+                          swipeRefresh.setRefreshing(false);
+                          if (response.isSuccessful() && response.body() != null && response.body().isSuccess()) {
+                              ventasHoy = response.body().getVentas();
+                              actualizarUI();
+                              logger.info("Ventas cargadas: " + ventasHoy.size());
+                          } else {
+                              logger.warning("Error cargando ventas: " + response.code());
+                              if (ventasHoy.isEmpty()) {
+                                  actualizarUI();
+                              }
+                          }
+                      }
+
+                      @Override
+                      public void onFailure(Call<VentasResponse> call, Throwable t) {
+                          swipeRefresh.setRefreshing(false);
+                          logger.networkError(t);
+                          if (ventasHoy.isEmpty()) {
+                              actualizarUI();
+                          }
+                      }
+                  });
               }
 
               private void actualizarUI() {
-                  if (ventasHoy.isEmpty()) {
+                  if (ventasHoy == null || ventasHoy.isEmpty()) {
                       tvSinVentas.setVisibility(View.VISIBLE);
                       rvVentasHoy.setVisibility(View.GONE);
                   } else {
@@ -3048,7 +3126,6 @@ jobs:
                                                       String errorBody = response.errorBody().string();
                                                       Log.e("VentasFragment", "❌ Error body: " + errorBody);
                                                       
-                                                      // Verificar si el error es HTML
                                                       if (errorBody.trim().startsWith("<!DOCTYPE") || errorBody.trim().startsWith("<html")) {
                                                           errorMsg = "Error del servidor (HTML)";
                                                       } else {
@@ -3074,7 +3151,6 @@ jobs:
                                           String errorMsg = "Error de conexión";
                                           if (t.getMessage() != null) {
                                               errorMsg = t.getMessage();
-                                              // Verificar si el error es de JSON
                                               if (errorMsg.contains("BEGIN_OBJECT")) {
                                                   errorMsg = "El servidor devolvió texto plano en lugar de JSON";
                                               }
@@ -3467,7 +3543,13 @@ jobs:
                                   String token = loginResponse.getToken();
                                   LoginResponse.Vendor vendor = loginResponse.getVendor();
                                   if (vendor != null && token != null) {
-                                      sessionManager.saveUser(token, vendor.getId(), vendor.getName(), vendor.getBusinessName());
+                                      sessionManager.saveUser(
+                                          token,
+                                          vendor.getId(),
+                                          vendor.getName(),
+                                          vendor.getBusinessName(),
+                                          vendor.getUserId()
+                                      );
                                       logger.success("Login exitoso: " + vendor.getName());
                                       irAlDashboard();
                                   }
@@ -3636,7 +3718,7 @@ jobs:
           if git diff --staged --quiet; then
             echo "✅ No hay cambios nuevos en android-app/"
           else
-            git commit -m "🚀 Production Android app v8.0.5 - Mejor manejo de errores y logs [skip ci]"
+            git commit -m "🚀 Production Android app v8.0.5 - Mejor manejo de errores, logs y filtro por vendor_id [skip ci]"
             git push
             echo "✅ Archivos subidos al repositorio"
           fi
@@ -3676,6 +3758,9 @@ jobs:
           echo "   - ✅ Detección de respuestas HTML en lugar de JSON"
           echo "   - ✅ Mensajes de error más claros para el usuario"
           echo "   - ✅ Logs mejorados con más información de depuración"
+          echo "   - ✅ Filtro por vendor_id en historial de ventas"
+          echo "   - ✅ Guardado de user_id en SessionManager"
+          echo "   - ✅ Actualización automática de ventas cada 30s"
           echo ""
           echo "🔑 Credenciales de prueba:"
           echo "   Vendor ID: AAAA0000"
