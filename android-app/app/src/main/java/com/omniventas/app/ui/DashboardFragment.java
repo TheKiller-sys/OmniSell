@@ -65,11 +65,11 @@ public class DashboardFragment extends Fragment {
             public void run() {
                 if (isAdded()) {
                     cargarDashboard();
-                    handler.postDelayed(this, 10000);
+                    handler.postDelayed(this, 15000);
                 }
             }
         };
-        handler.postDelayed(actualizacionAutomatica, 10000);
+        handler.postDelayed(actualizacionAutomatica, 15000);
 
         cargarDashboard();
 

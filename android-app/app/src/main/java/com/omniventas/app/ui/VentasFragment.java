@@ -31,12 +31,16 @@ import com.omniventas.app.models.RespuestaProductos;
 import com.omniventas.app.models.Venta;
 import com.omniventas.app.models.VentaRequest;
 import com.omniventas.app.models.VentaResponse;
+import com.omniventas.app.models.VentasResponse;
 import com.omniventas.app.utils.SessionManager;
 import com.omniventas.app.utils.TelegramLogger;
+
 import org.json.JSONObject;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
@@ -80,11 +84,11 @@ public class VentasFragment extends Fragment {
             public void run() {
                 if (isAdded()) {
                     cargarVentasHoy();
-                    handler.postDelayed(this, 5000);
+                    handler.postDelayed(this, 30000);
                 }
             }
         };
-        handler.postDelayed(actualizacionAutomatica, 5000);
+        handler.postDelayed(actualizacionAutomatica, 30000);
 
         cargarVentasHoy();
         cargarProductos();
@@ -99,13 +103,44 @@ public class VentasFragment extends Fragment {
     }
 
     private void cargarVentasHoy() {
-        ventasHoy.clear();
-        actualizarUI();
-        swipeRefresh.setRefreshing(false);
+        String token = sessionManager.getToken();
+        if (token == null || token.isEmpty()) {
+            swipeRefresh.setRefreshing(false);
+            return;
+        }
+
+        swipeRefresh.setRefreshing(true);
+
+        ApiService apiService = RetrofitClient.getInstance(getContext()).getApiService();
+        apiService.getVentasApp("Bearer " + token, 20, 0).enqueue(new Callback<VentasResponse>() {
+            @Override
+            public void onResponse(Call<VentasResponse> call, Response<VentasResponse> response) {
+                swipeRefresh.setRefreshing(false);
+                if (response.isSuccessful() && response.body() != null && response.body().isSuccess()) {
+                    ventasHoy = response.body().getVentas();
+                    actualizarUI();
+                    logger.info("Ventas cargadas: " + ventasHoy.size());
+                } else {
+                    logger.warning("Error cargando ventas: " + response.code());
+                    if (ventasHoy.isEmpty()) {
+                        actualizarUI();
+                    }
+                }
+            }
+
+            @Override
+            public void onFailure(Call<VentasResponse> call, Throwable t) {
+                swipeRefresh.setRefreshing(false);
+                logger.networkError(t);
+                if (ventasHoy.isEmpty()) {
+                    actualizarUI();
+                }
+            }
+        });
     }
 
     private void actualizarUI() {
-        if (ventasHoy.isEmpty()) {
+        if (ventasHoy == null || ventasHoy.isEmpty()) {
             tvSinVentas.setVisibility(View.VISIBLE);
             rvVentasHoy.setVisibility(View.GONE);
         } else {
@@ -244,7 +279,6 @@ public class VentasFragment extends Fragment {
                                             String errorBody = response.errorBody().string();
                                             Log.e("VentasFragment", "❌ Error body: " + errorBody);
                                             
-                                            // Verificar si el error es HTML
                                             if (errorBody.trim().startsWith("<!DOCTYPE") || errorBody.trim().startsWith("<html")) {
                                                 errorMsg = "Error del servidor (HTML)";
                                             } else {
@@ -270,7 +304,6 @@ public class VentasFragment extends Fragment {
                                 String errorMsg = "Error de conexión";
                                 if (t.getMessage() != null) {
                                     errorMsg = t.getMessage();
-                                    // Verificar si el error es de JSON
                                     if (errorMsg.contains("BEGIN_OBJECT")) {
                                         errorMsg = "El servidor devolvió texto plano en lugar de JSON";
                                     }

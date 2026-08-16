@@ -12,6 +12,8 @@ public class LoginResponse {
         private String business_id;
         private String business_name;
         private String role;
+        private int user_id;
+
         public String getId() { return id; }
         public void setId(String id) { this.id = id; }
         public String getName() { return name; }
@@ -22,6 +24,8 @@ public class LoginResponse {
         public void setBusinessName(String business_name) { this.business_name = business_name; }
         public String getRole() { return role; }
         public void setRole(String role) { this.role = role; }
+        public int getUserId() { return user_id; }
+        public void setUserId(int user_id) { this.user_id = user_id; }
     }
 
     public boolean isSuccess() { return success; }

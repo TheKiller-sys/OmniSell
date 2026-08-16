@@ -11,6 +11,7 @@ public class SessionManager {
     private static final String KEY_VENDOR_ID = "vendor_id";
     private static final String KEY_VENDOR_NAME = "vendor_name";
     private static final String KEY_BUSINESS_NAME = "business_name";
+    private static final String KEY_USER_ID = "user_id";
     private static final String KEY_IS_LOGGED_IN = "is_logged_in";
 
     private SharedPreferences sharedPreferences;
@@ -19,12 +20,13 @@ public class SessionManager {
         sharedPreferences = context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE);
     }
 
-    public void saveUser(String token, String vendorId, String vendorName, String businessName) {
+    public void saveUser(String token, String vendorId, String vendorName, String businessName, int userId) {
         sharedPreferences.edit()
             .putString(KEY_TOKEN, token)
             .putString(KEY_VENDOR_ID, vendorId)
             .putString(KEY_VENDOR_NAME, vendorName)
             .putString(KEY_BUSINESS_NAME, businessName)
+            .putInt(KEY_USER_ID, userId)
             .putBoolean(KEY_IS_LOGGED_IN, true)
             .apply();
         Log.d(TAG, "✅ Sesión guardada");
@@ -44,6 +46,10 @@ public class SessionManager {
 
     public String getBusinessName() {
         return sharedPreferences.getString(KEY_BUSINESS_NAME, null);
+    }
+
+    public int getUserId() {
+        return sharedPreferences.getInt(KEY_USER_ID, 0);
     }
 
     public boolean isLoggedIn() {

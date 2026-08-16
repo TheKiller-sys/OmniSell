@@ -109,7 +109,13 @@ public class LoginActivity extends AppCompatActivity {
                         String token = loginResponse.getToken();
                         LoginResponse.Vendor vendor = loginResponse.getVendor();
                         if (vendor != null && token != null) {
-                            sessionManager.saveUser(token, vendor.getId(), vendor.getName(), vendor.getBusinessName());
+                            sessionManager.saveUser(
+                                token,
+                                vendor.getId(),
+                                vendor.getName(),
+                                vendor.getBusinessName(),
+                                vendor.getUserId()
+                            );
                             logger.success("Login exitoso: " + vendor.getName());
                             irAlDashboard();
                         }
