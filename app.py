@@ -26,6 +26,9 @@ logger = logging.getLogger(__name__)
 # ==================== IMPORTAR DASHBOARD Y FUNCIÓN DE CONEXIÓN ====================
 from web.dashboard import create_app, set_telegram_log_function
 
+# ==================== IMPORTAR DatabaseManager ====================
+from database.db_manager import DatabaseManager
+
 # ==================== CREAR APP ====================
 app = create_app()
 socketio = SocketIO(app, async_mode='threading', cors_allowed_origins="*")
