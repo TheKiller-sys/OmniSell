@@ -613,7 +613,7 @@ def test_log_endpoint():
 
 @app.route('/api/login-vendedor', methods=['POST'])
 def login_vendedor():
-    """Login para vendedores con ID de 8 caracteres - CORREGIDO"""
+    """Login para vendedores con ID de 8 caracteres - VERSIÓN CORREGIDA"""
     request_info = {
         'method': request.method,
         'path': request.path,
@@ -632,31 +632,15 @@ def login_vendedor():
         
         # ✅ VALIDACIÓN ESTRICTA
         if not vendor_id:
-            log_to_telegram(
-                level='WARNING',
-                message="Intento de login sin ID de vendedor",
-                request_info=request_info
-            )
             return jsonify({'success': False, 'message': 'ID de vendedor requerido'}), 400
         
         if len(vendor_id) != 8:
-            log_to_telegram(
-                level='WARNING',
-                message=f"Intento de login con ID inválido: {vendor_id} (longitud incorrecta)",
-                data={'vendor_id': vendor_id},
-                request_info=request_info
-            )
-            return jsonify({'success': False, 'message': 'El ID debe tener exactamente 8 caracteres'}), 400
+            return jsonify({'success': False, 'message': 'El ID debe tener 8 caracteres'}), 400
         
         if not vendor_id.isalnum():
-            log_to_telegram(
-                level='WARNING',
-                message=f"Intento de login con ID inválido: {vendor_id} (caracteres no permitidos)",
-                data={'vendor_id': vendor_id},
-                request_info=request_info
-            )
-            return jsonify({'success': False, 'message': 'El ID solo debe contener letras y números'}), 400
+            return jsonify({'success': False, 'message': 'El ID solo puede contener letras y números'}), 400
         
+        # ✅ OBTENER CONEXIÓN GLOBAL
         conn = DatabaseManager.get_global_connection()
         if conn is None:
             return jsonify({'success': False, 'message': 'Error de conexión al servidor'}), 500
@@ -664,32 +648,32 @@ def login_vendedor():
         c = conn.cursor()
         is_postgres = 'RENDER' in os.environ and os.environ.get('DATABASE_URL')
         
-        # ✅ QUERY CORREGIDA - Sin user_id
+        # ✅ CONFIGURAR search_path PARA POSTGRESQL
+        if is_postgres:
+            c.execute("SET search_path TO public")
+        
+        # 🔍 PRIMERO: Buscar el vendedor en la tabla vendors (SIN JOIN)
         if is_postgres:
             c.execute("""
                 SELECT 
-                    v.id as vendor_id, 
-                    v.name, 
-                    v.business_id, 
-                    b.name as business_name, 
-                    v.role, 
-                    v.active
-                FROM vendors v
-                JOIN businesses b ON v.business_id = b.id
-                WHERE v.id = %s AND v.active = TRUE
+                    id, 
+                    name, 
+                    business_id, 
+                    role, 
+                    active
+                FROM vendors
+                WHERE id = %s
             """, (vendor_id,))
         else:
             c.execute("""
                 SELECT 
-                    v.id as vendor_id, 
-                    v.name, 
-                    v.business_id, 
-                    b.name as business_name, 
-                    v.role, 
-                    v.active
-                FROM vendors v
-                JOIN businesses b ON v.business_id = b.id
-                WHERE v.id = ? AND v.active = 1
+                    id, 
+                    name, 
+                    business_id, 
+                    role, 
+                    active
+                FROM vendors
+                WHERE id = ?
             """, (vendor_id,))
         
         vendor_data = c.fetchone()
@@ -697,23 +681,54 @@ def login_vendedor():
         if not vendor_data:
             log_to_telegram(
                 level='WARNING',
-                message=f"Login fallido: Vendor ID no encontrado o inactivo: {vendor_id}",
+                message=f"Login fallido: Vendor ID no encontrado: {vendor_id}",
                 data={'vendor_id': vendor_id},
                 request_info=request_info
             )
-            return jsonify({'success': False, 'message': 'ID de vendedor no encontrado o inactivo'}), 401
+            return jsonify({'success': False, 'message': 'ID de vendedor no encontrado'}), 401
         
-        # ✅ Obtener un user_id para el token (de la tabla users)
-        # Buscar cualquier usuario del negocio
+        # ✅ VERIFICAR QUE ESTÉ ACTIVO (compatibilidad SQLite/PostgreSQL)
+        active_value = vendor_data[4]
+        is_active = False
+        
+        if is_postgres:
+            is_active = active_value == True or active_value == 't'
+        else:
+            is_active = active_value == 1 or active_value == 'True' or active_value == 't'
+        
+        if not is_active:
+            log_to_telegram(
+                level='WARNING',
+                message=f"Login fallido: Vendedor inactivo: {vendor_id}",
+                data={'vendor_id': vendor_id, 'active': active_value},
+                request_info=request_info
+            )
+            return jsonify({'success': False, 'message': 'El vendedor está inactivo'}), 401
+        
+        vendor_id_db = vendor_data[0]
+        vendor_name = vendor_data[1]
         business_id = vendor_data[2]
+        vendor_role = vendor_data[3]
+        
+        # ✅ OBTENER EL NOMBRE DEL NEGOCIO
+        if is_postgres:
+            c.execute("SELECT name FROM businesses WHERE id = %s", (business_id,))
+        else:
+            c.execute("SELECT name FROM businesses WHERE id = ?", (business_id,))
+        
+        business_result = c.fetchone()
+        business_name = business_result[0] if business_result else business_id
+        
+        # ✅ OBTENER UN USER_ID DE LA TABLA USERS
         if is_postgres:
             c.execute("SELECT id FROM users WHERE business_id = %s LIMIT 1", (business_id,))
         else:
             c.execute("SELECT id FROM users WHERE business_id = ? LIMIT 1", (business_id,))
         
         user_result = c.fetchone()
+        
         if not user_result:
-            # Si no hay usuarios, crear uno automáticamente
+            # Crear un usuario automáticamente
             log_to_telegram(
                 level='WARNING',
                 message=f"No hay usuarios para el negocio {business_id}, creando uno automáticamente",
@@ -721,47 +736,47 @@ def login_vendedor():
                 request_info=request_info
             )
             
-            # Crear un usuario genérico para el negocio
             import bcrypt
             default_password = bcrypt.hashpw('vendedor123'.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+            username = f'vendor_{vendor_id}'
             
             if is_postgres:
                 c.execute("""
                     INSERT INTO users (business_id, username, password, role)
                     VALUES (%s, %s, %s, 'vendedor')
                     RETURNING id
-                """, (business_id, f'vendor_{vendor_id}', default_password))
+                """, (business_id, username, default_password))
                 user_id = c.fetchone()[0]
             else:
                 c.execute("""
                     INSERT INTO users (business_id, username, password, role)
                     VALUES (?, ?, ?, 'vendedor')
-                """, (business_id, f'vendor_{vendor_id}', default_password))
+                """, (business_id, username, default_password))
                 user_id = c.lastrowid
             
             conn.commit()
         else:
             user_id = user_result[0]
         
-        # ✅ Generar token JWT
+        # ✅ GENERAR TOKEN JWT
         token = jwt.encode({
-            'vendor_id': vendor_data[0],
+            'vendor_id': vendor_id_db,
             'user_id': int(user_id),
-            'business_id': vendor_data[2],
-            'name': vendor_data[1],
-            'role': vendor_data[4],
+            'business_id': business_id,
+            'name': vendor_name,
+            'role': vendor_role,
             'exp': datetime.datetime.utcnow() + datetime.timedelta(days=7)
         }, os.environ.get('JWT_SECRET', 'secret-key'), algorithm='HS256')
         
-        # ✅ Log de login exitoso
+        # ✅ LOG DE ÉXITO
         log_to_telegram(
             level='SUCCESS',
             message=f"✅ Login exitoso desde App Android",
             data={
-                'vendor_id': vendor_data[0],
-                'vendor_name': vendor_data[1],
-                'business_id': vendor_data[2],
-                'business_name': vendor_data[3],
+                'vendor_id': vendor_id_db,
+                'vendor_name': vendor_name,
+                'business_id': business_id,
+                'business_name': business_name,
                 'user_id': user_id
             },
             request_info=request_info
@@ -771,11 +786,11 @@ def login_vendedor():
             'success': True,
             'token': token,
             'vendor': {
-                'id': vendor_data[0],
-                'name': vendor_data[1],
-                'business_id': vendor_data[2],
-                'business_name': vendor_data[3],
-                'role': vendor_data[4],
+                'id': vendor_id_db,
+                'name': vendor_name,
+                'business_id': business_id,
+                'business_name': business_name,
+                'role': vendor_role,
                 'user_id': int(user_id)
             }
         })
