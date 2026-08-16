@@ -610,7 +610,7 @@ def test_log_endpoint():
 
 @app.route('/api/login-vendedor', methods=['POST'])
 def login_vendedor():
-    """Login para vendedores con ID de 8 caracteres"""
+    """Login para vendedores con ID de 8 caracteres - CORREGIDO"""
     request_info = {
         'method': request.method,
         'path': request.path,
@@ -618,20 +618,28 @@ def login_vendedor():
     }
     
     try:
+        # Verificar que la base de datos esté lista
+        DatabaseManager.verify_and_fix_global_tables()
+        
         data = request.json
+        if not data:
+            log_to_telegram(
+                level='ERROR',
+                message="No se recibió JSON en login_vendedor",
+                request_info=request_info
+            )
+            return jsonify({'success': False, 'message': 'No se recibieron datos'}), 400
+        
         vendor_id = data.get('vendor_id', '').strip().upper()
         
         # Validar formato del ID (8 caracteres alfanuméricos)
         if not vendor_id:
             log_to_telegram(
                 level='WARNING',
-                message=f"Intento de login sin ID de vendedor",
+                message="Intento de login sin ID de vendedor",
                 request_info=request_info
             )
-            return jsonify({
-                'success': False, 
-                'message': 'ID de vendedor requerido'
-            }), 400
+            return jsonify({'success': False, 'message': 'ID de vendedor requerido'}), 400
         
         if len(vendor_id) != 8:
             log_to_telegram(
@@ -640,10 +648,7 @@ def login_vendedor():
                 data={'vendor_id': vendor_id},
                 request_info=request_info
             )
-            return jsonify({
-                'success': False, 
-                'message': 'El ID debe tener exactamente 8 caracteres'
-            }), 400
+            return jsonify({'success': False, 'message': 'El ID debe tener exactamente 8 caracteres'}), 400
         
         if not vendor_id.isalnum():
             log_to_telegram(
@@ -652,13 +657,8 @@ def login_vendedor():
                 data={'vendor_id': vendor_id},
                 request_info=request_info
             )
-            return jsonify({
-                'success': False, 
-                'message': 'El ID solo debe contener letras y números'
-            }), 400
+            return jsonify({'success': False, 'message': 'El ID solo debe contener letras y números'}), 400
         
-        from database.db_manager import DatabaseManager
-        DatabaseManager.verify_and_fix_global_tables()
         conn = DatabaseManager.get_global_connection()
         
         if conn is None:
@@ -667,12 +667,12 @@ def login_vendedor():
                 message="Error de conexión a la base de datos en login_vendedor",
                 request_info=request_info
             )
-            return jsonify({'success': False, 'message': 'Error de conexión'}), 500
+            return jsonify({'success': False, 'message': 'Error de conexión al servidor'}), 500
         
         c = conn.cursor()
         is_postgres = 'RENDER' in os.environ and os.environ.get('DATABASE_URL')
         
-        # ✅ Buscar vendedor por ID y obtener el user_id real
+        # Buscar vendedor por ID
         if is_postgres:
             c.execute("""
                 SELECT 
@@ -713,10 +713,7 @@ def login_vendedor():
                 data={'vendor_id': vendor_id},
                 request_info=request_info
             )
-            return jsonify({
-                'success': False, 
-                'message': 'ID de vendedor no encontrado'
-            }), 401
+            return jsonify({'success': False, 'message': 'ID de vendedor no encontrado'}), 401
         
         # Verificar si el vendedor está activo
         if not vendor_data[5]:
@@ -730,12 +727,9 @@ def login_vendedor():
                 },
                 request_info=request_info
             )
-            return jsonify({
-                'success': False, 
-                'message': 'Este vendedor está desactivado. Contacta al administrador.'
-            }), 401
+            return jsonify({'success': False, 'message': 'Este vendedor está desactivado. Contacta al administrador.'}), 401
         
-        # ✅ Obtener el user_id real
+        # Obtener el user_id real
         user_id = vendor_data[6]
         if not user_id:
             # Fallback: buscar cualquier usuario del negocio
@@ -753,15 +747,22 @@ def login_vendedor():
                     data={'business_id': vendor_data[2]},
                     request_info=request_info
                 )
-                return jsonify({
-                    'success': False, 
-                    'message': 'Error de configuración: no hay usuarios en el negocio'
-                }), 500
+                return jsonify({'success': False, 'message': 'Error de configuración: no hay usuarios en el negocio'}), 500
         
-        # ✅ Generar token JWT
+        # Validar que user_id sea numérico
+        if not str(user_id).isdigit():
+            log_to_telegram(
+                level='ERROR',
+                message=f"user_id no numérico: {user_id}",
+                data={'user_id': user_id},
+                request_info=request_info
+            )
+            return jsonify({'success': False, 'message': 'Error de configuración: user_id inválido'}), 500
+        
+        # Generar token JWT
         token = jwt.encode({
             'vendor_id': vendor_data[0],
-            'user_id': user_id,
+            'user_id': int(user_id),
             'business_id': vendor_data[2],
             'name': vendor_data[1],
             'role': vendor_data[4],
@@ -791,20 +792,21 @@ def login_vendedor():
                 'business_id': vendor_data[2],
                 'business_name': vendor_data[3],
                 'role': vendor_data[4],
-                'user_id': user_id
+                'user_id': int(user_id)
             }
         })
         
     except Exception as e:
-        logger.error(f"Error en login_vendedor: {e}")
+        logger.error(f"❌ Error en login_vendedor: {e}")
+        import traceback
+        logger.error(traceback.format_exc())
         log_to_telegram(
             level='ERROR',
             message=f"Error en login_vendedor: {str(e)}",
             data={'error': str(e), 'traceback': traceback.format_exc()},
             request_info=request_info
         )
-        return jsonify({'success': False, 'message': str(e)}), 500
-
+        return jsonify({'success': False, 'message': f'Error del servidor: {str(e)}'}), 500
 
 # ==================== API PARA LA APP ANDROID ====================
 
