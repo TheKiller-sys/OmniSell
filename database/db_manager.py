@@ -6,7 +6,7 @@ import logging
 from pathlib import Path
 import time
 import threading
-import bcrypt  # ✅ Agregado para crear datos de prueba
+import bcrypt
 
 logger = logging.getLogger(__name__)
 
@@ -330,6 +330,96 @@ class DatabaseManager:
                     ''')
                 logger.info("Tabla vendors creada exitosamente")
             
+            # ==================== CREAR DATOS DE PRUEBA ====================
+            logger.info("Verificando datos de prueba...")
+            
+            # Verificar si ya existe el admin
+            if is_postgres:
+                c.execute("SELECT COUNT(*) FROM users WHERE username = 'admin'")
+            else:
+                c.execute("SELECT COUNT(*) FROM users WHERE username = 'admin'")
+            
+            admin_exists = c.fetchone()[0] > 0
+            
+            if not admin_exists:
+                logger.info("Creando datos de prueba...")
+                
+                # 1. Crear business_id fijo para pruebas
+                business_id = 'test_business_001'
+                
+                # Verificar si el business ya existe
+                if is_postgres:
+                    c.execute("SELECT id FROM businesses WHERE id = %s", (business_id,))
+                else:
+                    c.execute("SELECT id FROM businesses WHERE id = ?", (business_id,))
+                
+                business_exists = c.fetchone() is not None
+                
+                # Hash de contraseña (admin123)
+                hashed_password = bcrypt.hashpw('admin123'.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+                
+                if not business_exists:
+                    # Crear negocio de prueba
+                    if is_postgres:
+                        c.execute("""
+                            INSERT INTO businesses (id, name, admin_id, web_user, web_pass, email)
+                            VALUES (%s, %s, %s, %s, %s, %s)
+                        """, (business_id, 'Tienda de Prueba', '123456789', 'admin', hashed_password, 'admin@test.com'))
+                    else:
+                        c.execute("""
+                            INSERT INTO businesses (id, name, admin_id, web_user, web_pass, email)
+                            VALUES (?, ?, ?, ?, ?, ?)
+                        """, (business_id, 'Tienda de Prueba', '123456789', 'admin', hashed_password, 'admin@test.com'))
+                    logger.info(f"✅ Negocio de prueba creado: {business_id}")
+                
+                # 2. Crear usuario admin
+                if is_postgres:
+                    c.execute("""
+                        INSERT INTO users (business_id, username, password, role, telegram_id)
+                        VALUES (%s, %s, %s, %s, %s)
+                    """, (business_id, 'admin', hashed_password, 'admin', '123456789'))
+                else:
+                    c.execute("""
+                        INSERT INTO users (business_id, username, password, role, telegram_id)
+                        VALUES (?, ?, ?, ?, ?)
+                    """, (business_id, 'admin', hashed_password, 'admin', '123456789'))
+                logger.info("✅ Usuario admin creado: admin / admin123")
+                
+                # 3. Crear vendedor de prueba en la base de datos del negocio
+                vendor_id = 'AAAA0000'
+                
+                # Crear conexión al negocio
+                try:
+                    db = cls(business_id)
+                    # Verificar si el vendedor ya existe
+                    if is_postgres:
+                        vendor_check = db.execute_query("SELECT id FROM vendors WHERE id = %s", (vendor_id,))
+                    else:
+                        vendor_check = db.execute_query("SELECT id FROM vendors WHERE id = ?", (vendor_id,))
+                    
+                    if not vendor_check:
+                        if is_postgres:
+                            db.execute_query("""
+                                INSERT INTO vendors (id, name, business_id, role, active)
+                                VALUES (%s, %s, %s, %s, %s)
+                            """, (vendor_id, 'Vendedor Prueba', business_id, 'vendedor', True))
+                        else:
+                            db.execute_query("""
+                                INSERT INTO vendors (id, name, business_id, role, active)
+                                VALUES (?, ?, ?, ?, ?)
+                            """, (vendor_id, 'Vendedor Prueba', business_id, 'vendedor', 1))
+                        logger.info(f"✅ Vendedor de prueba creado: ID = {vendor_id}")
+                except Exception as e:
+                    logger.error(f"Error creando vendedor de prueba: {e}")
+                
+                conn.commit()
+                logger.info("=" * 50)
+                logger.info("📋 DATOS DE PRUEBA CREADOS EXITOSAMENTE:")
+                logger.info(f"   🏪 Negocio: {business_id} (Tienda de Prueba)")
+                logger.info(f"   👤 Admin: usuario='admin' contraseña='admin123'")
+                logger.info(f"   🆔 Vendedor ID: {vendor_id} (Vendedor Prueba)")
+                logger.info("=" * 50)
+            
             conn.commit()
             logger.info("Estructura de tablas globales verificada y corregida correctamente")
             
@@ -599,151 +689,52 @@ class DatabaseManager:
             if self.conn:
                 self.conn.rollback()
 
-    # ==================== NUEVO MÉTODO: CREAR DATOS DE PRUEBA ====================
     def _create_test_data(self):
-        """Crear datos de prueba para desarrollo (admin y vendedor)"""
+        """Crear datos de prueba para el negocio (producto y sección de ejemplo)"""
         try:
             is_postgres = 'RENDER' in os.environ and os.environ.get('DATABASE_URL')
             
-            logger.info("Verificando datos de prueba...")
+            logger.info("Verificando datos de prueba del negocio...")
             
-            # Verificar si ya hay un admin en la base de datos GLOBAL
-            conn = DatabaseManager.get_global_connection()
-            if conn is None:
-                logger.error("No se pudo obtener conexión global para crear datos de prueba")
+            # Verificar si ya hay secciones
+            if is_postgres:
+                secciones = self.execute_query("SELECT COUNT(*) FROM secciones")
+            else:
+                secciones = self.execute_query("SELECT COUNT(*) FROM secciones")
+            
+            if secciones and secciones[0][0] > 0:
+                logger.info("⚠️ Los datos de prueba del negocio ya existen, omitiendo creación")
                 return
             
-            c = conn.cursor()
+            logger.info("Creando datos de prueba para el negocio...")
             
+            # Crear sección de ejemplo
             if is_postgres:
-                c.execute("SET search_path TO public")
-            
-            # Verificar si ya existe el admin
-            if is_postgres:
-                c.execute("SELECT COUNT(*) FROM users WHERE username = 'admin'")
+                seccion_id = self.execute_query("""
+                    INSERT INTO secciones (nombre) VALUES (%s) RETURNING id
+                """, ('Electrónicos',))
             else:
-                c.execute("SELECT COUNT(*) FROM users WHERE username = 'admin'")
+                self.execute_query("""
+                    INSERT INTO secciones (nombre) VALUES (?)
+                """, ('Electrónicos',))
+                seccion_id = self.c.lastrowid
             
-            admin_exists = c.fetchone()[0] > 0
-            
-            if admin_exists:
-                logger.info("⚠️ Los datos de prueba ya existen, omitiendo creación")
-                return
-            
-            logger.info("Creando datos de prueba...")
-            
-            # 1. Crear business_id fijo para pruebas
-            business_id = 'test_business_001'
-            
-            # Verificar si el business ya existe
+            # Crear producto de ejemplo
             if is_postgres:
-                c.execute("SELECT id FROM businesses WHERE id = %s", (business_id,))
-            else:
-                c.execute("SELECT id FROM businesses WHERE id = ?", (business_id,))
-            
-            business_exists = c.fetchone() is not None
-            
-            # Hash de contraseña (admin123)
-            hashed_password = bcrypt.hashpw('admin123'.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
-            
-            if not business_exists:
-                # Crear negocio de prueba
-                if is_postgres:
-                    c.execute("""
-                        INSERT INTO businesses (id, name, admin_id, web_user, web_pass, email)
-                        VALUES (%s, %s, %s, %s, %s, %s)
-                    """, (business_id, 'Tienda de Prueba', '123456789', 'admin', hashed_password, 'admin@test.com'))
-                else:
-                    c.execute("""
-                        INSERT INTO businesses (id, name, admin_id, web_user, web_pass, email)
-                        VALUES (?, ?, ?, ?, ?, ?)
-                    """, (business_id, 'Tienda de Prueba', '123456789', 'admin', hashed_password, 'admin@test.com'))
-                logger.info(f"✅ Negocio de prueba creado: {business_id}")
-            else:
-                logger.info(f"⚠️ Negocio {business_id} ya existe, omitiendo creación")
-            
-            # 2. Crear usuario admin
-            if is_postgres:
-                c.execute("""
-                    INSERT INTO users (business_id, username, password, role, telegram_id)
+                self.execute_query("""
+                    INSERT INTO productos (nombre, precio_venta, precio_compra, stock, seccion_id)
                     VALUES (%s, %s, %s, %s, %s)
-                """, (business_id, 'admin', hashed_password, 'admin', '123456789'))
+                """, ('Producto Test', 100.00, 80.00, 10, seccion_id))
             else:
-                c.execute("""
-                    INSERT INTO users (business_id, username, password, role, telegram_id)
+                self.execute_query("""
+                    INSERT INTO productos (nombre, precio_venta, precio_compra, stock, seccion_id)
                     VALUES (?, ?, ?, ?, ?)
-                """, (business_id, 'admin', hashed_password, 'admin', '123456789'))
-            logger.info("✅ Usuario admin creado: admin / admin123")
+                """, ('Producto Test', 100.00, 80.00, 10, seccion_id))
             
-            conn.commit()
-            
-            # 3. Crear vendedor de prueba en la base de datos del negocio
-            vendor_id = 'AAAA0000'  # ✅ ID fijo de 8 caracteres como solicitaste
-            
-            # Verificar si el vendedor ya existe
-            if is_postgres:
-                vendor_check = self.execute_query("SELECT id FROM vendors WHERE id = %s", (vendor_id,))
-            else:
-                vendor_check = self.execute_query("SELECT id FROM vendors WHERE id = ?", (vendor_id,))
-            
-            if not vendor_check:
-                if is_postgres:
-                    self.execute_query("""
-                        INSERT INTO vendors (id, name, business_id, role, active)
-                        VALUES (%s, %s, %s, %s, %s)
-                    """, (vendor_id, 'Vendedor Prueba', business_id, 'vendedor', True))
-                else:
-                    self.execute_query("""
-                        INSERT INTO vendors (id, name, business_id, role, active)
-                        VALUES (?, ?, ?, ?, ?)
-                    """, (vendor_id, 'Vendedor Prueba', business_id, 'vendedor', 1))
-                logger.info(f"✅ Vendedor de prueba creado: ID = {vendor_id}")
-            else:
-                logger.info(f"⚠️ Vendedor {vendor_id} ya existe, omitiendo creación")
-            
-            # 4. Crear sección y producto de prueba
-            if is_postgres:
-                seccion_check = self.execute_query("SELECT id FROM secciones WHERE nombre = 'Electrónicos'")
-            else:
-                seccion_check = self.execute_query("SELECT id FROM secciones WHERE nombre = 'Electrónicos'")
-            
-            if not seccion_check:
-                if is_postgres:
-                    seccion_id = self.execute_query("""
-                        INSERT INTO secciones (nombre) VALUES (%s) RETURNING id
-                    """, ('Electrónicos',))
-                else:
-                    self.execute_query("""
-                        INSERT INTO secciones (nombre) VALUES (?)
-                    """, ('Electrónicos',))
-                    seccion_id = self.c.lastrowid
-                
-                if is_postgres:
-                    self.execute_query("""
-                        INSERT INTO productos (nombre, precio_venta, precio_compra, stock, seccion_id)
-                        VALUES (%s, %s, %s, %s, %s)
-                    """, ('Producto Test', 100.00, 80.00, 10, seccion_id))
-                else:
-                    self.execute_query("""
-                        INSERT INTO productos (nombre, precio_venta, precio_compra, stock, seccion_id)
-                        VALUES (?, ?, ?, ?, ?)
-                    """, ('Producto Test', 100.00, 80.00, 10, seccion_id))
-                logger.info("✅ Producto de prueba creado: Producto Test ($100.00)")
-            else:
-                logger.info("⚠️ Producto de prueba ya existe, omitiendo creación")
-            
-            logger.info("=" * 50)
-            logger.info("📋 DATOS DE PRUEBA CREADOS EXITOSAMENTE:")
-            logger.info(f"   🏪 Negocio: {business_id} (Tienda de Prueba)")
-            logger.info(f"   👤 Admin: usuario='admin' contraseña='admin123'")
-            logger.info(f"   🆔 Vendedor ID: {vendor_id} (Vendedor Prueba)")
-            logger.info(f"   📦 Producto: Producto Test ($100.00, Stock: 10)")
-            logger.info("=" * 50)
+            logger.info("✅ Producto de prueba creado: Producto Test ($100.00, Stock: 10)")
             
         except Exception as e:
-            logger.error(f"Error creando datos de prueba: {e}")
-            import traceback
-            logger.error(traceback.format_exc())
+            logger.error(f"Error creando datos de prueba del negocio: {e}")
             if self.conn:
                 self.conn.rollback()
 
@@ -771,15 +762,21 @@ class DatabaseManager:
                 self.conn.commit()
                 if query.strip().upper().startswith(('INSERT', 'RETURNING')):
                     if is_postgres:
-                        self.c.execute("SELECT LASTVAL()")
-                        return self.c.fetchone()[0]
+                        try:
+                            self.c.execute("SELECT LASTVAL()")
+                            return self.c.fetchone()[0]
+                        except:
+                            return None
                     else:
                         return self.c.lastrowid
                 return True
         except Exception as e:
             logger.error(f"Database error: {e}\nQuery: {query}\nParams: {params}")
             if self.conn:
-                self.conn.rollback()
+                try:
+                    self.conn.rollback()
+                except:
+                    pass
             return None
 
     def get_dataframe(self, query, params=()):
