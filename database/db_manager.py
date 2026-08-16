@@ -120,6 +120,19 @@ class DatabaseManager:
             return conn
 
     @classmethod
+    def cleanup_connections(cls):
+        """Cerrar todas las conexiones en el pool para evitar memory leaks"""
+        with cls._pool_lock:
+            for business_id, conn in cls._connection_pool.items():
+                try:
+                    conn.close()
+                    logger.info(f"Conexión cerrada para negocio: {business_id}")
+                except Exception as e:
+                    logger.error(f"Error cerrando conexión para {business_id}: {e}")
+            cls._connection_pool.clear()
+            logger.info("✅ Todas las conexiones del pool han sido cerradas")
+    
+    @classmethod
     def verify_and_fix_global_tables(cls):
         """Verificar y corregir la estructura de las tablas globales automáticamente"""
         try:
@@ -393,6 +406,50 @@ class DatabaseManager:
             self.c = self.conn.cursor()
             return self.conn
 
+    def _ensure_vendor_column(self, is_postgres):
+        """✅ NUEVO MÉTODO: Asegurar que vendor_id existe en la tabla ventas"""
+        try:
+            schema = f"business_{self.business_id.replace('-', '_').replace('.', '_')}"
+            
+            if is_postgres:
+                # Verificar con schema específico
+                self.c.execute("""
+                    SELECT column_name 
+                    FROM information_schema.columns 
+                    WHERE table_schema = %s 
+                    AND table_name = 'ventas' 
+                    AND column_name = 'vendor_id'
+                """, (schema,))
+                exists = self.c.fetchone() is not None
+                
+                if not exists:
+                    logger.info(f"⚠️ Agregando columna vendor_id a ventas para negocio {self.business_id} (PostgreSQL)")
+                    self.c.execute("ALTER TABLE ventas ADD COLUMN vendor_id TEXT")
+                    self.c.execute("CREATE INDEX IF NOT EXISTS idx_ventas_vendor_id ON ventas(vendor_id)")
+                    self.conn.commit()
+                    logger.info(f"✅ Columna vendor_id agregada a ventas para negocio {self.business_id}")
+                else:
+                    logger.info(f"✅ vendor_id ya existe en ventas para negocio {self.business_id}")
+            else:
+                # SQLite: verificar PRAGMA
+                self.c.execute("PRAGMA table_info(ventas)")
+                columns = [col[1] for col in self.c.fetchall()]
+                exists = 'vendor_id' in columns
+                
+                if not exists:
+                    logger.info(f"⚠️ Agregando columna vendor_id a ventas para negocio {self.business_id} (SQLite)")
+                    self.c.execute("ALTER TABLE ventas ADD COLUMN vendor_id TEXT")
+                    self.c.execute("CREATE INDEX IF NOT EXISTS idx_ventas_vendor_id ON ventas(vendor_id)")
+                    self.conn.commit()
+                    logger.info(f"✅ Columna vendor_id agregada a ventas para negocio {self.business_id}")
+                else:
+                    logger.info(f"✅ vendor_id ya existe en ventas para negocio {self.business_id}")
+            
+            return True
+        except Exception as e:
+            logger.error(f"Error asegurando vendor_id: {e}")
+            return False
+
     def _create_tables(self):
         """Crear tablas si no existen con sintaxis compatible"""
         try:
@@ -414,37 +471,8 @@ class DatabaseManager:
                 
                 if tables_exist:
                     logger.info(f"Las tablas ya existen para el negocio {self.business_id}")
-                    
-                    # ✅ VERIFICAR Y AGREGAR vendor_id SI NO EXISTE (PostgreSQL)
-                    # Primero verificar si la tabla ventas existe
-                    self.c.execute("""
-                        SELECT EXISTS (
-                            SELECT FROM information_schema.tables 
-                            WHERE table_schema = %s AND table_name = 'ventas'
-                        )
-                    """, (schema_name,))
-                    ventas_exists = self.c.fetchone()[0]
-                    
-                    if ventas_exists:
-                        # Verificar si la columna vendor_id existe
-                        self.c.execute("""
-                            SELECT column_name 
-                            FROM information_schema.columns 
-                            WHERE table_name = 'ventas' AND column_name = 'vendor_id'
-                        """)
-                        has_vendor_column = self.c.fetchone() is not None
-                        
-                        if not has_vendor_column:
-                            logger.info(f"⚠️ Agregando columna vendor_id a ventas para negocio {self.business_id} (PostgreSQL)")
-                            self.c.execute("ALTER TABLE ventas ADD COLUMN vendor_id TEXT")
-                            self.c.execute("CREATE INDEX IF NOT EXISTS idx_ventas_vendor_id ON ventas(vendor_id)")
-                            self.conn.commit()
-                            logger.info(f"✅ Columna vendor_id agregada a ventas para negocio {self.business_id}")
-                        else:
-                            logger.info(f"✅ vendor_id ya existe en ventas para negocio {self.business_id}")
-                    else:
-                        logger.info(f"⚠️ Tabla ventas no existe para negocio {self.business_id}, se creará más adelante")
-                    
+                    # ✅ Usar el nuevo método para asegurar vendor_id
+                    self._ensure_vendor_column(is_postgres)
                     return
                 
                 serial_type = "SERIAL PRIMARY KEY"
@@ -558,27 +586,8 @@ class DatabaseManager:
                 self.c.execute("CREATE INDEX IF NOT EXISTS idx_vendors_business ON vendors(business_id)")
                 self.c.execute("CREATE INDEX IF NOT EXISTS idx_vendors_active ON vendors(active)")
             
-            # ✅ Verificación extra para SQLite (si la tabla ya existía sin vendor_id)
-            if not is_postgres:
-                # Verificar si existe la tabla ventas
-                self.c.execute("""
-                    SELECT name FROM sqlite_master 
-                    WHERE type='table' AND name='ventas'
-                """)
-                ventas_exists = self.c.fetchone() is not None
-                
-                if ventas_exists:
-                    # Verificar si existe la columna vendor_id en SQLite
-                    self.c.execute("PRAGMA table_info(ventas)")
-                    columns = [col[1] for col in self.c.fetchall()]
-                    has_vendor_column = 'vendor_id' in columns
-                    
-                    if not has_vendor_column:
-                        logger.info(f"⚠️ Agregando columna vendor_id a ventas para negocio {self.business_id} (SQLite)")
-                        self.c.execute("ALTER TABLE ventas ADD COLUMN vendor_id TEXT")
-                        self.c.execute("CREATE INDEX IF NOT EXISTS idx_ventas_vendor_id ON ventas(vendor_id)")
-                        self.conn.commit()
-                        logger.info(f"✅ Columna vendor_id agregada a ventas para negocio {self.business_id}")
+            # ✅ Usar el nuevo método para asegurar vendor_id después de crear las tablas
+            self._ensure_vendor_column(is_postgres)
             
             self.conn.commit()
             logger.info(f"Tablas creadas/verificadas para el negocio {self.business_id}")
