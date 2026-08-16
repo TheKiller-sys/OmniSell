@@ -609,11 +609,11 @@ def test_log_endpoint():
         return jsonify({'success': False, 'message': str(e)}), 500
 
 
-# ==================== ENDPOINT: LOGIN DE VENDEDOR ====================
+# ==================== ENDPOINT: LOGIN DE VENDEDOR (CORREGIDO) ====================
 
 @app.route('/api/login-vendedor', methods=['POST'])
 def login_vendedor():
-    """Login para vendedores con ID de 8 caracteres - VERSIÓN CORREGIDA"""
+    """Login para vendedores con ID de 8 caracteres - VERSIÓN CORREGIDA CON user_id"""
     request_info = {
         'method': request.method,
         'path': request.path,
@@ -628,21 +628,44 @@ def login_vendedor():
         if not data:
             return jsonify({'success': False, 'message': 'No se recibieron datos'}), 400
         
+        # ✅ CONVERTIR A MAYÚSCULAS
         vendor_id = data.get('vendor_id', '').strip().upper()
         
         # ✅ VALIDACIÓN ESTRICTA
         if not vendor_id:
+            log_to_telegram(
+                level='WARNING',
+                message="Intento de login sin ID de vendedor",
+                request_info=request_info
+            )
             return jsonify({'success': False, 'message': 'ID de vendedor requerido'}), 400
         
         if len(vendor_id) != 8:
-            return jsonify({'success': False, 'message': 'El ID debe tener 8 caracteres'}), 400
+            log_to_telegram(
+                level='WARNING',
+                message=f"Intento de login con ID inválido: {vendor_id} (longitud incorrecta)",
+                data={'vendor_id': vendor_id},
+                request_info=request_info
+            )
+            return jsonify({'success': False, 'message': 'El ID debe tener exactamente 8 caracteres'}), 400
         
         if not vendor_id.isalnum():
-            return jsonify({'success': False, 'message': 'El ID solo puede contener letras y números'}), 400
+            log_to_telegram(
+                level='WARNING',
+                message=f"Intento de login con ID inválido: {vendor_id} (caracteres no permitidos)",
+                data={'vendor_id': vendor_id},
+                request_info=request_info
+            )
+            return jsonify({'success': False, 'message': 'El ID solo debe contener letras y números'}), 400
         
         # ✅ OBTENER CONEXIÓN GLOBAL
         conn = DatabaseManager.get_global_connection()
         if conn is None:
+            log_to_telegram(
+                level='ERROR',
+                message="Error de conexión a la base de datos en login_vendedor",
+                request_info=request_info
+            )
             return jsonify({'success': False, 'message': 'Error de conexión al servidor'}), 500
         
         c = conn.cursor()
@@ -652,7 +675,7 @@ def login_vendedor():
         if is_postgres:
             c.execute("SET search_path TO public")
         
-        # 🔍 PRIMERO: Buscar el vendedor en la tabla vendors (SIN JOIN)
+        # 🔍 PRIMERO: Buscar el vendedor en la tabla vendors
         if is_postgres:
             c.execute("""
                 SELECT 
@@ -692,9 +715,9 @@ def login_vendedor():
         is_active = False
         
         if is_postgres:
-            is_active = active_value == True or active_value == 't'
+            is_active = active_value == True or active_value == 't' or active_value == 'true'
         else:
-            is_active = active_value == 1 or active_value == 'True' or active_value == 't'
+            is_active = active_value == 1 or active_value == 'True' or active_value == 't' or active_value == 'true'
         
         if not is_active:
             log_to_telegram(
@@ -703,7 +726,7 @@ def login_vendedor():
                 data={'vendor_id': vendor_id, 'active': active_value},
                 request_info=request_info
             )
-            return jsonify({'success': False, 'message': 'El vendedor está inactivo'}), 401
+            return jsonify({'success': False, 'message': 'El vendedor está inactivo. Contacta al administrador.'}), 401
         
         vendor_id_db = vendor_data[0]
         vendor_name = vendor_data[1]
@@ -719,7 +742,7 @@ def login_vendedor():
         business_result = c.fetchone()
         business_name = business_result[0] if business_result else business_id
         
-        # ✅ OBTENER UN USER_ID DE LA TABLA USERS
+        # ✅ OBTENER UN USER_ID DE LA TABLA USERS (CRÍTICO PARA LA APP)
         if is_postgres:
             c.execute("SELECT id FROM users WHERE business_id = %s LIMIT 1", (business_id,))
         else:
@@ -736,9 +759,8 @@ def login_vendedor():
                 request_info=request_info
             )
             
-            import bcrypt
             default_password = bcrypt.hashpw('vendedor123'.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
-            username = f'vendor_{vendor_id}'
+            username = f'vendor_{vendor_id_db.lower()}'
             
             if is_postgres:
                 c.execute("""
@@ -755,10 +777,17 @@ def login_vendedor():
                 user_id = c.lastrowid
             
             conn.commit()
+            
+            log_to_telegram(
+                level='SUCCESS',
+                message=f"✅ Usuario creado automáticamente para vendedor {vendor_id_db}",
+                data={'username': username, 'user_id': user_id},
+                request_info=request_info
+            )
         else:
             user_id = user_result[0]
         
-        # ✅ GENERAR TOKEN JWT
+        # ✅ GENERAR TOKEN JWT CON user_id (CRÍTICO)
         token = jwt.encode({
             'vendor_id': vendor_id_db,
             'user_id': int(user_id),
@@ -782,6 +811,7 @@ def login_vendedor():
             request_info=request_info
         )
         
+        # ✅ RESPUESTA COMPLETA CON user_id
         return jsonify({
             'success': True,
             'token': token,
@@ -806,6 +836,7 @@ def login_vendedor():
             request_info=request_info
         )
         return jsonify({'success': False, 'message': f'Error del servidor: {str(e)}'}), 500
+
 
 # ==================== API PARA LA APP ANDROID ====================
 
@@ -879,6 +910,7 @@ def get_productos():
 
 
 # ==================== ENDPOINT PARA REGISTRAR VENTAS DESDE APP ANDROID ====================
+
 @app.route('/api/registrar-venta', methods=['POST', 'OPTIONS'])
 @token_required
 def registrar_venta_app():
