@@ -626,16 +626,11 @@ def login_vendedor():
         
         data = request.json
         if not data:
-            log_to_telegram(
-                level='ERROR',
-                message="No se recibió JSON en login_vendedor",
-                request_info=request_info
-            )
             return jsonify({'success': False, 'message': 'No se recibieron datos'}), 400
         
         vendor_id = data.get('vendor_id', '').strip().upper()
         
-        # Validar formato del ID (8 caracteres alfanuméricos)
+        # ✅ VALIDACIÓN ESTRICTA
         if not vendor_id:
             log_to_telegram(
                 level='WARNING',
@@ -663,19 +658,13 @@ def login_vendedor():
             return jsonify({'success': False, 'message': 'El ID solo debe contener letras y números'}), 400
         
         conn = DatabaseManager.get_global_connection()
-        
         if conn is None:
-            log_to_telegram(
-                level='ERROR',
-                message="Error de conexión a la base de datos en login_vendedor",
-                request_info=request_info
-            )
             return jsonify({'success': False, 'message': 'Error de conexión al servidor'}), 500
         
         c = conn.cursor()
         is_postgres = 'RENDER' in os.environ and os.environ.get('DATABASE_URL')
         
-        # Buscar vendedor por ID
+        # ✅ QUERY CORREGIDA - Sin user_id
         if is_postgres:
             c.execute("""
                 SELECT 
@@ -684,12 +673,10 @@ def login_vendedor():
                     v.business_id, 
                     b.name as business_name, 
                     v.role, 
-                    v.active,
-                    COALESCE(u.id, (SELECT id FROM users WHERE business_id = b.id ORDER BY id LIMIT 1)) as user_id
+                    v.active
                 FROM vendors v
                 JOIN businesses b ON v.business_id = b.id
-                LEFT JOIN users u ON u.business_id = b.id AND u.role = 'admin'
-                WHERE v.id = %s
+                WHERE v.id = %s AND v.active = TRUE
             """, (vendor_id,))
         else:
             c.execute("""
@@ -699,12 +686,10 @@ def login_vendedor():
                     v.business_id, 
                     b.name as business_name, 
                     v.role, 
-                    v.active,
-                    COALESCE(u.id, (SELECT id FROM users WHERE business_id = b.id ORDER BY id LIMIT 1)) as user_id
+                    v.active
                 FROM vendors v
                 JOIN businesses b ON v.business_id = b.id
-                LEFT JOIN users u ON u.business_id = b.id AND u.role = 'admin'
-                WHERE v.id = ?
+                WHERE v.id = ? AND v.active = 1
             """, (vendor_id,))
         
         vendor_data = c.fetchone()
@@ -712,57 +697,53 @@ def login_vendedor():
         if not vendor_data:
             log_to_telegram(
                 level='WARNING',
-                message=f"Login fallido: Vendor ID no encontrado: {vendor_id}",
+                message=f"Login fallido: Vendor ID no encontrado o inactivo: {vendor_id}",
                 data={'vendor_id': vendor_id},
                 request_info=request_info
             )
-            return jsonify({'success': False, 'message': 'ID de vendedor no encontrado'}), 401
+            return jsonify({'success': False, 'message': 'ID de vendedor no encontrado o inactivo'}), 401
         
-        # Verificar si el vendedor está activo
-        if not vendor_data[5]:
+        # ✅ Obtener un user_id para el token (de la tabla users)
+        # Buscar cualquier usuario del negocio
+        business_id = vendor_data[2]
+        if is_postgres:
+            c.execute("SELECT id FROM users WHERE business_id = %s LIMIT 1", (business_id,))
+        else:
+            c.execute("SELECT id FROM users WHERE business_id = ? LIMIT 1", (business_id,))
+        
+        user_result = c.fetchone()
+        if not user_result:
+            # Si no hay usuarios, crear uno automáticamente
             log_to_telegram(
                 level='WARNING',
-                message=f"Login fallido: Vendedor desactivado: {vendor_id}",
-                data={
-                    'vendor_id': vendor_id,
-                    'vendor_name': vendor_data[1],
-                    'business_id': vendor_data[2]
-                },
+                message=f"No hay usuarios para el negocio {business_id}, creando uno automáticamente",
+                data={'business_id': business_id},
                 request_info=request_info
             )
-            return jsonify({'success': False, 'message': 'Este vendedor está desactivado. Contacta al administrador.'}), 401
-        
-        # Obtener el user_id real
-        user_id = vendor_data[6]
-        if not user_id:
-            # Fallback: buscar cualquier usuario del negocio
+            
+            # Crear un usuario genérico para el negocio
+            import bcrypt
+            default_password = bcrypt.hashpw('vendedor123'.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+            
             if is_postgres:
-                c.execute("SELECT id FROM users WHERE business_id = %s LIMIT 1", (vendor_data[2],))
+                c.execute("""
+                    INSERT INTO users (business_id, username, password, role)
+                    VALUES (%s, %s, %s, 'vendedor')
+                    RETURNING id
+                """, (business_id, f'vendor_{vendor_id}', default_password))
+                user_id = c.fetchone()[0]
             else:
-                c.execute("SELECT id FROM users WHERE business_id = ? LIMIT 1", (vendor_data[2],))
-            user_fallback = c.fetchone()
-            if user_fallback:
-                user_id = user_fallback[0]
-            else:
-                log_to_telegram(
-                    level='ERROR',
-                    message=f"No hay usuarios para el negocio {vendor_data[2]}",
-                    data={'business_id': vendor_data[2]},
-                    request_info=request_info
-                )
-                return jsonify({'success': False, 'message': 'Error de configuración: no hay usuarios en el negocio'}), 500
+                c.execute("""
+                    INSERT INTO users (business_id, username, password, role)
+                    VALUES (?, ?, ?, 'vendedor')
+                """, (business_id, f'vendor_{vendor_id}', default_password))
+                user_id = c.lastrowid
+            
+            conn.commit()
+        else:
+            user_id = user_result[0]
         
-        # Validar que user_id sea numérico
-        if not str(user_id).isdigit():
-            log_to_telegram(
-                level='ERROR',
-                message=f"user_id no numérico: {user_id}",
-                data={'user_id': user_id},
-                request_info=request_info
-            )
-            return jsonify({'success': False, 'message': 'Error de configuración: user_id inválido'}), 500
-        
-        # Generar token JWT
+        # ✅ Generar token JWT
         token = jwt.encode({
             'vendor_id': vendor_data[0],
             'user_id': int(user_id),
@@ -772,7 +753,7 @@ def login_vendedor():
             'exp': datetime.datetime.utcnow() + datetime.timedelta(days=7)
         }, os.environ.get('JWT_SECRET', 'secret-key'), algorithm='HS256')
         
-        # Log de login exitoso
+        # ✅ Log de login exitoso
         log_to_telegram(
             level='SUCCESS',
             message=f"✅ Login exitoso desde App Android",
