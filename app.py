@@ -87,7 +87,7 @@ def handle_exception(error):
 # ==================== DECORADOR DE AUTENTICACIÓN ====================
 
 def token_required(f):
-    """Decorador para verificar token JWT en peticiones de la app"""
+    """Decorador para verificar token JWT en peticiones de la app Android"""
     @wraps(f)
     def decorated(*args, **kwargs):
         auth_header = request.headers.get('Authorization')
@@ -97,12 +97,14 @@ def token_required(f):
         try:
             token = auth_header.split(' ')[1]
             payload = jwt.decode(token, os.environ.get('JWT_SECRET', 'secret-key'), algorithms=['HS256'])
-            request.user_id = payload.get('user_id')
-            request.vendor_id = payload.get('vendor_id')
-            request.business_id = payload['business_id']
-            request.username = payload.get('username')
-            request.vendor_name = payload.get('name')
-            request.role = payload.get('role', 'vendedor')
+            
+            # ✅ Asignar TODOS los campos del token
+            request.vendor_id = payload.get('vendor_id')       # ID del vendedor (8 chars)
+            request.user_id = payload.get('user_id')           # ID del usuario admin (numérico)
+            request.business_id = payload.get('business_id')   # ID del negocio
+            request.vendor_name = payload.get('name')          # Nombre del vendedor
+            request.role = payload.get('role', 'vendedor')     # Rol
+            
             return f(*args, **kwargs)
         except jwt.ExpiredSignatureError:
             return jsonify({'success': False, 'message': 'Token expirado'}), 401
@@ -337,19 +339,35 @@ def login_vendedor():
         c = conn.cursor()
         is_postgres = 'RENDER' in os.environ and os.environ.get('DATABASE_URL')
         
-        # Buscar vendedor por ID
+        # ✅ Buscar vendedor por ID y obtener también el user_id real
         if is_postgres:
             c.execute("""
-                SELECT v.id, v.name, v.business_id, b.name as business_name, v.role, v.active
+                SELECT 
+                    v.id as vendor_id, 
+                    v.name, 
+                    v.business_id, 
+                    b.name as business_name, 
+                    v.role, 
+                    v.active,
+                    u.id as user_id
                 FROM vendors v
                 JOIN businesses b ON v.business_id = b.id
+                LEFT JOIN users u ON u.business_id = b.id AND u.role = 'admin'
                 WHERE v.id = %s
             """, (vendor_id,))
         else:
             c.execute("""
-                SELECT v.id, v.name, v.business_id, b.name as business_name, v.role, v.active
+                SELECT 
+                    v.id as vendor_id, 
+                    v.name, 
+                    v.business_id, 
+                    b.name as business_name, 
+                    v.role, 
+                    v.active,
+                    u.id as user_id
                 FROM vendors v
                 JOIN businesses b ON v.business_id = b.id
+                LEFT JOIN users u ON u.business_id = b.id AND u.role = 'admin'
                 WHERE v.id = ?
             """, (vendor_id,))
         
@@ -368,23 +386,27 @@ def login_vendedor():
                 'message': 'Este vendedor está desactivado. Contacta al administrador.'
             }), 401
         
-        # Generar token JWT
+        # ✅ Obtener el user_id real (puede ser None si no hay admin)
+        user_id = vendor_data[6] if len(vendor_data) > 6 else None
+        
+        # ✅ Generar token JWT con TODOS los datos necesarios
         token = jwt.encode({
-            'vendor_id': vendor_data[0],
-            'business_id': vendor_data[2],
-            'name': vendor_data[1],
-            'role': vendor_data[4],
+            'vendor_id': vendor_data[0],      # ID del vendedor (8 chars)
+            'user_id': user_id,                # ✅ ID del usuario admin (numérico)
+            'business_id': vendor_data[2],     # ID del negocio
+            'name': vendor_data[1],            # Nombre del vendedor
+            'role': vendor_data[4],            # 'vendedor'
             'exp': datetime.datetime.utcnow() + datetime.timedelta(days=7)
         }, os.environ.get('JWT_SECRET', 'secret-key'), algorithm='HS256')
         
-        # Enviar log de login exitoso al programador (sin formato)
+        # Enviar log de login exitoso al programador
         try:
             send_telegram_message(
                 f"✅ Login exitoso desde App Android\n"
                 f"Vendedor: {vendor_data[0]} ({vendor_data[1]})\n"
                 f"Negocio: {vendor_data[3]}\n"
-                f"Timestamp: {datetime.datetime.now().isoformat()}\n"
-                f"Estado: Conexión exitosa"
+                f"User ID: {user_id or 'N/A'}\n"
+                f"Timestamp: {datetime.datetime.now().isoformat()}"
             )
         except:
             pass
@@ -397,7 +419,8 @@ def login_vendedor():
                 'name': vendor_data[1],
                 'business_id': vendor_data[2],
                 'business_name': vendor_data[3],
-                'role': vendor_data[4]
+                'role': vendor_data[4],
+                'user_id': user_id  # ✅ Incluir user_id en la respuesta
             }
         })
         
@@ -468,7 +491,11 @@ def get_productos():
 @app.route('/api/registrar-venta', methods=['POST', 'OPTIONS'])
 @token_required
 def registrar_venta_app():
-    """Registrar venta desde la app Android (con token JWT)"""
+    """
+    Registrar venta DESDE LA APP ANDROID.
+    ✅ Usa user_id del JWT (numérico) para la columna usuario_id
+    ✅ También guarda vendor_id para trazabilidad
+    """
     # Manejar preflight CORS
     if request.method == 'OPTIONS':
         response = jsonify({'success': True})
@@ -477,10 +504,9 @@ def registrar_venta_app():
         response.headers.add('Access-Control-Allow-Methods', 'POST,OPTIONS')
         return response
     
-    # Envolver todo en un try-except para asegurar respuesta JSON
     try:
         # 🔍 LOG: Ver qué está llegando
-        logger.info(f"📥 Solicitud POST a /api/registrar-venta")
+        logger.info(f"📥 Solicitud POST a /api/registrar-venta (Android)")
         logger.info(f"📥 Headers: {dict(request.headers)}")
         
         # Obtener datos crudos para debug
@@ -548,6 +574,15 @@ def registrar_venta_app():
             response.headers.add('Access-Control-Allow-Origin', '*')
             return response, 400
         
+        # ✅ VERIFICAR QUE TENEMOS user_id
+        if not hasattr(request, 'user_id') or not request.user_id:
+            response = jsonify({
+                'success': False,
+                'message': 'El token no contiene user_id. Contacta al administrador.'
+            })
+            response.headers.add('Access-Control-Allow-Origin', '*')
+            return response, 401
+        
         from database.db_manager import DatabaseManager
         db = DatabaseManager(request.business_id)
         is_postgres = 'RENDER' in os.environ and os.environ.get('DATABASE_URL')
@@ -573,17 +608,42 @@ def registrar_venta_app():
             response.headers.add('Access-Control-Allow-Origin', '*')
             return response, 400
         
-        # Registrar venta (usar vendor_id)
-        usuario_id = request.vendor_id if hasattr(request, 'vendor_id') and request.vendor_id else request.user_id
+        # ✅ Verificar si existe la columna vendor_id en la tabla ventas
+        if is_postgres:
+            check_column = db.execute_query("""
+                SELECT column_name 
+                FROM information_schema.columns 
+                WHERE table_name = 'ventas' AND column_name = 'vendor_id'
+            """)
+            has_vendor_column = check_column and len(check_column) > 0
+        else:
+            check_column = db.execute_query("PRAGMA table_info(ventas)")
+            has_vendor_column = any(col[1] == 'vendor_id' for col in check_column) if check_column else False
         
+        if not has_vendor_column:
+            # ✅ Agregar columna vendor_id si no existe
+            logger.info("Agregando columna vendor_id a tabla ventas")
+            if is_postgres:
+                db.execute_query("ALTER TABLE ventas ADD COLUMN vendor_id TEXT")
+                db.execute_query("CREATE INDEX IF NOT EXISTS idx_ventas_vendor_id ON ventas(vendor_id)")
+            else:
+                db.execute_query("ALTER TABLE ventas ADD COLUMN vendor_id TEXT")
+                db.execute_query("CREATE INDEX IF NOT EXISTS idx_ventas_vendor_id ON ventas(vendor_id)")
+        
+        # ✅ INSERTAR CON user_id (numérico) Y vendor_id (para trazabilidad)
         insert_query = """
-            INSERT INTO ventas (producto_id, cantidad, usuario_id) 
-            VALUES (%s, %s, %s)
+            INSERT INTO ventas (producto_id, cantidad, usuario_id, vendor_id) 
+            VALUES (%s, %s, %s, %s)
         """ if is_postgres else """
-            INSERT INTO ventas (producto_id, cantidad, usuario_id) 
-            VALUES (?, ?, ?)
+            INSERT INTO ventas (producto_id, cantidad, usuario_id, vendor_id) 
+            VALUES (?, ?, ?, ?)
         """
-        db.execute_query(insert_query, (producto_id, cantidad, usuario_id))
+        db.execute_query(insert_query, (
+            producto_id, 
+            cantidad, 
+            request.user_id,      # ✅ ID numérico de users
+            request.vendor_id     # ✅ ID del vendedor (8 chars) para trazabilidad
+        ))
         
         # Actualizar stock
         update_query = "UPDATE productos SET stock = stock - %s WHERE id = %s" if is_postgres else "UPDATE productos SET stock = stock - ? WHERE id = ?"
@@ -591,12 +651,12 @@ def registrar_venta_app():
         
         total = cantidad * precio_unitario
         
-        # Enviar log de venta registrada (sin formato para evitar errores)
-        origen = "APP" if hasattr(request, 'vendor_id') else "WEB"
+        # Enviar log de venta registrada
         try:
             send_telegram_message(
-                f"✅ NUEVA VENTA desde {origen}\n"
+                f"✅ NUEVA VENTA desde App Android\n"
                 f"Vendedor: {request.vendor_id} ({request.vendor_name})\n"
+                f"User ID: {request.user_id}\n"
                 f"Negocio: {request.business_id}\n"
                 f"Producto: {nombre_producto} (ID: {producto_id})\n"
                 f"Cantidad: {cantidad}\n"
@@ -633,6 +693,7 @@ def registrar_venta_app():
             send_telegram_message(
                 f"❌ ERROR al registrar venta desde App\n"
                 f"Vendedor: {request.vendor_id if hasattr(request, 'vendor_id') else 'DESCONOCIDO'}\n"
+                f"User ID: {request.user_id if hasattr(request, 'user_id') else 'DESCONOCIDO'}\n"
                 f"Negocio: {request.business_id if hasattr(request, 'business_id') else 'DESCONOCIDO'}\n"
                 f"Error: {str(e)}\n"
                 f"Timestamp: {datetime.datetime.now().isoformat()}"
@@ -982,7 +1043,7 @@ def crear_vendedor_web():
                 VALUES (?, ?, ?, ?, ?)
             """, (vendor_id, name, current_user.business_id, 'vendedor', 1))
         
-        # Enviar log de vendedor creado (sin formato)
+        # Enviar log de vendedor creado
         try:
             send_telegram_message(
                 f"✅ Nuevo vendedor creado desde panel web\n"
@@ -1194,7 +1255,7 @@ def crear_vendedor_app():
                 VALUES (?, ?, ?, ?, ?)
             """, (vendor_id, name, request.business_id, 'vendedor', 1))
         
-        # Enviar log de vendedor creado desde app (sin formato)
+        # Enviar log de vendedor creado desde app
         try:
             send_telegram_message(
                 f"✅ Nuevo vendedor creado desde App Android\n"
@@ -1281,7 +1342,7 @@ def apk_status():
     except Exception as e:
         return jsonify({'exists': False, 'error': str(e)})
 
-# ==================== ENDPOINT DE PRUEBA ====================
+# ==================== ENDPOINTS DE PRUEBA Y DIAGNÓSTICO ====================
 
 @app.route('/api/test', methods=['GET'])
 def test_endpoint():
