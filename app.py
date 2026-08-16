@@ -23,8 +23,10 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# Importar y crear la aplicación Flask desde dashboard
-from web.dashboard import create_app
+# ==================== IMPORTAR DASHBOARD Y FUNCIÓN DE CONEXIÓN ====================
+from web.dashboard import create_app, set_telegram_log_function
+
+# ==================== CREAR APP ====================
 app = create_app()
 socketio = SocketIO(app, async_mode='threading', cors_allowed_origins="*")
 
@@ -78,17 +80,10 @@ def send_telegram_message(message, parse_mode=None):
         return False
 
 
-def log_to_telegram(level, message, data=None, user=None, business_id=None, request_info=None):
+def log_to_telegram_web(level, message, data=None, user=None, business_id=None, request_info=None):
     """
-    Función unificada para enviar logs detallados a Telegram desde la web
-    
-    Args:
-        level: INFO, WARNING, ERROR, SUCCESS, CRITICAL
-        message: Mensaje principal
-        data: Datos adicionales (dict)
-        user: Usuario actual (current_user)
-        business_id: ID del negocio
-        request_info: Información de la petición (método, ruta, IP)
+    Función de log que será utilizada por dashboard.py
+    Esta función se pasa a dashboard mediante set_telegram_log_function()
     """
     try:
         if not TELEGRAM_BOT_TOKEN or not TELEGRAM_ADMIN_CHAT_ID:
@@ -163,8 +158,23 @@ def log_to_telegram(level, message, data=None, user=None, business_id=None, requ
         return send_telegram_message(full_message)
         
     except Exception as e:
-        logger.error(f"Error en log_to_telegram: {e}")
+        logger.error(f"Error en log_to_telegram_web: {e}")
         return False
+
+
+# ==================== ¡CRÍTICO! CONECTAR LOGS CON DASHBOARD ====================
+# Esto hace que dashboard.py pueda usar la función de log
+set_telegram_log_function(log_to_telegram_web)
+
+
+# ==================== FUNCIÓN DE LOG UNIFICADA PARA app.py ====================
+
+def log_to_telegram(level, message, data=None, user=None, business_id=None, request_info=None):
+    """
+    Función unificada para enviar logs detallados a Telegram desde app.py
+    Reutiliza la misma lógica que log_to_telegram_web
+    """
+    return log_to_telegram_web(level, message, data, user, business_id, request_info)
 
 
 # ==================== DECORADOR PARA LOGS AUTOMÁTICOS EN RUTAS ====================
@@ -199,15 +209,16 @@ def log_web_request(level='INFO'):
                 # Ejecutar la función original
                 response = f(*args, **kwargs)
                 
-                # Log de éxito
-                log_to_telegram(
-                    level='SUCCESS' if level == 'INFO' else level,
-                    message=f"Request exitosa: {request.method} {request.path}",
-                    data={'status_code': getattr(response, 'status_code', 200) if response else 200},
-                    user=user,
-                    business_id=business_id,
-                    request_info=request_info
-                )
+                # Log de éxito (solo si no es una ruta de health check)
+                if '/health' not in request.path and '/api/test-log' not in request.path:
+                    log_to_telegram(
+                        level='SUCCESS' if level == 'INFO' else level,
+                        message=f"Request exitosa: {request.method} {request.path}",
+                        data={'status_code': getattr(response, 'status_code', 200) if response else 200},
+                        user=user,
+                        business_id=business_id,
+                        request_info=request_info
+                    )
                 
                 return response
                 
@@ -593,6 +604,7 @@ def test_log_endpoint():
             
     except Exception as e:
         return jsonify({'success': False, 'message': str(e)}), 500
+
 
 # ==================== ENDPOINT: LOGIN DE VENDEDOR ====================
 
@@ -1978,6 +1990,7 @@ def apk_status():
     except Exception as e:
         return jsonify({'exists': False, 'error': str(e)})
 
+
 # ==================== ENDPOINTS DE PRUEBA Y DIAGNÓSTICO ====================
 
 @app.route('/api/test', methods=['GET'])
@@ -1991,6 +2004,7 @@ def test_endpoint():
     response.headers.add('Access-Control-Allow-Origin', '*')
     return response
 
+
 @app.route('/api/venta-diagnostico', methods=['GET'])
 def venta_diagnostico():
     """Endpoint para diagnosticar problemas de ventas"""
@@ -2002,6 +2016,7 @@ def venta_diagnostico():
         'telegram_chat_id': TELEGRAM_ADMIN_CHAT_ID[:10] + '...' if TELEGRAM_ADMIN_CHAT_ID else None,
         'timestamp': datetime.datetime.now().isoformat()
     })
+
 
 @app.route('/api/diagnostico', methods=['GET'])
 def diagnostico():
@@ -2030,8 +2045,10 @@ def diagnostico():
         ]
     })
 
+
 # ==================== LIMPIEZA DE CONEXIONES AL CIERRE ====================
 import atexit
+
 @atexit.register
 def cleanup_database_connections():
     """Limpiar conexiones de base de datos al cerrar la aplicación"""
@@ -2039,8 +2056,15 @@ def cleanup_database_connections():
         from database.db_manager import DatabaseManager
         DatabaseManager.cleanup_connections()
         logger.info("✅ Conexiones de base de datos limpiadas al cerrar")
+        
+        log_to_telegram(
+            level='INFO',
+            message="Aplicación cerrada - Conexiones limpiadas",
+            business_id=None
+        )
     except Exception as e:
         logger.error(f"Error limpiando conexiones: {e}")
+
 
 # ==================== INICIO ====================
 
@@ -2048,10 +2072,38 @@ if __name__ == '__main__':
     try:
         port = int(os.environ.get('PORT', 10000))
         logger.info(f"Iniciando servidor en puerto {port}")
+        
+        # Log de inicio
+        log_to_telegram(
+            level='SUCCESS',
+            message=f"🚀 Servidor iniciado en puerto {port}",
+            data={
+                'port': port,
+                'environment': 'production' if 'RENDER' in os.environ else 'development',
+                'telegram_logs': bool(TELEGRAM_BOT_TOKEN and TELEGRAM_ADMIN_CHAT_ID)
+            }
+        )
+        
         socketio.run(app, host='0.0.0.0', port=port, debug=False, use_reloader=False)
     except Exception as e:
         logger.error(f"Error al iniciar la aplicación: {e}")
+        try:
+            log_to_telegram(
+                level='CRITICAL',
+                message=f"🔥 Error al iniciar servidor: {str(e)}",
+                data={'error': str(e), 'traceback': traceback.format_exc()}
+            )
+        except:
+            pass
         raise
 else:
     # Para ejecución con Gunicorn
-    pass
+    logger.info("✅ Aplicación cargada para Gunicorn")
+    try:
+        log_to_telegram(
+            level='SUCCESS',
+            message="🚀 Aplicación cargada para Gunicorn",
+            data={'environment': 'production' if 'RENDER' in os.environ else 'development'}
+        )
+    except:
+        pass
