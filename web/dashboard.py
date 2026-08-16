@@ -1,4 +1,4 @@
-# web/dashboard.py - Panel de administración web unificado (SIN TELEGRAM)
+# web/dashboard.py - Panel de administración web con LOGS A TELEGRAM
 from flask import Flask, render_template, request, redirect, url_for, jsonify, g, session, flash
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
 from flask_socketio import SocketIO
@@ -15,8 +15,23 @@ import time
 import bcrypt
 import jwt
 import json
+import traceback
 
 logger = logging.getLogger(__name__)
+
+# Variable global para la función de log de Telegram
+_telegram_log_func = None
+
+def set_telegram_log_function(func):
+    """Establecer la función de log de Telegram desde app.py"""
+    global _telegram_log_func
+    _telegram_log_func = func
+
+def log_to_telegram(level, message, data=None, user=None, business_id=None, request_info=None):
+    """Wrapper para la función de log de Telegram"""
+    if _telegram_log_func:
+        return _telegram_log_func(level, message, data, user, business_id, request_info)
+    return False
 
 def create_app():
     app = Flask(__name__, template_folder='../templates', static_folder='../static')
@@ -54,6 +69,11 @@ def create_app():
             conn = DatabaseManager.get_global_connection()
             if conn is None:
                 logger.error("No se pudo obtener conexión a la base de datos")
+                log_to_telegram(
+                    level='ERROR',
+                    message="Error cargando usuario: No se pudo obtener conexión a la base de datos",
+                    data={'user_id': user_id}
+                )
                 return None
                 
             c = conn.cursor()
@@ -65,9 +85,30 @@ def create_app():
                 c.execute("SELECT id, business_id, username, role FROM users WHERE id = ?", (user_id,))
             user_data = c.fetchone()
             if user_data:
-                return User(user_data[0], user_data[1], user_data[2], user_data[3] if len(user_data) > 3 else 'admin')
+                user = User(user_data[0], user_data[1], user_data[2], user_data[3] if len(user_data) > 3 else 'admin')
+                
+                # Log de usuario cargado
+                log_to_telegram(
+                    level='SUCCESS',
+                    message=f"✅ Usuario cargado en sesión: {user.username}",
+                    data={'user_id': user.id, 'role': user.role, 'business_id': user.business_id},
+                    user=user,
+                    business_id=user.business_id
+                )
+                return user
+            else:
+                log_to_telegram(
+                    level='WARNING',
+                    message=f"Usuario no encontrado: ID {user_id}",
+                    data={'user_id': user_id}
+                )
         except Exception as e:
             logger.error(f"Error loading user: {e}")
+            log_to_telegram(
+                level='ERROR',
+                message=f"Error cargando usuario: {str(e)}",
+                data={'user_id': user_id, 'error': str(e), 'traceback': traceback.format_exc()}
+            )
         return None
 
     @app.before_request
@@ -93,6 +134,13 @@ def create_app():
                             session['business_name'] = business_data[0]
             except Exception as e:
                 logger.error(f"Error in before_request: {e}")
+                log_to_telegram(
+                    level='ERROR',
+                    message=f"Error en before_request: {str(e)}",
+                    data={'error': str(e), 'traceback': traceback.format_exc()},
+                    user=current_user if current_user.is_authenticated else None,
+                    business_id=current_user.business_id if current_user.is_authenticated else None
+                )
 
     # Funciones auxiliares
     def generate_random_string(length=4):
@@ -121,6 +169,13 @@ def create_app():
     @app.route('/signup', methods=['GET', 'POST'])
     def signup():
         if request.method == 'POST':
+            request_info = {
+                'method': request.method,
+                'path': request.path,
+                'ip': request.remote_addr,
+                'user_agent': request.headers.get('User-Agent', 'N/A')
+            }
+            
             try:
                 DatabaseManager.verify_and_fix_global_tables()
                 
@@ -131,6 +186,12 @@ def create_app():
                 email = request.form.get('email', '').strip()
                 
                 if not all([business_name, username, password, telegram_id]):
+                    log_to_telegram(
+                        level='WARNING',
+                        message="Intento de registro con campos faltantes",
+                        data={'business_name': business_name, 'username': username},
+                        request_info=request_info
+                    )
                     return render_template('signup.html', error="Todos los campos son obligatorios")
                 
                 if len(password) < 8:
@@ -152,6 +213,12 @@ def create_app():
                     c.execute("SELECT id FROM users WHERE username = ?", (username,))
                 
                 if c.fetchone():
+                    log_to_telegram(
+                        level='WARNING',
+                        message=f"Intento de registro con usuario existente: {username}",
+                        data={'username': username},
+                        request_info=request_info
+                    )
                     return render_template('signup.html', error="El usuario ya existe")
             
                 try:
@@ -198,16 +265,40 @@ def create_app():
                     db._create_tables()
                 except Exception as e:
                     logger.error(f"Error creando BD del negocio: {e}")
+                    log_to_telegram(
+                        level='ERROR',
+                        message=f"Error creando BD del negocio: {str(e)}",
+                        data={'business_id': business_id, 'error': str(e), 'traceback': traceback.format_exc()},
+                        request_info=request_info
+                    )
             
                 session['new_business_id'] = business_id
                 session['business_id'] = business_id
                 session['new_business_name'] = business_name
                 session['new_username'] = username
                 
+                log_to_telegram(
+                    level='SUCCESS',
+                    message=f"✅ Nuevo negocio registrado: {business_name}",
+                    data={
+                        'business_id': business_id,
+                        'business_name': business_name,
+                        'username': username,
+                        'email': email
+                    },
+                    request_info=request_info
+                )
+                
                 return redirect(url_for('initial_setup'))
             
             except Exception as e:
                 logger.error(f"Error general en signup: {e}")
+                log_to_telegram(
+                    level='ERROR',
+                    message=f"Error en signup: {str(e)}",
+                    data={'error': str(e), 'traceback': traceback.format_exc()},
+                    request_info=request_info
+                )
                 return render_template('signup.html', error=f"Error interno del sistema: {str(e)}")
         
         return render_template('signup.html')
@@ -215,6 +306,12 @@ def create_app():
     @app.route('/login', methods=['GET', 'POST'])
     def login():
         message = request.args.get('message')
+        request_info = {
+            'method': request.method,
+            'path': request.path,
+            'ip': request.remote_addr,
+            'user_agent': request.headers.get('User-Agent', 'N/A')
+        }
         
         if request.method == 'POST':
             DatabaseManager.verify_and_fix_global_tables()
@@ -223,6 +320,12 @@ def create_app():
             password = request.form.get('password', '').strip()
             
             if not username or not password:
+                log_to_telegram(
+                    level='WARNING',
+                    message="Intento de login con campos faltantes",
+                    data={'username': username if username else 'N/A'},
+                    request_info=request_info
+                )
                 return render_template('login.html', error="Usuario y contraseña son requeridos", message=message)
             
             try:
@@ -255,14 +358,46 @@ def create_app():
                         session['business_id'] = business_id
                         session['role'] = role
                         
+                        log_to_telegram(
+                            level='SUCCESS',
+                            message=f"✅ Login exitoso: {username}",
+                            data={
+                                'user_id': user_id,
+                                'business_id': business_id,
+                                'business_name': business_name,
+                                'role': role
+                            },
+                            user=user_obj,
+                            business_id=business_id,
+                            request_info=request_info
+                        )
+                        
                         return redirect(url_for('dashboard'))
                     else:
+                        log_to_telegram(
+                            level='WARNING',
+                            message=f"Intento de login fallido para usuario: {username} (contraseña incorrecta)",
+                            data={'username': username},
+                            request_info=request_info
+                        )
                         return render_template('login.html', error="Credenciales inválidas", message=message)
                 else:
+                    log_to_telegram(
+                        level='WARNING',
+                        message=f"Intento de login fallido: usuario no encontrado: {username}",
+                        data={'username': username},
+                        request_info=request_info
+                    )
                     return render_template('login.html', error="Credenciales inválidas", message=message)
                         
             except Exception as e:
                 logger.error(f"Error en login: {e}")
+                log_to_telegram(
+                    level='ERROR',
+                    message=f"Error en login: {str(e)}",
+                    data={'error': str(e), 'traceback': traceback.format_exc()},
+                    request_info=request_info
+                )
                 return render_template('login.html', error="Error interno del sistema", message=message)
         
         return render_template('login.html', message=message)
@@ -270,6 +405,17 @@ def create_app():
     @app.route('/logout')
     @login_required
     def logout():
+        username = current_user.username
+        business_id = current_user.business_id
+        
+        log_to_telegram(
+            level='INFO',
+            message=f"Usuario cerró sesión: {username}",
+            data={'user_id': current_user.id},
+            user=current_user,
+            business_id=business_id
+        )
+        
         logout_user()
         session.clear()
         return redirect(url_for('login'))
@@ -324,6 +470,13 @@ def create_app():
         # Verificar que el usuario sea admin
         if current_user.role != 'admin':
             flash('No tienes permisos para acceder a esta página', 'danger')
+            log_to_telegram(
+                level='WARNING',
+                message=f"Intento de acceso no autorizado a vendedores_page por {current_user.username}",
+                data={'role': current_user.role},
+                user=current_user,
+                business_id=current_user.business_id
+            )
             return redirect(url_for('dashboard'))
         
         business_name = session.get('business_name', 'Negocio')
@@ -372,6 +525,12 @@ def create_app():
 
     @app.route('/api/finish-setup', methods=['POST'])
     def finish_setup():
+        request_info = {
+            'method': request.method,
+            'path': request.path,
+            'ip': request.remote_addr
+        }
+        
         try:
             DatabaseManager.verify_and_fix_global_tables()
             
@@ -404,6 +563,14 @@ def create_app():
             session.pop('new_business_name', None)
             session.pop('new_username', None)
             
+            log_to_telegram(
+                level='SUCCESS',
+                message=f"✅ Configuración finalizada para negocio: {business_id}",
+                data={'business_id': business_id},
+                business_id=business_id,
+                request_info=request_info
+            )
+            
             return jsonify({
                 'success': True, 
                 'message': 'Configuración completada exitosamente',
@@ -412,10 +579,22 @@ def create_app():
             
         except Exception as e:
             logger.error(f"Error finalizando configuración: {e}")
+            log_to_telegram(
+                level='ERROR',
+                message=f"Error en finish_setup: {str(e)}",
+                data={'error': str(e), 'traceback': traceback.format_exc()},
+                request_info=request_info
+            )
             return jsonify({'success': False, 'message': str(e)})
 
     @app.route('/api/save-products', methods=['POST'])
     def save_products():
+        request_info = {
+            'method': request.method,
+            'path': request.path,
+            'ip': request.remote_addr
+        }
+        
         try:
             DatabaseManager.verify_and_fix_global_tables()
             
@@ -472,6 +651,15 @@ def create_app():
                     )
                 productos_guardados += 1
             
+            log_to_telegram(
+                level='SUCCESS',
+                message=f"✅ {productos_guardados} productos guardados",
+                data={'total': productos_guardados, 'business_id': business_id},
+                user=current_user if current_user.is_authenticated else None,
+                business_id=business_id,
+                request_info=request_info
+            )
+            
             return jsonify({
                 'success': True, 
                 'message': f'{productos_guardados} productos guardados correctamente',
@@ -481,11 +669,23 @@ def create_app():
             
         except Exception as e:
             logger.error(f"Error saving products: {e}")
+            log_to_telegram(
+                level='ERROR',
+                message=f"Error guardando productos: {str(e)}",
+                data={'error': str(e), 'traceback': traceback.format_exc()},
+                request_info=request_info
+            )
             return jsonify({'success': False, 'message': str(e)})
 
     @app.route('/api/dashboard')
     @login_required
     def dashboard_data():
+        request_info = {
+            'method': request.method,
+            'path': request.path,
+            'ip': request.remote_addr
+        }
+        
         try:
             hoy = datetime.now().strftime("%Y-%m-%d")
             mes_actual = datetime.now().strftime("%Y-%m")
@@ -680,6 +880,14 @@ def create_app():
         
         except Exception as e:
             logger.error(f"Error en dashboard_data: {str(e)}")
+            log_to_telegram(
+                level='ERROR',
+                message=f"Error en dashboard_data: {str(e)}",
+                data={'error': str(e), 'traceback': traceback.format_exc()},
+                user=current_user if current_user.is_authenticated else None,
+                business_id=current_user.business_id if current_user.is_authenticated else None,
+                request_info=request_info
+            )
             return jsonify({
                 'error': 'Ocurrió un error al obtener los datos del dashboard',
                 'details': str(e)
@@ -787,6 +995,12 @@ def create_app():
         
         except Exception as e:
             logger.error(f"Error en sales_data: {str(e)}")
+            log_to_telegram(
+                level='ERROR',
+                message=f"Error en sales_data: {str(e)}",
+                data={'error': str(e), 'traceback': traceback.format_exc()},
+                user=current_user if current_user.is_authenticated else None
+            )
             return jsonify({
                 'error': 'Ocurrió un error al obtener datos de ventas',
                 'details': str(e)
@@ -796,6 +1010,12 @@ def create_app():
     @login_required
     def api_ventas():
         """Obtener datos de ventas para el panel"""
+        request_info = {
+            'method': request.method,
+            'path': request.path,
+            'ip': request.remote_addr
+        }
+        
         try:
             db = get_business_db_connection(current_user.business_id)
             
@@ -877,6 +1097,15 @@ def create_app():
                     ingresos += float(row[4]) if row[4] else 0
                     ganancia += float(row[5]) if row[5] else 0
             
+            log_to_telegram(
+                level='INFO',
+                message=f"Ventas consultadas desde panel web por {current_user.username}",
+                data={'total_ventas': total_ventas, 'ingresos': ingresos},
+                user=current_user,
+                business_id=current_user.business_id,
+                request_info=request_info
+            )
+            
             return jsonify({
                 'ventas': ventas,
                 'total_ventas': total_ventas,
@@ -886,12 +1115,26 @@ def create_app():
             })
         except Exception as e:
             logger.error(f"Error en api_ventas: {str(e)}")
+            log_to_telegram(
+                level='ERROR',
+                message=f"Error en api_ventas: {str(e)}",
+                data={'error': str(e), 'traceback': traceback.format_exc()},
+                user=current_user if current_user.is_authenticated else None,
+                business_id=current_user.business_id if current_user.is_authenticated else None,
+                request_info=request_info
+            )
             return jsonify({'error': str(e)}), 500
 
     @app.route('/api/inventario')
     @login_required
     def api_inventario():
         """Obtener datos del inventario completo"""
+        request_info = {
+            'method': request.method,
+            'path': request.path,
+            'ip': request.remote_addr
+        }
+        
         try:
             db = get_business_db_connection(current_user.business_id)
             is_postgres = 'RENDER' in os.environ and os.environ.get('DATABASE_URL')
@@ -961,12 +1204,26 @@ def create_app():
             })
         except Exception as e:
             logger.error(f"Error en api_inventario: {str(e)}")
+            log_to_telegram(
+                level='ERROR',
+                message=f"Error en api_inventario: {str(e)}",
+                data={'error': str(e), 'traceback': traceback.format_exc()},
+                user=current_user if current_user.is_authenticated else None,
+                business_id=current_user.business_id if current_user.is_authenticated else None,
+                request_info=request_info
+            )
             return jsonify({'error': str(e)}), 500
 
     @app.route('/api/producto', methods=['POST'])
     @login_required
     def agregar_producto():
         """Agregar un nuevo producto"""
+        request_info = {
+            'method': request.method,
+            'path': request.path,
+            'ip': request.remote_addr
+        }
+        
         try:
             data = request.json
             nombre = data.get('nombre', '').strip()
@@ -1009,16 +1266,44 @@ def create_app():
                     VALUES (?, ?, ?, ?, ?, ?)
                 """, (nombre, precio_venta, precio_compra, stock, seccion_id, costo_transporte))
             
+            log_to_telegram(
+                level='SUCCESS',
+                message=f"✅ Nuevo producto agregado: {nombre}",
+                data={
+                    'nombre': nombre,
+                    'seccion': seccion,
+                    'precio_venta': precio_venta,
+                    'stock': stock
+                },
+                user=current_user,
+                business_id=current_user.business_id,
+                request_info=request_info
+            )
+            
             return jsonify({'success': True, 'message': 'Producto agregado correctamente'})
             
         except Exception as e:
             logger.error(f"Error en agregar_producto: {e}")
+            log_to_telegram(
+                level='ERROR',
+                message=f"Error en agregar_producto: {str(e)}",
+                data={'error': str(e), 'traceback': traceback.format_exc()},
+                user=current_user if current_user.is_authenticated else None,
+                business_id=current_user.business_id if current_user.is_authenticated else None,
+                request_info=request_info
+            )
             return jsonify({'success': False, 'message': str(e)}), 500
 
     @app.route('/api/producto/<int:producto_id>', methods=['PUT'])
     @login_required
     def actualizar_producto(producto_id):
         """Actualizar un producto existente"""
+        request_info = {
+            'method': request.method,
+            'path': request.path,
+            'ip': request.remote_addr
+        }
+        
         try:
             data = request.json
             nombre = data.get('nombre', '').strip()
@@ -1065,35 +1350,95 @@ def create_app():
                     WHERE id = ?
                 """, (nombre, precio_venta, precio_compra, stock, seccion_id, costo_transporte, producto_id))
             
+            log_to_telegram(
+                level='SUCCESS',
+                message=f"✅ Producto actualizado: {nombre} (ID: {producto_id})",
+                data={
+                    'producto_id': producto_id,
+                    'nombre': nombre,
+                    'seccion': seccion,
+                    'precio_venta': precio_venta,
+                    'stock': stock
+                },
+                user=current_user,
+                business_id=current_user.business_id,
+                request_info=request_info
+            )
+            
             return jsonify({'success': True, 'message': 'Producto actualizado correctamente'})
             
         except Exception as e:
             logger.error(f"Error en actualizar_producto: {e}")
+            log_to_telegram(
+                level='ERROR',
+                message=f"Error en actualizar_producto: {str(e)}",
+                data={'error': str(e), 'traceback': traceback.format_exc()},
+                user=current_user if current_user.is_authenticated else None,
+                business_id=current_user.business_id if current_user.is_authenticated else None,
+                request_info=request_info
+            )
             return jsonify({'success': False, 'message': str(e)}), 500
 
     @app.route('/api/producto/<int:producto_id>', methods=['DELETE'])
     @login_required
     def eliminar_producto(producto_id):
         """Eliminar un producto"""
+        request_info = {
+            'method': request.method,
+            'path': request.path,
+            'ip': request.remote_addr
+        }
+        
         try:
             db = get_business_db_connection(current_user.business_id)
             is_postgres = 'RENDER' in os.environ and os.environ.get('DATABASE_URL')
+            
+            # Obtener nombre del producto antes de eliminar
+            if is_postgres:
+                producto_info = db.execute_query("SELECT nombre FROM productos WHERE id = %s", (producto_id,))
+            else:
+                producto_info = db.execute_query("SELECT nombre FROM productos WHERE id = ?", (producto_id,))
+            
+            nombre_producto = producto_info[0][0] if producto_info else f"ID {producto_id}"
             
             if is_postgres:
                 db.execute_query("DELETE FROM productos WHERE id = %s", (producto_id,))
             else:
                 db.execute_query("DELETE FROM productos WHERE id = ?", (producto_id,))
             
+            log_to_telegram(
+                level='WARNING',
+                message=f"Producto eliminado: {nombre_producto} (ID: {producto_id})",
+                data={'producto_id': producto_id, 'nombre': nombre_producto},
+                user=current_user,
+                business_id=current_user.business_id,
+                request_info=request_info
+            )
+            
             return jsonify({'success': True, 'message': 'Producto eliminado correctamente'})
             
         except Exception as e:
             logger.error(f"Error en eliminar_producto: {e}")
+            log_to_telegram(
+                level='ERROR',
+                message=f"Error en eliminar_producto: {str(e)}",
+                data={'error': str(e), 'traceback': traceback.format_exc()},
+                user=current_user if current_user.is_authenticated else None,
+                business_id=current_user.business_id if current_user.is_authenticated else None,
+                request_info=request_info
+            )
             return jsonify({'success': False, 'message': str(e)}), 500
 
     @app.route('/api/registrar-venta-web', methods=['POST'])
     @login_required
     def registrar_venta_web():
         """Registrar una venta desde el panel web"""
+        request_info = {
+            'method': request.method,
+            'path': request.path,
+            'ip': request.remote_addr
+        }
+        
         try:
             data = request.json
             producto_id = data.get('producto_id')
@@ -1107,14 +1452,28 @@ def create_app():
             is_postgres = 'RENDER' in os.environ and os.environ.get('DATABASE_URL')
             
             # Verificar stock
-            stock_query = "SELECT stock FROM productos WHERE id = %s" if is_postgres else "SELECT stock FROM productos WHERE id = ?"
+            stock_query = "SELECT stock, nombre FROM productos WHERE id = %s" if is_postgres else "SELECT stock, nombre FROM productos WHERE id = ?"
             stock_result = db.execute_query(stock_query, (producto_id,))
             
             if not stock_result:
                 return jsonify({'success': False, 'message': 'Producto no encontrado'}), 404
             
             stock_disponible = stock_result[0][0]
+            nombre_producto = stock_result[0][1] if len(stock_result[0]) > 1 else 'Producto'
+            
             if stock_disponible < cantidad:
+                log_to_telegram(
+                    level='WARNING',
+                    message=f"Intento de venta con stock insuficiente: {nombre_producto}",
+                    data={
+                        'producto': nombre_producto,
+                        'stock_disponible': stock_disponible,
+                        'cantidad_solicitada': cantidad
+                    },
+                    user=current_user,
+                    business_id=current_user.business_id,
+                    request_info=request_info
+                )
                 return jsonify({'success': False, 'message': f'Stock insuficiente. Disponible: {stock_disponible}'}), 400
             
             # Registrar venta
@@ -1131,10 +1490,35 @@ def create_app():
             update_query = "UPDATE productos SET stock = stock - %s WHERE id = %s" if is_postgres else "UPDATE productos SET stock = stock - ? WHERE id = ?"
             db.execute_query(update_query, (cantidad, producto_id))
             
+            total = cantidad * precio_unitario
+            
+            log_to_telegram(
+                level='SUCCESS',
+                message=f"✅ Venta registrada desde panel web",
+                data={
+                    'producto': nombre_producto,
+                    'producto_id': producto_id,
+                    'cantidad': cantidad,
+                    'total': total,
+                    'stock_restante': stock_disponible - cantidad
+                },
+                user=current_user,
+                business_id=current_user.business_id,
+                request_info=request_info
+            )
+            
             return jsonify({'success': True, 'message': 'Venta registrada correctamente'})
             
         except Exception as e:
             logger.error(f"Error en registrar_venta: {e}")
+            log_to_telegram(
+                level='ERROR',
+                message=f"Error en registrar_venta_web: {str(e)}",
+                data={'error': str(e), 'traceback': traceback.format_exc()},
+                user=current_user if current_user.is_authenticated else None,
+                business_id=current_user.business_id if current_user.is_authenticated else None,
+                request_info=request_info
+            )
             return jsonify({'success': False, 'message': str(e)}), 500
 
     @app.route('/api/finanzas')
@@ -1223,6 +1607,12 @@ def create_app():
             })
         except Exception as e:
             logger.error(f"Error en api_finanzas: {str(e)}")
+            log_to_telegram(
+                level='ERROR',
+                message=f"Error en api_finanzas: {str(e)}",
+                data={'error': str(e), 'traceback': traceback.format_exc()},
+                user=current_user if current_user.is_authenticated else None
+            )
             return jsonify({'error': str(e)}), 500
 
     @app.route('/api/analisis')
@@ -1353,6 +1743,12 @@ def create_app():
             })
         except Exception as e:
             logger.error(f"Error en api_analisis: {str(e)}")
+            log_to_telegram(
+                level='ERROR',
+                message=f"Error en api_analisis: {str(e)}",
+                data={'error': str(e), 'traceback': traceback.format_exc()},
+                user=current_user if current_user.is_authenticated else None
+            )
             return jsonify({'error': str(e)}), 500
 
     @app.route('/api/clientes')
@@ -1369,24 +1765,62 @@ def create_app():
             })
         except Exception as e:
             logger.error(f"Error en api_clientes: {str(e)}")
+            log_to_telegram(
+                level='ERROR',
+                message=f"Error en api_clientes: {str(e)}",
+                data={'error': str(e), 'traceback': traceback.format_exc()},
+                user=current_user if current_user.is_authenticated else None
+            )
             return jsonify({'error': str(e)}), 500
 
     @app.route('/api/cliente', methods=['POST'])
     @login_required
     def agregar_cliente():
         """Agregar un cliente"""
+        request_info = {
+            'method': request.method,
+            'path': request.path,
+            'ip': request.remote_addr
+        }
+        
+        log_to_telegram(
+            level='INFO',
+            message="Funcionalidad de cliente en desarrollo (POST)",
+            user=current_user,
+            business_id=current_user.business_id,
+            request_info=request_info
+        )
         return jsonify({'success': True, 'message': 'Cliente agregado (funcionalidad en desarrollo)'})
 
     @app.route('/api/cliente/<int:cliente_id>', methods=['DELETE'])
     @login_required
     def eliminar_cliente(cliente_id):
         """Eliminar un cliente"""
+        request_info = {
+            'method': request.method,
+            'path': request.path,
+            'ip': request.remote_addr
+        }
+        
+        log_to_telegram(
+            level='INFO',
+            message=f"Funcionalidad de cliente en desarrollo (DELETE ID: {cliente_id})",
+            user=current_user,
+            business_id=current_user.business_id,
+            request_info=request_info
+        )
         return jsonify({'success': True, 'message': 'Cliente eliminado (funcionalidad en desarrollo)'})
 
     @app.route('/api/configuracion', methods=['POST'])
     @login_required
     def guardar_configuracion():
         """Guardar configuración del negocio"""
+        request_info = {
+            'method': request.method,
+            'path': request.path,
+            'ip': request.remote_addr
+        }
+        
         try:
             data = request.json
             nombre = data.get('nombre', '').strip()
@@ -1421,16 +1855,39 @@ def create_app():
             
             session['business_name'] = nombre
             
+            log_to_telegram(
+                level='SUCCESS',
+                message=f"Configuración actualizada: {nombre}",
+                data={'nombre': nombre, 'email': email},
+                user=current_user,
+                business_id=current_user.business_id,
+                request_info=request_info
+            )
+            
             return jsonify({'success': True, 'message': 'Configuración guardada correctamente'})
             
         except Exception as e:
             logger.error(f"Error en guardar_configuracion: {e}")
+            log_to_telegram(
+                level='ERROR',
+                message=f"Error en guardar_configuracion: {str(e)}",
+                data={'error': str(e), 'traceback': traceback.format_exc()},
+                user=current_user if current_user.is_authenticated else None,
+                business_id=current_user.business_id if current_user.is_authenticated else None,
+                request_info=request_info
+            )
             return jsonify({'success': False, 'message': str(e)}), 500
 
     @app.route('/api/cambiar-password', methods=['POST'])
     @login_required
     def cambiar_password():
         """Cambiar contraseña del usuario"""
+        request_info = {
+            'method': request.method,
+            'path': request.path,
+            'ip': request.remote_addr
+        }
+        
         try:
             data = request.json
             nueva_password = data.get('password', '').strip()
@@ -1455,16 +1912,39 @@ def create_app():
                 c.execute("UPDATE businesses SET web_pass = ? WHERE id = ?", (hashed_password, current_user.business_id))
             conn.commit()
             
+            log_to_telegram(
+                level='SUCCESS',
+                message=f"Contraseña cambiada para usuario: {current_user.username}",
+                data={'user_id': current_user.id},
+                user=current_user,
+                business_id=current_user.business_id,
+                request_info=request_info
+            )
+            
             return jsonify({'success': True, 'message': 'Contraseña cambiada correctamente'})
             
         except Exception as e:
             logger.error(f"Error en cambiar_password: {e}")
+            log_to_telegram(
+                level='ERROR',
+                message=f"Error en cambiar_password: {str(e)}",
+                data={'error': str(e), 'traceback': traceback.format_exc()},
+                user=current_user if current_user.is_authenticated else None,
+                business_id=current_user.business_id if current_user.is_authenticated else None,
+                request_info=request_info
+            )
             return jsonify({'success': False, 'message': str(e)}), 500
 
     @app.route('/api/eliminar-datos', methods=['POST'])
     @login_required
     def eliminar_datos():
         """Eliminar todos los datos del negocio"""
+        request_info = {
+            'method': request.method,
+            'path': request.path,
+            'ip': request.remote_addr
+        }
+        
         try:
             db = get_business_db_connection(current_user.business_id)
             
@@ -1484,18 +1964,42 @@ def create_app():
                 db.execute_query("DELETE FROM productos")
                 db.execute_query("DELETE FROM secciones")
             
+            log_to_telegram(
+                level='WARNING',
+                message=f"⚠️ Todos los datos eliminados del negocio",
+                data={'business_id': current_user.business_id},
+                user=current_user,
+                business_id=current_user.business_id,
+                request_info=request_info
+            )
+            
             return jsonify({'success': True, 'message': 'Todos los datos eliminados correctamente'})
             
         except Exception as e:
             logger.error(f"Error en eliminar_datos: {e}")
+            log_to_telegram(
+                level='ERROR',
+                message=f"Error en eliminar_datos: {str(e)}",
+                data={'error': str(e), 'traceback': traceback.format_exc()},
+                user=current_user if current_user.is_authenticated else None,
+                business_id=current_user.business_id if current_user.is_authenticated else None,
+                request_info=request_info
+            )
             return jsonify({'success': False, 'message': str(e)}), 500
 
     @app.route('/api/eliminar-cuenta', methods=['POST'])
     @login_required
     def eliminar_cuenta():
         """Eliminar la cuenta del negocio"""
+        request_info = {
+            'method': request.method,
+            'path': request.path,
+            'ip': request.remote_addr
+        }
+        
         try:
             business_id = current_user.business_id
+            username = current_user.username
             
             conn = DatabaseManager.get_global_connection()
             if conn is None:
@@ -1520,6 +2024,19 @@ def create_app():
                 if os.path.exists(db_path):
                     os.remove(db_path)
             
+            log_to_telegram(
+                level='CRITICAL',
+                message=f"🔥 Cuenta eliminada: {username} (Business: {business_id})",
+                data={
+                    'business_id': business_id,
+                    'username': username,
+                    'user_id': current_user.id
+                },
+                user=current_user,
+                business_id=business_id,
+                request_info=request_info
+            )
+            
             logout_user()
             session.clear()
             
@@ -1527,6 +2044,14 @@ def create_app():
             
         except Exception as e:
             logger.error(f"Error en eliminar_cuenta: {e}")
+            log_to_telegram(
+                level='ERROR',
+                message=f"Error en eliminar_cuenta: {str(e)}",
+                data={'error': str(e), 'traceback': traceback.format_exc()},
+                user=current_user if current_user.is_authenticated else None,
+                business_id=current_user.business_id if current_user.is_authenticated else None,
+                request_info=request_info
+            )
             return jsonify({'success': False, 'message': str(e)}), 500
 
     # ==================== RUTAS ADICIONALES ====================
@@ -1547,11 +2072,28 @@ def create_app():
                 business_id = session['business_id']
                 socketio.server.enter_room(request.sid, business_id)
                 logger.info(f"Cliente conectado a sala de negocio: {business_id}")
+                
+                log_to_telegram(
+                    level='INFO',
+                    message=f"WebSocket conectado",
+                    data={'business_id': business_id, 'sid': request.sid},
+                    business_id=business_id
+                )
         except Exception as e:
             logger.error(f"Error en handle_connect: {e}")
+            log_to_telegram(
+                level='ERROR',
+                message=f"Error en WebSocket connect: {str(e)}",
+                data={'error': str(e), 'traceback': traceback.format_exc()}
+            )
 
     @socketio.on('disconnect')
     def handle_disconnect():
         logger.info(f"Cliente desconectado: {request.sid}")
+        log_to_telegram(
+            level='INFO',
+            message=f"WebSocket desconectado",
+            data={'sid': request.sid}
+        )
 
     return app
