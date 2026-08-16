@@ -166,6 +166,7 @@ def create_app():
             return redirect(url_for('dashboard'))
         return redirect(url_for('login'))
 
+    # ==================== SIGNUP CORREGIDO ====================
     @app.route('/signup', methods=['GET', 'POST'])
     def signup():
         if request.method == 'POST':
@@ -182,10 +183,10 @@ def create_app():
                 business_name = request.form.get('business_name', '').strip()
                 username = request.form.get('username', '').strip()
                 password = request.form.get('password', '').strip()
-                telegram_id = request.form.get('telegram_id', '').strip()
                 email = request.form.get('email', '').strip()
+                telegram_id = request.form.get('telegram_id', '').strip() or '123456789'
                 
-                if not all([business_name, username, password, telegram_id]):
+                if not all([business_name, username, password]):
                     log_to_telegram(
                         level='WARNING',
                         message="Intento de registro con campos faltantes",
@@ -303,6 +304,7 @@ def create_app():
         
         return render_template('signup.html')
 
+    # ==================== LOGIN CORREGIDO ====================
     @app.route('/login', methods=['GET', 'POST'])
     def login():
         message = request.args.get('message')
@@ -314,28 +316,30 @@ def create_app():
         }
         
         if request.method == 'POST':
-            DatabaseManager.verify_and_fix_global_tables()
-            
-            username = request.form.get('username', '').strip()
-            password = request.form.get('password', '').strip()
-            
-            if not username or not password:
-                log_to_telegram(
-                    level='WARNING',
-                    message="Intento de login con campos faltantes",
-                    data={'username': username if username else 'N/A'},
-                    request_info=request_info
-                )
-                return render_template('login.html', error="Usuario y contraseña son requeridos", message=message)
-            
             try:
+                DatabaseManager.verify_and_fix_global_tables()
+                
+                username = request.form.get('username', '').strip()
+                password = request.form.get('password', '').strip()
+                
+                if not username or not password:
+                    log_to_telegram(
+                        level='WARNING',
+                        message="Intento de login con campos faltantes",
+                        data={'username': username if username else 'N/A'},
+                        request_info=request_info
+                    )
+                    return render_template('login.html', error="Usuario y contraseña son requeridos", message=message)
+                
                 conn = DatabaseManager.get_global_connection()
                 if conn is None:
+                    logger.error("❌ No se pudo obtener conexión a la base de datos")
                     return render_template('login.html', error="Error de conexión a la base de datos", message=message)
                     
                 c = conn.cursor()
                 is_postgres = 'RENDER' in os.environ and os.environ.get('DATABASE_URL')
                 
+                # Buscar usuario
                 if is_postgres:
                     c.execute('''SELECT u.id, b.id, b.name, u.password, u.role
                               FROM users u 
@@ -350,37 +354,78 @@ def create_app():
                 
                 if user_data:
                     user_id, business_id, business_name, stored_password, role = user_data
+                    
                     # Verificar contraseña con bcrypt
-                    if bcrypt.checkpw(password.encode('utf-8'), stored_password.encode('utf-8')):
-                        user_obj = User(user_id, business_id, username, role)
-                        login_user(user_obj)
-                        session['business_name'] = business_name
-                        session['business_id'] = business_id
-                        session['role'] = role
-                        
-                        log_to_telegram(
-                            level='SUCCESS',
-                            message=f"✅ Login exitoso: {username}",
-                            data={
-                                'user_id': user_id,
-                                'business_id': business_id,
-                                'business_name': business_name,
-                                'role': role
-                            },
-                            user=user_obj,
-                            business_id=business_id,
-                            request_info=request_info
-                        )
-                        
-                        return redirect(url_for('dashboard'))
-                    else:
-                        log_to_telegram(
-                            level='WARNING',
-                            message=f"Intento de login fallido para usuario: {username} (contraseña incorrecta)",
-                            data={'username': username},
-                            request_info=request_info
-                        )
-                        return render_template('login.html', error="Credenciales inválidas", message=message)
+                    try:
+                        # Asegurar que la contraseña almacenada es válida
+                        if stored_password and stored_password.startswith('$2b$'):
+                            if bcrypt.checkpw(password.encode('utf-8'), stored_password.encode('utf-8')):
+                                user_obj = User(user_id, business_id, username, role)
+                                login_user(user_obj)
+                                session['business_name'] = business_name
+                                session['business_id'] = business_id
+                                session['role'] = role
+                                
+                                log_to_telegram(
+                                    level='SUCCESS',
+                                    message=f"✅ Login exitoso: {username}",
+                                    data={
+                                        'user_id': user_id,
+                                        'business_id': business_id,
+                                        'business_name': business_name,
+                                        'role': role
+                                    },
+                                    user=user_obj,
+                                    business_id=business_id,
+                                    request_info=request_info
+                                )
+                                
+                                return redirect(url_for('dashboard'))
+                            else:
+                                log_to_telegram(
+                                    level='WARNING',
+                                    message=f"Intento de login fallido: contraseña incorrecta para {username}",
+                                    data={'username': username},
+                                    request_info=request_info
+                                )
+                                return render_template('login.html', error="Contraseña incorrecta", message=message)
+                        else:
+                            # Si la contraseña no es bcrypt, intentar comparación directa (fallback)
+                            logger.warning(f"⚠️ Contraseña almacenada no es bcrypt para {username}")
+                            if password == stored_password:
+                                # Re-hashear la contraseña con bcrypt
+                                new_hash = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+                                if is_postgres:
+                                    c.execute("UPDATE users SET password = %s WHERE id = %s", (new_hash, user_id))
+                                else:
+                                    c.execute("UPDATE users SET password = ? WHERE id = ?", (new_hash, user_id))
+                                conn.commit()
+                                
+                                user_obj = User(user_id, business_id, username, role)
+                                login_user(user_obj)
+                                session['business_name'] = business_name
+                                session['business_id'] = business_id
+                                session['role'] = role
+                                
+                                log_to_telegram(
+                                    level='SUCCESS',
+                                    message=f"✅ Login exitoso (contraseña migrada): {username}",
+                                    data={
+                                        'user_id': user_id,
+                                        'business_id': business_id,
+                                        'business_name': business_name,
+                                        'role': role
+                                    },
+                                    user=user_obj,
+                                    business_id=business_id,
+                                    request_info=request_info
+                                )
+                                return redirect(url_for('dashboard'))
+                            else:
+                                return render_template('login.html', error="Contraseña incorrecta", message=message)
+                    except ValueError as e:
+                        logger.error(f"❌ Error verificando contraseña: {e}")
+                        return render_template('login.html', error="Error de autenticación, contacta al administrador", message=message)
                 else:
                     log_to_telegram(
                         level='WARNING',
@@ -388,17 +433,19 @@ def create_app():
                         data={'username': username},
                         request_info=request_info
                     )
-                    return render_template('login.html', error="Credenciales inválidas", message=message)
+                    return render_template('login.html', error="Usuario no encontrado", message=message)
                         
             except Exception as e:
-                logger.error(f"Error en login: {e}")
+                logger.error(f"❌ Error en login: {e}")
+                import traceback
+                logger.error(traceback.format_exc())
                 log_to_telegram(
                     level='ERROR',
                     message=f"Error en login: {str(e)}",
                     data={'error': str(e), 'traceback': traceback.format_exc()},
                     request_info=request_info
                 )
-                return render_template('login.html', error="Error interno del sistema", message=message)
+                return render_template('login.html', error="Error interno del sistema. Contacta al administrador.", message=message)
         
         return render_template('login.html', message=message)
 
