@@ -166,29 +166,29 @@ def create_app():
                     pass
             
                 # Hash de la contraseña
-                hashed_password = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt())
+                hashed_password = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
             
                 if is_postgres:
                     c.execute('''
                         INSERT INTO businesses (id, name, admin_id, web_user, web_pass, email)
                         VALUES (%s, %s, %s, %s, %s, %s)
-                    ''', (business_id, business_name, telegram_id, username, hashed_password.decode(), email))
+                    ''', (business_id, business_name, telegram_id, username, hashed_password, email))
                 else:
                     c.execute('''
                         INSERT INTO businesses (id, name, admin_id, web_user, web_pass, email)
                         VALUES (?, ?, ?, ?, ?, ?)
-                    ''', (business_id, business_name, telegram_id, username, hashed_password.decode(), email))
+                    ''', (business_id, business_name, telegram_id, username, hashed_password, email))
             
                 if is_postgres:
                     c.execute('''
                         INSERT INTO users (business_id, username, password, role, telegram_id)
                         VALUES (%s, %s, %s, 'admin', %s)
-                    ''', (business_id, username, hashed_password.decode(), telegram_id))
+                    ''', (business_id, username, hashed_password, telegram_id))
                 else:
                     c.execute('''
                         INSERT INTO users (business_id, username, password, role, telegram_id)
                         VALUES (?, ?, ?, 'admin', ?)
-                    ''', (business_id, username, hashed_password.decode(), telegram_id))
+                    ''', (business_id, username, hashed_password, telegram_id))
             
                 conn.commit()
                 
@@ -1438,7 +1438,7 @@ def create_app():
             if len(nueva_password) < 6:
                 return jsonify({'success': False, 'message': 'La contraseña debe tener al menos 6 caracteres'}), 400
             
-            hashed_password = bcrypt.hashpw(nueva_password.encode('utf-8'), bcrypt.gensalt())
+            hashed_password = bcrypt.hashpw(nueva_password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
             
             conn = DatabaseManager.get_global_connection()
             if conn is None:
@@ -1448,11 +1448,11 @@ def create_app():
             is_postgres = 'RENDER' in os.environ and os.environ.get('DATABASE_URL')
             
             if is_postgres:
-                c.execute("UPDATE users SET password = %s WHERE id = %s", (hashed_password.decode(), current_user.id))
-                c.execute("UPDATE businesses SET web_pass = %s WHERE id = %s", (hashed_password.decode(), current_user.business_id))
+                c.execute("UPDATE users SET password = %s WHERE id = %s", (hashed_password, current_user.id))
+                c.execute("UPDATE businesses SET web_pass = %s WHERE id = %s", (hashed_password, current_user.business_id))
             else:
-                c.execute("UPDATE users SET password = ? WHERE id = ?", (hashed_password.decode(), current_user.id))
-                c.execute("UPDATE businesses SET web_pass = ? WHERE id = ?", (hashed_password.decode(), current_user.business_id))
+                c.execute("UPDATE users SET password = ? WHERE id = ?", (hashed_password, current_user.id))
+                c.execute("UPDATE businesses SET web_pass = ? WHERE id = ?", (hashed_password, current_user.business_id))
             conn.commit()
             
             return jsonify({'success': True, 'message': 'Contraseña cambiada correctamente'})
