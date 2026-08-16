@@ -414,6 +414,37 @@ class DatabaseManager:
                 
                 if tables_exist:
                     logger.info(f"Las tablas ya existen para el negocio {self.business_id}")
+                    
+                    # ✅ VERIFICAR Y AGREGAR vendor_id SI NO EXISTE (PostgreSQL)
+                    # Primero verificar si la tabla ventas existe
+                    self.c.execute("""
+                        SELECT EXISTS (
+                            SELECT FROM information_schema.tables 
+                            WHERE table_schema = %s AND table_name = 'ventas'
+                        )
+                    """, (schema_name,))
+                    ventas_exists = self.c.fetchone()[0]
+                    
+                    if ventas_exists:
+                        # Verificar si la columna vendor_id existe
+                        self.c.execute("""
+                            SELECT column_name 
+                            FROM information_schema.columns 
+                            WHERE table_name = 'ventas' AND column_name = 'vendor_id'
+                        """)
+                        has_vendor_column = self.c.fetchone() is not None
+                        
+                        if not has_vendor_column:
+                            logger.info(f"⚠️ Agregando columna vendor_id a ventas para negocio {self.business_id} (PostgreSQL)")
+                            self.c.execute("ALTER TABLE ventas ADD COLUMN vendor_id TEXT")
+                            self.c.execute("CREATE INDEX IF NOT EXISTS idx_ventas_vendor_id ON ventas(vendor_id)")
+                            self.conn.commit()
+                            logger.info(f"✅ Columna vendor_id agregada a ventas para negocio {self.business_id}")
+                        else:
+                            logger.info(f"✅ vendor_id ya existe en ventas para negocio {self.business_id}")
+                    else:
+                        logger.info(f"⚠️ Tabla ventas no existe para negocio {self.business_id}, se creará más adelante")
+                    
                     return
                 
                 serial_type = "SERIAL PRIMARY KEY"
@@ -449,13 +480,14 @@ class DatabaseManager:
                 )
             ''')
             
-            # Tabla ventas
+            # ✅ Tabla ventas CON vendor_id
             self.c.execute(f'''
                 CREATE TABLE IF NOT EXISTS ventas (
                     id {serial_type},
                     producto_id INTEGER {foreign_key} productos(id),
                     cantidad INTEGER NOT NULL,
                     usuario_id INTEGER,
+                    vendor_id TEXT,
                     fecha {timestamp_type}
                 )
             ''')
@@ -513,6 +545,7 @@ class DatabaseManager:
                 self.c.execute("CREATE INDEX IF NOT EXISTS idx_productos_seccion ON productos(seccion_id)")
                 self.c.execute("CREATE INDEX IF NOT EXISTS idx_ventas_producto ON ventas(producto_id)")
                 self.c.execute("CREATE INDEX IF NOT EXISTS idx_ventas_fecha ON ventas(fecha)")
+                self.c.execute("CREATE INDEX IF NOT EXISTS idx_ventas_vendor_id ON ventas(vendor_id)")
                 self.c.execute("CREATE INDEX IF NOT EXISTS idx_inversiones_producto ON inversiones(producto_id)")
                 self.c.execute("CREATE INDEX IF NOT EXISTS idx_vendors_business ON vendors(business_id)")
                 self.c.execute("CREATE INDEX IF NOT EXISTS idx_vendors_active ON vendors(active)")
@@ -520,14 +553,40 @@ class DatabaseManager:
                 self.c.execute("CREATE INDEX IF NOT EXISTS idx_productos_seccion ON productos(seccion_id)")
                 self.c.execute("CREATE INDEX IF NOT EXISTS idx_ventas_producto ON ventas(producto_id)")
                 self.c.execute("CREATE INDEX IF NOT EXISTS idx_ventas_fecha ON ventas(fecha)")
+                self.c.execute("CREATE INDEX IF NOT EXISTS idx_ventas_vendor_id ON ventas(vendor_id)")
                 self.c.execute("CREATE INDEX IF NOT EXISTS idx_inversiones_producto ON inversiones(producto_id)")
                 self.c.execute("CREATE INDEX IF NOT EXISTS idx_vendors_business ON vendors(business_id)")
                 self.c.execute("CREATE INDEX IF NOT EXISTS idx_vendors_active ON vendors(active)")
             
+            # ✅ Verificación extra para SQLite (si la tabla ya existía sin vendor_id)
+            if not is_postgres:
+                # Verificar si existe la tabla ventas
+                self.c.execute("""
+                    SELECT name FROM sqlite_master 
+                    WHERE type='table' AND name='ventas'
+                """)
+                ventas_exists = self.c.fetchone() is not None
+                
+                if ventas_exists:
+                    # Verificar si existe la columna vendor_id en SQLite
+                    self.c.execute("PRAGMA table_info(ventas)")
+                    columns = [col[1] for col in self.c.fetchall()]
+                    has_vendor_column = 'vendor_id' in columns
+                    
+                    if not has_vendor_column:
+                        logger.info(f"⚠️ Agregando columna vendor_id a ventas para negocio {self.business_id} (SQLite)")
+                        self.c.execute("ALTER TABLE ventas ADD COLUMN vendor_id TEXT")
+                        self.c.execute("CREATE INDEX IF NOT EXISTS idx_ventas_vendor_id ON ventas(vendor_id)")
+                        self.conn.commit()
+                        logger.info(f"✅ Columna vendor_id agregada a ventas para negocio {self.business_id}")
+            
             self.conn.commit()
             logger.info(f"Tablas creadas/verificadas para el negocio {self.business_id}")
+            
         except Exception as e:
             logger.error(f"Error al crear tablas para el negocio {self.business_id}: {e}")
+            import traceback
+            logger.error(traceback.format_exc())
             if self.conn:
                 self.conn.rollback()
 
@@ -674,6 +733,8 @@ class DatabaseManager:
             
         except Exception as e:
             logger.error(f"Error creando datos de prueba: {e}")
+            import traceback
+            logger.error(traceback.format_exc())
             if self.conn:
                 self.conn.rollback()
 
