@@ -11,6 +11,8 @@ import bcrypt
 import requests
 from functools import wraps
 from flask_cors import CORS
+import traceback
+import sys
 
 from flask_login import login_required, current_user
 
@@ -45,132 +47,21 @@ if TELEGRAM_BOT_TOKEN and TELEGRAM_ADMIN_CHAT_ID:
 else:
     logger.warning("⚠️ Bot de Telegram NO configurado. Los logs no se enviarán.")
 
-# ==================== MANEJADOR DE ERRORES GLOBAL ====================
-
-@app.errorhandler(404)
-def not_found(error):
-    """Manejar errores 404 devolviendo JSON"""
-    response = jsonify({
-        'success': False,
-        'message': 'Endpoint no encontrado',
-        'error': str(error)
-    })
-    response.status_code = 404
-    response.headers.add('Access-Control-Allow-Origin', '*')
-    return response
-
-@app.errorhandler(500)
-def internal_error(error):
-    """Manejar errores 500 devolviendo JSON"""
-    response = jsonify({
-        'success': False,
-        'message': 'Error interno del servidor',
-        'error': str(error)
-    })
-    response.status_code = 500
-    response.headers.add('Access-Control-Allow-Origin', '*')
-    return response
-
-@app.errorhandler(Exception)
-def handle_exception(error):
-    """Manejar cualquier excepción devolviendo JSON"""
-    logger.error(f"Error no manejado: {error}")
-    response = jsonify({
-        'success': False,
-        'message': 'Error interno del servidor',
-        'error': str(error)
-    })
-    response.status_code = 500
-    response.headers.add('Access-Control-Allow-Origin', '*')
-    return response
-
-# ==================== DECORADOR DE AUTENTICACIÓN ====================
-
-def token_required(f):
-    """
-    Decorador para verificar token JWT en peticiones de la app Android.
-    ✅ Usa flask.g para almacenar los datos del token de forma segura.
-    ✅ Valida que user_id sea numérico.
-    """
-    @wraps(f)
-    def decorated(*args, **kwargs):
-        auth_header = request.headers.get('Authorization')
-        if not auth_header:
-            return jsonify({'success': False, 'message': 'Token requerido'}), 401
-        
-        try:
-            token = auth_header.split(' ')[1]
-            payload = jwt.decode(token, os.environ.get('JWT_SECRET', 'secret-key'), algorithms=['HS256'])
-            
-            # ✅ Usar flask.g para almacenar datos del token
-            g.vendor_id = payload.get('vendor_id')
-            g.user_id = payload.get('user_id')
-            g.business_id = payload.get('business_id')
-            g.vendor_name = payload.get('name')
-            g.role = payload.get('role', 'vendedor')
-            
-            # ✅ Validar que user_id sea numérico y > 0
-            if not g.user_id:
-                logger.warning(f"Token sin user_id: vendor_id={g.vendor_id}")
-                return jsonify({
-                    'success': False, 
-                    'message': 'Token inválido: user_id requerido. Contacta al administrador.'
-                }), 401
-            
-            if not str(g.user_id).isdigit():
-                logger.warning(f"user_id no numérico: {g.user_id}")
-                return jsonify({
-                    'success': False, 
-                    'message': 'Token inválido: user_id debe ser numérico'
-                }), 401
-            
-            # Log de petición autenticada (opcional)
-            logger.debug(f"🔐 Token válido: vendor={g.vendor_id}, user_id={g.user_id}, business={g.business_id}")
-            
-            return f(*args, **kwargs)
-            
-        except jwt.ExpiredSignatureError:
-            logger.warning("Token expirado")
-            return jsonify({'success': False, 'message': 'Token expirado'}), 401
-        except jwt.InvalidTokenError as e:
-            logger.warning(f"Token inválido: {e}")
-            return jsonify({'success': False, 'message': 'Token inválido'}), 401
-        except Exception as e:
-            logger.error(f"Error en token_required: {e}")
-            return jsonify({'success': False, 'message': 'Error de autenticación'}), 401
-    return decorated
-
-# ==================== HEALTH CHECK ====================
-
-@app.route('/health')
-def health_check():
-    """Endpoint para health checks y mantener el servicio activo"""
-    return jsonify({
-        'status': 'ok',
-        'timestamp': time.time(),
-        'service': 'OmniVentas API',
-        'version': '2.0',
-        'environment': 'production' if 'RENDER' in os.environ else 'development',
-        'telegram_logs': bool(TELEGRAM_BOT_TOKEN and TELEGRAM_ADMIN_CHAT_ID)
-    }), 200
-
-# ==================== ENDPOINT: LOGS POR TELEGRAM (BOT ÚNICO) ====================
+# ==================== FUNCIÓN DE LOG PARA TELEGRAM (WEB) ====================
 
 def send_telegram_message(message, parse_mode=None):
-    """Función interna para enviar mensajes a Telegram (sin formato para evitar errores)"""
+    """Función interna para enviar mensajes a Telegram"""
     try:
         if not TELEGRAM_BOT_TOKEN or not TELEGRAM_ADMIN_CHAT_ID:
             logger.warning("Telegram no configurado, mensaje no enviado")
             return False
         
-        # Enviar sin parse_mode para evitar errores de formato
         url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
         payload = {
             'chat_id': TELEGRAM_ADMIN_CHAT_ID,
             'text': message
         }
         
-        # Solo agregar parse_mode si se especifica y es válido
         if parse_mode and parse_mode in ['Markdown', 'HTML']:
             payload['parse_mode'] = parse_mode
         
@@ -186,6 +77,383 @@ def send_telegram_message(message, parse_mode=None):
         logger.error(f"Error en send_telegram_message: {e}")
         return False
 
+
+def log_to_telegram(level, message, data=None, user=None, business_id=None, request_info=None):
+    """
+    Función unificada para enviar logs detallados a Telegram desde la web
+    
+    Args:
+        level: INFO, WARNING, ERROR, SUCCESS, CRITICAL
+        message: Mensaje principal
+        data: Datos adicionales (dict)
+        user: Usuario actual (current_user)
+        business_id: ID del negocio
+        request_info: Información de la petición (método, ruta, IP)
+    """
+    try:
+        if not TELEGRAM_BOT_TOKEN or not TELEGRAM_ADMIN_CHAT_ID:
+            return False
+        
+        # Emojis por nivel
+        emoji = {
+            'DEBUG': '🔍',
+            'INFO': 'ℹ️',
+            'WARNING': '⚠️',
+            'ERROR': '❌',
+            'SUCCESS': '✅',
+            'CRITICAL': '🔥'
+        }.get(level, '📱')
+        
+        # Timestamp
+        timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        
+        # Construir mensaje
+        lines = [
+            f"{emoji} [{level}] LOG WEB - OmniVentas",
+            "",
+            f"⏰ Timestamp: {timestamp}",
+        ]
+        
+        # Información de usuario
+        if user:
+            user_info = f"Usuario: {user.username} (ID: {user.id}) - Rol: {user.role}"
+            lines.append(f"👤 {user_info}")
+        elif current_user and current_user.is_authenticated:
+            user_info = f"Usuario: {current_user.username} (ID: {current_user.id}) - Rol: {current_user.role}"
+            lines.append(f"👤 {user_info}")
+        
+        # Business ID
+        if business_id:
+            lines.append(f"🏪 Business ID: {business_id}")
+        elif session and session.get('business_id'):
+            lines.append(f"🏪 Business ID: {session.get('business_id')}")
+        
+        # Información de la petición
+        if request_info:
+            lines.append(f"📡 Método: {request_info.get('method', 'N/A')}")
+            lines.append(f"🔗 Ruta: {request_info.get('path', 'N/A')}")
+            lines.append(f"🌐 IP: {request_info.get('ip', 'N/A')}")
+            if request_info.get('user_agent'):
+                lines.append(f"📱 User-Agent: {request_info.get('user_agent', 'N/A')[:100]}")
+        
+        # Mensaje principal
+        lines.append("")
+        lines.append(f"📝 Mensaje: {message}")
+        
+        # Datos adicionales
+        if data:
+            try:
+                if isinstance(data, dict):
+                    data_str = json.dumps(data, indent=2, default=str, ensure_ascii=False)
+                else:
+                    data_str = str(data)
+                
+                # Limitar longitud
+                if len(data_str) > 2000:
+                    data_str = data_str[:2000] + "... (truncado)"
+                
+                lines.append("")
+                lines.append("📊 Datos adicionales:")
+                lines.append(data_str)
+            except Exception as e:
+                lines.append(f"📊 Datos: {str(data)}")
+        
+        # Enviar
+        full_message = "\n".join(lines)
+        return send_telegram_message(full_message)
+        
+    except Exception as e:
+        logger.error(f"Error en log_to_telegram: {e}")
+        return False
+
+
+# ==================== DECORADOR PARA LOGS AUTOMÁTICOS EN RUTAS ====================
+
+def log_web_request(level='INFO'):
+    """
+    Decorador para loguear automáticamente peticiones web a Telegram
+    """
+    def decorator(f):
+        @wraps(f)
+        def decorated(*args, **kwargs):
+            # Obtener información de la petición
+            request_info = {
+                'method': request.method,
+                'path': request.path,
+                'ip': request.remote_addr,
+                'user_agent': request.headers.get('User-Agent', 'N/A')
+            }
+            
+            # Obtener usuario
+            user = None
+            try:
+                if current_user and current_user.is_authenticated:
+                    user = current_user
+            except:
+                pass
+            
+            # Business ID
+            business_id = session.get('business_id') if session else None
+            
+            try:
+                # Ejecutar la función original
+                response = f(*args, **kwargs)
+                
+                # Log de éxito
+                log_to_telegram(
+                    level='SUCCESS' if level == 'INFO' else level,
+                    message=f"Request exitosa: {request.method} {request.path}",
+                    data={'status_code': getattr(response, 'status_code', 200) if response else 200},
+                    user=user,
+                    business_id=business_id,
+                    request_info=request_info
+                )
+                
+                return response
+                
+            except Exception as e:
+                # Log de error
+                error_data = {
+                    'error': str(e),
+                    'traceback': traceback.format_exc()
+                }
+                log_to_telegram(
+                    level='ERROR',
+                    message=f"❌ Error en {request.method} {request.path}: {str(e)}",
+                    data=error_data,
+                    user=user,
+                    business_id=business_id,
+                    request_info=request_info
+                )
+                raise
+                
+        return decorated
+    return decorator
+
+
+# ==================== MANEJADOR DE ERRORES GLOBAL CON LOGS ====================
+
+@app.errorhandler(404)
+def not_found(error):
+    """Manejar errores 404 devolviendo JSON y log a Telegram"""
+    request_info = {
+        'method': request.method,
+        'path': request.path,
+        'ip': request.remote_addr,
+        'user_agent': request.headers.get('User-Agent', 'N/A')
+    }
+    
+    # Log a Telegram
+    log_to_telegram(
+        level='WARNING',
+        message=f"404 - Endpoint no encontrado: {request.path}",
+        data={'method': request.method},
+        business_id=session.get('business_id') if session else None,
+        request_info=request_info
+    )
+    
+    response = jsonify({
+        'success': False,
+        'message': 'Endpoint no encontrado',
+        'error': str(error)
+    })
+    response.status_code = 404
+    response.headers.add('Access-Control-Allow-Origin', '*')
+    return response
+
+
+@app.errorhandler(500)
+def internal_error(error):
+    """Manejar errores 500 devolviendo JSON y log a Telegram"""
+    request_info = {
+        'method': request.method,
+        'path': request.path,
+        'ip': request.remote_addr,
+        'user_agent': request.headers.get('User-Agent', 'N/A')
+    }
+    
+    # Log a Telegram con traceback completo
+    log_to_telegram(
+        level='CRITICAL',
+        message=f"🔥 500 - Error interno del servidor en {request.path}",
+        data={
+            'error': str(error),
+            'traceback': traceback.format_exc()
+        },
+        business_id=session.get('business_id') if session else None,
+        request_info=request_info
+    )
+    
+    response = jsonify({
+        'success': False,
+        'message': 'Error interno del servidor',
+        'error': str(error)
+    })
+    response.status_code = 500
+    response.headers.add('Access-Control-Allow-Origin', '*')
+    return response
+
+
+@app.errorhandler(Exception)
+def handle_exception(error):
+    """Manejar cualquier excepción devolviendo JSON y log a Telegram"""
+    request_info = {
+        'method': request.method,
+        'path': request.path,
+        'ip': request.remote_addr,
+        'user_agent': request.headers.get('User-Agent', 'N/A')
+    }
+    
+    logger.error(f"Error no manejado: {error}")
+    
+    # Log a Telegram con traceback completo
+    log_to_telegram(
+        level='CRITICAL',
+        message=f"🔥 Excepción no manejada en {request.path}: {str(error)}",
+        data={
+            'error': str(error),
+            'traceback': traceback.format_exc()
+        },
+        business_id=session.get('business_id') if session else None,
+        request_info=request_info
+    )
+    
+    response = jsonify({
+        'success': False,
+        'message': 'Error interno del servidor',
+        'error': str(error)
+    })
+    response.status_code = 500
+    response.headers.add('Access-Control-Allow-Origin', '*')
+    return response
+
+
+# ==================== DECORADOR DE AUTENTICACIÓN ====================
+
+def token_required(f):
+    """
+    Decorador para verificar token JWT en peticiones de la app Android.
+    ✅ Usa flask.g para almacenar los datos del token de forma segura.
+    ✅ Valida que user_id sea numérico.
+    """
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        auth_header = request.headers.get('Authorization')
+        if not auth_header:
+            # Log de intento sin token
+            log_to_telegram(
+                level='WARNING',
+                message=f"Intento de acceso sin token a {request.path}",
+                request_info={
+                    'method': request.method,
+                    'path': request.path,
+                    'ip': request.remote_addr
+                }
+            )
+            return jsonify({'success': False, 'message': 'Token requerido'}), 401
+        
+        try:
+            token = auth_header.split(' ')[1]
+            payload = jwt.decode(token, os.environ.get('JWT_SECRET', 'secret-key'), algorithms=['HS256'])
+            
+            # ✅ Usar flask.g para almacenar datos del token
+            g.vendor_id = payload.get('vendor_id')
+            g.user_id = payload.get('user_id')
+            g.business_id = payload.get('business_id')
+            g.vendor_name = payload.get('name')
+            g.role = payload.get('role', 'vendedor')
+            
+            # ✅ Validar que user_id sea numérico y > 0
+            if not g.user_id:
+                log_to_telegram(
+                    level='WARNING',
+                    message=f"Token sin user_id: vendor_id={g.vendor_id}",
+                    data={'vendor_id': g.vendor_id},
+                    business_id=g.business_id
+                )
+                return jsonify({
+                    'success': False, 
+                    'message': 'Token inválido: user_id requerido. Contacta al administrador.'
+                }), 401
+            
+            if not str(g.user_id).isdigit():
+                log_to_telegram(
+                    level='WARNING',
+                    message=f"user_id no numérico: {g.user_id}",
+                    data={'user_id': g.user_id},
+                    business_id=g.business_id
+                )
+                return jsonify({
+                    'success': False, 
+                    'message': 'Token inválido: user_id debe ser numérico'
+                }), 401
+            
+            logger.debug(f"🔐 Token válido: vendor={g.vendor_id}, user_id={g.user_id}, business={g.business_id}")
+            
+            return f(*args, **kwargs)
+            
+        except jwt.ExpiredSignatureError:
+            log_to_telegram(
+                level='WARNING',
+                message=f"Token expirado en {request.path}",
+                request_info={
+                    'method': request.method,
+                    'path': request.path,
+                    'ip': request.remote_addr
+                }
+            )
+            return jsonify({'success': False, 'message': 'Token expirado'}), 401
+        except jwt.InvalidTokenError as e:
+            log_to_telegram(
+                level='WARNING',
+                message=f"Token inválido en {request.path}: {str(e)}",
+                request_info={
+                    'method': request.method,
+                    'path': request.path,
+                    'ip': request.remote_addr
+                }
+            )
+            return jsonify({'success': False, 'message': 'Token inválido'}), 401
+        except Exception as e:
+            log_to_telegram(
+                level='ERROR',
+                message=f"Error en token_required: {str(e)}",
+                data={'traceback': traceback.format_exc()},
+                request_info={
+                    'method': request.method,
+                    'path': request.path,
+                    'ip': request.remote_addr
+                }
+            )
+            return jsonify({'success': False, 'message': 'Error de autenticación'}), 401
+    return decorated
+
+
+# ==================== HEALTH CHECK ====================
+
+@app.route('/health')
+def health_check():
+    """Endpoint para health checks y mantener el servicio activo"""
+    status_data = {
+        'status': 'ok',
+        'timestamp': time.time(),
+        'service': 'OmniVentas API',
+        'version': '2.0',
+        'environment': 'production' if 'RENDER' in os.environ else 'development',
+        'telegram_logs': bool(TELEGRAM_BOT_TOKEN and TELEGRAM_ADMIN_CHAT_ID)
+    }
+    
+    log_to_telegram(
+        level='INFO',
+        message="Health check realizado",
+        data={'status': 'ok'},
+        business_id=None
+    )
+    
+    return jsonify(status_data), 200
+
+
+# ==================== ENDPOINT: LOGS POR TELEGRAM (BOT ÚNICO) ====================
 
 @app.route('/api/send-log', methods=['POST', 'OPTIONS'])
 def send_log_to_telegram():
@@ -242,7 +510,7 @@ def send_log_to_telegram():
             'CRITICAL': '🔥'
         }.get(log_level, '📱')
         
-        # Construir mensaje formateado (sin Markdown para evitar errores)
+        # Construir mensaje formateado
         message_lines = [
             f"{emoji} [{log_level}] Log desde App Android",
             "",
@@ -266,7 +534,7 @@ def send_log_to_telegram():
         
         message = "\n".join(message_lines)
         
-        # Enviar mensaje a Telegram (sin parse_mode para evitar errores)
+        # Enviar mensaje a Telegram
         success = send_telegram_message(message)
         
         response = jsonify({
@@ -331,24 +599,47 @@ def test_log_endpoint():
 @app.route('/api/login-vendedor', methods=['POST'])
 def login_vendedor():
     """Login para vendedores con ID de 8 caracteres"""
+    request_info = {
+        'method': request.method,
+        'path': request.path,
+        'ip': request.remote_addr
+    }
+    
     try:
         data = request.json
         vendor_id = data.get('vendor_id', '').strip().upper()
         
         # Validar formato del ID (8 caracteres alfanuméricos)
         if not vendor_id:
+            log_to_telegram(
+                level='WARNING',
+                message=f"Intento de login sin ID de vendedor",
+                request_info=request_info
+            )
             return jsonify({
                 'success': False, 
                 'message': 'ID de vendedor requerido'
             }), 400
         
         if len(vendor_id) != 8:
+            log_to_telegram(
+                level='WARNING',
+                message=f"Intento de login con ID inválido: {vendor_id} (longitud incorrecta)",
+                data={'vendor_id': vendor_id},
+                request_info=request_info
+            )
             return jsonify({
                 'success': False, 
                 'message': 'El ID debe tener exactamente 8 caracteres'
             }), 400
         
         if not vendor_id.isalnum():
+            log_to_telegram(
+                level='WARNING',
+                message=f"Intento de login con ID inválido: {vendor_id} (caracteres no permitidos)",
+                data={'vendor_id': vendor_id},
+                request_info=request_info
+            )
             return jsonify({
                 'success': False, 
                 'message': 'El ID solo debe contener letras y números'
@@ -359,13 +650,17 @@ def login_vendedor():
         conn = DatabaseManager.get_global_connection()
         
         if conn is None:
+            log_to_telegram(
+                level='ERROR',
+                message="Error de conexión a la base de datos en login_vendedor",
+                request_info=request_info
+            )
             return jsonify({'success': False, 'message': 'Error de conexión'}), 500
         
         c = conn.cursor()
         is_postgres = 'RENDER' in os.environ and os.environ.get('DATABASE_URL')
         
         # ✅ Buscar vendedor por ID y obtener el user_id real
-        # ✅ Si no hay admin, usar el primer usuario del negocio
         if is_postgres:
             c.execute("""
                 SELECT 
@@ -400,6 +695,12 @@ def login_vendedor():
         vendor_data = c.fetchone()
         
         if not vendor_data:
+            log_to_telegram(
+                level='WARNING',
+                message=f"Login fallido: Vendor ID no encontrado: {vendor_id}",
+                data={'vendor_id': vendor_id},
+                request_info=request_info
+            )
             return jsonify({
                 'success': False, 
                 'message': 'ID de vendedor no encontrado'
@@ -407,12 +708,22 @@ def login_vendedor():
         
         # Verificar si el vendedor está activo
         if not vendor_data[5]:
+            log_to_telegram(
+                level='WARNING',
+                message=f"Login fallido: Vendedor desactivado: {vendor_id}",
+                data={
+                    'vendor_id': vendor_id,
+                    'vendor_name': vendor_data[1],
+                    'business_id': vendor_data[2]
+                },
+                request_info=request_info
+            )
             return jsonify({
                 'success': False, 
                 'message': 'Este vendedor está desactivado. Contacta al administrador.'
             }), 401
         
-        # ✅ Obtener el user_id real (NUNCA debe ser None)
+        # ✅ Obtener el user_id real
         user_id = vendor_data[6]
         if not user_id:
             # Fallback: buscar cualquier usuario del negocio
@@ -424,34 +735,40 @@ def login_vendedor():
             if user_fallback:
                 user_id = user_fallback[0]
             else:
-                # Último recurso: crear un usuario temporal
-                logger.error(f"❌ No hay usuarios para el negocio {vendor_data[2]}")
+                log_to_telegram(
+                    level='ERROR',
+                    message=f"No hay usuarios para el negocio {vendor_data[2]}",
+                    data={'business_id': vendor_data[2]},
+                    request_info=request_info
+                )
                 return jsonify({
                     'success': False, 
                     'message': 'Error de configuración: no hay usuarios en el negocio'
                 }), 500
         
-        # ✅ Generar token JWT con TODOS los datos necesarios
+        # ✅ Generar token JWT
         token = jwt.encode({
-            'vendor_id': vendor_data[0],      # ID del vendedor (8 chars)
-            'user_id': user_id,                # ✅ ID del usuario (numérico)
-            'business_id': vendor_data[2],     # ID del negocio
-            'name': vendor_data[1],            # Nombre del vendedor
-            'role': vendor_data[4],            # 'vendedor'
+            'vendor_id': vendor_data[0],
+            'user_id': user_id,
+            'business_id': vendor_data[2],
+            'name': vendor_data[1],
+            'role': vendor_data[4],
             'exp': datetime.datetime.utcnow() + datetime.timedelta(days=7)
         }, os.environ.get('JWT_SECRET', 'secret-key'), algorithm='HS256')
         
-        # Enviar log de login exitoso al programador
-        try:
-            send_telegram_message(
-                f"✅ Login exitoso desde App Android\n"
-                f"Vendedor: {vendor_data[0]} ({vendor_data[1]})\n"
-                f"Negocio: {vendor_data[3]}\n"
-                f"User ID: {user_id}\n"
-                f"Timestamp: {datetime.datetime.now().isoformat()}"
-            )
-        except:
-            pass
+        # Log de login exitoso
+        log_to_telegram(
+            level='SUCCESS',
+            message=f"✅ Login exitoso desde App Android",
+            data={
+                'vendor_id': vendor_data[0],
+                'vendor_name': vendor_data[1],
+                'business_id': vendor_data[2],
+                'business_name': vendor_data[3],
+                'user_id': user_id
+            },
+            request_info=request_info
+        )
         
         return jsonify({
             'success': True,
@@ -462,22 +779,20 @@ def login_vendedor():
                 'business_id': vendor_data[2],
                 'business_name': vendor_data[3],
                 'role': vendor_data[4],
-                'user_id': user_id  # ✅ Incluir user_id en la respuesta
+                'user_id': user_id
             }
         })
         
     except Exception as e:
         logger.error(f"Error en login_vendedor: {e}")
-        # Enviar log de error al programador
-        try:
-            send_telegram_message(
-                f"❌ Error en login\n"
-                f"Timestamp: {datetime.datetime.now().isoformat()}\n"
-                f"Error: {str(e)}"
-            )
-        except:
-            pass
+        log_to_telegram(
+            level='ERROR',
+            message=f"Error en login_vendedor: {str(e)}",
+            data={'error': str(e), 'traceback': traceback.format_exc()},
+            request_info=request_info
+        )
         return jsonify({'success': False, 'message': str(e)}), 500
+
 
 # ==================== API PARA LA APP ANDROID ====================
 
@@ -485,6 +800,12 @@ def login_vendedor():
 @token_required
 def get_productos():
     """Obtener productos para la app Android"""
+    request_info = {
+        'method': request.method,
+        'path': request.path,
+        'ip': request.remote_addr
+    }
+    
     try:
         from database.db_manager import DatabaseManager
         db = DatabaseManager(g.business_id)
@@ -518,6 +839,14 @@ def get_productos():
                     'descripcion': row[5] if len(row) > 5 and row[5] else ''
                 })
         
+        log_to_telegram(
+            level='INFO',
+            message=f"Productos consultados desde app Android",
+            data={'total': len(productos)},
+            business_id=g.business_id,
+            request_info=request_info
+        )
+        
         return jsonify({
             'success': True,
             'productos': productos,
@@ -526,6 +855,13 @@ def get_productos():
         
     except Exception as e:
         logger.error(f"Error en get_productos: {e}")
+        log_to_telegram(
+            level='ERROR',
+            message=f"Error en get_productos: {str(e)}",
+            data={'error': str(e), 'traceback': traceback.format_exc()},
+            business_id=g.business_id if hasattr(g, 'business_id') else None,
+            request_info=request_info
+        )
         return jsonify({'success': False, 'message': str(e)}), 500
 
 
@@ -547,52 +883,86 @@ def registrar_venta_app():
         response.headers.add('Access-Control-Allow-Methods', 'POST,OPTIONS')
         return response
     
+    request_info = {
+        'method': request.method,
+        'path': request.path,
+        'ip': request.remote_addr
+    }
+    
     try:
-        # 🔍 LOG: Ver qué está llegando
         logger.info(f"📥 Solicitud POST a /api/registrar-venta (Android)")
         logger.info(f"📥 Headers: {dict(request.headers)}")
         
-        # Obtener datos crudos para debug
         raw_data = request.get_data(as_text=True)
         logger.info(f"📥 Raw data: {raw_data}")
         
-        # Intentar parsear JSON
         try:
             data = request.json
         except Exception as e:
             logger.error(f"Error parseando JSON: {e}")
+            log_to_telegram(
+                level='ERROR',
+                message=f"Error parseando JSON en registrar_venta: {str(e)}",
+                data={'raw_data': raw_data[:200]},
+                business_id=g.business_id if hasattr(g, 'business_id') else None,
+                request_info=request_info
+            )
             response = jsonify({'success': False, 'message': f'Error parseando JSON: {str(e)}'})
             response.headers.add('Access-Control-Allow-Origin', '*')
             return response, 400
         
         if not data:
+            log_to_telegram(
+                level='WARNING',
+                message="No se recibió JSON en registrar_venta",
+                business_id=g.business_id if hasattr(g, 'business_id') else None,
+                request_info=request_info
+            )
             response = jsonify({'success': False, 'message': 'No se recibió JSON'})
             response.headers.add('Access-Control-Allow-Origin', '*')
             return response, 400
         
-        # Extraer datos con valores por defecto
         producto_id = data.get('producto_id')
         cantidad = data.get('cantidad')
         precio_unitario = data.get('precio_unitario')
         
-        # 🔍 LOG: Ver qué extrajo
         logger.info(f"📥 producto_id: {producto_id}, cantidad: {cantidad}, precio_unitario: {precio_unitario}")
         
-        # Validar que los campos existan y no sean None
+        # Validar campos
         if producto_id is None:
+            log_to_telegram(
+                level='WARNING',
+                message="Campo producto_id no enviado en registrar_venta",
+                data={'data': data},
+                business_id=g.business_id if hasattr(g, 'business_id') else None,
+                request_info=request_info
+            )
             response = jsonify({'success': False, 'message': 'Campo producto_id no enviado'})
             response.headers.add('Access-Control-Allow-Origin', '*')
             return response, 400
         if cantidad is None:
+            log_to_telegram(
+                level='WARNING',
+                message="Campo cantidad no enviado en registrar_venta",
+                data={'data': data},
+                business_id=g.business_id if hasattr(g, 'business_id') else None,
+                request_info=request_info
+            )
             response = jsonify({'success': False, 'message': 'Campo cantidad no enviado'})
             response.headers.add('Access-Control-Allow-Origin', '*')
             return response, 400
         if precio_unitario is None:
+            log_to_telegram(
+                level='WARNING',
+                message="Campo precio_unitario no enviado en registrar_venta",
+                data={'data': data},
+                business_id=g.business_id if hasattr(g, 'business_id') else None,
+                request_info=request_info
+            )
             response = jsonify({'success': False, 'message': 'Campo precio_unitario no enviado'})
             response.headers.add('Access-Control-Allow-Origin', '*')
             return response, 400
         
-        # Validar que los campos no estén vacíos
         if producto_id == '':
             response = jsonify({'success': False, 'message': 'producto_id vacío'})
             response.headers.add('Access-Control-Allow-Origin', '*')
@@ -606,19 +976,31 @@ def registrar_venta_app():
             response.headers.add('Access-Control-Allow-Origin', '*')
             return response, 400
         
-        # Intentar convertir a los tipos correctos
         try:
             producto_id = int(producto_id)
             cantidad = int(cantidad)
             precio_unitario = float(precio_unitario)
         except (ValueError, TypeError) as e:
             logger.error(f"Error de conversión de tipos: {e}")
+            log_to_telegram(
+                level='ERROR',
+                message=f"Error de conversión de tipos en registrar_venta: {str(e)}",
+                data={'producto_id': producto_id, 'cantidad': cantidad, 'precio_unitario': precio_unitario},
+                business_id=g.business_id if hasattr(g, 'business_id') else None,
+                request_info=request_info
+            )
             response = jsonify({'success': False, 'message': f'Error en formato de datos: {str(e)}'})
             response.headers.add('Access-Control-Allow-Origin', '*')
             return response, 400
         
-        # ✅ VERIFICAR QUE TENEMOS user_id (usando g)
         if not hasattr(g, 'user_id') or not g.user_id:
+            log_to_telegram(
+                level='ERROR',
+                message="Token no contiene user_id en registrar_venta",
+                data={'vendor_id': g.vendor_id if hasattr(g, 'vendor_id') else None},
+                business_id=g.business_id if hasattr(g, 'business_id') else None,
+                request_info=request_info
+            )
             response = jsonify({
                 'success': False,
                 'message': 'El token no contiene user_id. Contacta al administrador.'
@@ -626,8 +1008,14 @@ def registrar_venta_app():
             response.headers.add('Access-Control-Allow-Origin', '*')
             return response, 401
         
-        # ✅ Validar que user_id sea numérico
         if not str(g.user_id).isdigit():
+            log_to_telegram(
+                level='ERROR',
+                message=f"user_id inválido en token: {g.user_id}",
+                data={'user_id': g.user_id},
+                business_id=g.business_id if hasattr(g, 'business_id') else None,
+                request_info=request_info
+            )
             response = jsonify({
                 'success': False,
                 'message': 'user_id inválido en el token'
@@ -644,6 +1032,13 @@ def registrar_venta_app():
         stock_result = db.execute_query(stock_query, (producto_id,))
         
         if not stock_result:
+            log_to_telegram(
+                level='WARNING',
+                message=f"Producto no encontrado: ID {producto_id}",
+                data={'producto_id': producto_id},
+                business_id=g.business_id,
+                request_info=request_info
+            )
             response = jsonify({'success': False, 'message': 'Producto no encontrado'})
             response.headers.add('Access-Control-Allow-Origin', '*')
             return response, 404
@@ -652,6 +1047,17 @@ def registrar_venta_app():
         nombre_producto = stock_result[0][1] if len(stock_result[0]) > 1 else 'Producto'
         
         if stock_disponible < cantidad:
+            log_to_telegram(
+                level='WARNING',
+                message=f"Stock insuficiente: {nombre_producto} (ID: {producto_id})",
+                data={
+                    'producto': nombre_producto,
+                    'stock_disponible': stock_disponible,
+                    'cantidad_solicitada': cantidad
+                },
+                business_id=g.business_id,
+                request_info=request_info
+            )
             response = jsonify({
                 'success': False, 
                 'message': f'Stock insuficiente. Disponible: {stock_disponible}',
@@ -660,20 +1066,17 @@ def registrar_venta_app():
             response.headers.add('Access-Control-Allow-Origin', '*')
             return response, 400
         
-        # ✅ Verificar si existe la columna vendor_id en la tabla ventas
-        # (la base de datos ya debería tenerla, pero lo verificamos por seguridad)
+        # ✅ Verificar columna vendor_id
         if is_postgres:
-            # Usar el método de DatabaseManager para asegurar vendor_id
             db._ensure_vendor_column(is_postgres)
         else:
             check_column = db.execute_query("PRAGMA table_info(ventas)")
             has_vendor_column = any(col[1] == 'vendor_id' for col in check_column) if check_column else False
             if not has_vendor_column:
-                logger.info("Agregando columna vendor_id a tabla ventas (SQLite)")
                 db.execute_query("ALTER TABLE ventas ADD COLUMN vendor_id TEXT")
                 db.execute_query("CREATE INDEX IF NOT EXISTS idx_ventas_vendor_id ON ventas(vendor_id)")
         
-        # ✅ INSERTAR CON user_id (numérico) Y vendor_id (para trazabilidad)
+        # ✅ INSERTAR VENTA
         insert_query = """
             INSERT INTO ventas (producto_id, cantidad, usuario_id, vendor_id) 
             VALUES (%s, %s, %s, %s)
@@ -684,8 +1087,8 @@ def registrar_venta_app():
         db.execute_query(insert_query, (
             producto_id, 
             cantidad, 
-            g.user_id,      # ✅ ID numérico de users
-            g.vendor_id     # ✅ ID del vendedor (8 chars) para trazabilidad
+            g.user_id,
+            g.vendor_id
         ))
         
         # Actualizar stock
@@ -694,22 +1097,24 @@ def registrar_venta_app():
         
         total = cantidad * precio_unitario
         
-        # Enviar log de venta registrada
-        try:
-            send_telegram_message(
-                f"✅ NUEVA VENTA desde App Android\n"
-                f"Vendedor: {g.vendor_id} ({g.vendor_name})\n"
-                f"User ID: {g.user_id}\n"
-                f"Negocio: {g.business_id}\n"
-                f"Producto: {nombre_producto} (ID: {producto_id})\n"
-                f"Cantidad: {cantidad}\n"
-                f"Precio unitario: ${precio_unitario:.2f}\n"
-                f"Total: ${total:.2f}\n"
-                f"Stock restante: {stock_disponible - cantidad}\n"
-                f"Timestamp: {datetime.datetime.now().isoformat()}"
-            )
-        except Exception as e:
-            logger.error(f"Error enviando log a Telegram: {e}")
+        # Log de venta registrada
+        log_to_telegram(
+            level='SUCCESS',
+            message=f"✅ NUEVA VENTA desde App Android",
+            data={
+                'vendedor_id': g.vendor_id,
+                'vendedor_nombre': g.vendor_name if hasattr(g, 'vendor_name') else 'N/A',
+                'user_id': g.user_id,
+                'producto': nombre_producto,
+                'producto_id': producto_id,
+                'cantidad': cantidad,
+                'precio_unitario': precio_unitario,
+                'total': total,
+                'stock_restante': stock_disponible - cantidad
+            },
+            business_id=g.business_id,
+            request_info=request_info
+        )
         
         response = jsonify({
             'success': True,
@@ -728,21 +1133,21 @@ def registrar_venta_app():
         
     except Exception as e:
         logger.error(f"Error en registrar_venta_app: {e}")
-        import traceback
         logger.error(traceback.format_exc())
         
-        # Intentar enviar error a Telegram
-        try:
-            send_telegram_message(
-                f"❌ ERROR al registrar venta desde App\n"
-                f"Vendedor: {g.vendor_id if hasattr(g, 'vendor_id') else 'DESCONOCIDO'}\n"
-                f"User ID: {g.user_id if hasattr(g, 'user_id') else 'DESCONOCIDO'}\n"
-                f"Negocio: {g.business_id if hasattr(g, 'business_id') else 'DESCONOCIDO'}\n"
-                f"Error: {str(e)}\n"
-                f"Timestamp: {datetime.datetime.now().isoformat()}"
-            )
-        except Exception as e2:
-            logger.error(f"Error enviando error a Telegram: {e2}")
+        log_to_telegram(
+            level='ERROR',
+            message=f"Error en registrar_venta_app: {str(e)}",
+            data={
+                'error': str(e),
+                'traceback': traceback.format_exc(),
+                'vendor_id': g.vendor_id if hasattr(g, 'vendor_id') else 'DESCONOCIDO',
+                'user_id': g.user_id if hasattr(g, 'user_id') else 'DESCONOCIDO',
+                'business_id': g.business_id if hasattr(g, 'business_id') else 'DESCONOCIDO'
+            },
+            business_id=g.business_id if hasattr(g, 'business_id') else None,
+            request_info=request_info
+        )
         
         response = jsonify({'success': False, 'message': str(e)})
         response.headers.add('Access-Control-Allow-Origin', '*')
@@ -753,12 +1158,17 @@ def registrar_venta_app():
 @token_required
 def dashboard_app():
     """Dashboard simplificado para la app Android"""
+    request_info = {
+        'method': request.method,
+        'path': request.path,
+        'ip': request.remote_addr
+    }
+    
     try:
         from database.db_manager import DatabaseManager
         db = DatabaseManager(g.business_id)
         is_postgres = 'RENDER' in os.environ and os.environ.get('DATABASE_URL')
         
-        # Ventas de hoy
         hoy = time.strftime('%Y-%m-%d')
         if is_postgres:
             ventas_hoy_query = """
@@ -779,12 +1189,10 @@ def dashboard_app():
         total_ventas = ventas_hoy[0][0] if ventas_hoy else 0
         total_ingresos = float(ventas_hoy[0][1]) if ventas_hoy and ventas_hoy[0][1] else 0
         
-        # Productos con bajo stock (<= 5)
         bajo_stock_query = "SELECT COUNT(*) FROM productos WHERE stock <= 5"
         bajo_stock = db.execute_query(bajo_stock_query)
         productos_bajo_stock = bajo_stock[0][0] if bajo_stock else 0
         
-        # Ventas del mes actual
         mes_actual = time.strftime('%Y-%m')
         if is_postgres:
             ventas_mes_query = """
@@ -805,7 +1213,6 @@ def dashboard_app():
         ventas_mes_total = ventas_mes[0][0] if ventas_mes else 0
         ingresos_mes = float(ventas_mes[0][1]) if ventas_mes and ventas_mes[0][1] else 0
         
-        # Ventas recientes (últimas 5) - FILTRADAS POR vendor_id
         if is_postgres:
             ventas_recientes_query = """
                 SELECT p.nombre, v.cantidad, v.fecha, (v.cantidad * p.precio_venta) as total
@@ -852,6 +1259,13 @@ def dashboard_app():
         
     except Exception as e:
         logger.error(f"Error en dashboard_app: {e}")
+        log_to_telegram(
+            level='ERROR',
+            message=f"Error en dashboard_app: {str(e)}",
+            data={'error': str(e), 'traceback': traceback.format_exc()},
+            business_id=g.business_id if hasattr(g, 'business_id') else None,
+            request_info=request_info
+        )
         return jsonify({'success': False, 'message': str(e)}), 500
 
 
@@ -862,16 +1276,20 @@ def ventas_app():
     Obtener historial de ventas para la app.
     ✅ FILTRA POR vendor_id para que cada vendedor vea solo sus ventas.
     """
+    request_info = {
+        'method': request.method,
+        'path': request.path,
+        'ip': request.remote_addr
+    }
+    
     try:
         from database.db_manager import DatabaseManager
         db = DatabaseManager(g.business_id)
         is_postgres = 'RENDER' in os.environ and os.environ.get('DATABASE_URL')
         
-        # Obtener parámetros de paginación
         limite = request.args.get('limite', 50, type=int)
         offset = request.args.get('offset', 0, type=int)
         
-        # ✅ Filtrar por vendor_id para que cada vendedor vea solo sus ventas
         if is_postgres:
             query = """
                 SELECT 
@@ -919,7 +1337,6 @@ def ventas_app():
                     'fecha': row[5]
                 })
         
-        # Contar total de ventas del vendedor
         count_result = db.execute_query(count_query, (g.vendor_id,))
         total = count_result[0][0] if count_result else 0
         
@@ -933,6 +1350,13 @@ def ventas_app():
         
     except Exception as e:
         logger.error(f"Error en ventas_app: {e}")
+        log_to_telegram(
+            level='ERROR',
+            message=f"Error en ventas_app: {str(e)}",
+            data={'error': str(e), 'traceback': traceback.format_exc()},
+            business_id=g.business_id if hasattr(g, 'business_id') else None,
+            request_info=request_info
+        )
         return jsonify({'success': False, 'message': str(e)}), 500
 
 
@@ -940,6 +1364,12 @@ def ventas_app():
 @token_required
 def perfil_vendedor():
     """Obtener perfil del vendedor"""
+    request_info = {
+        'method': request.method,
+        'path': request.path,
+        'ip': request.remote_addr
+    }
+    
     try:
         from database.db_manager import DatabaseManager
         DatabaseManager.verify_and_fix_global_tables()
@@ -968,6 +1398,13 @@ def perfil_vendedor():
         
         vendor_data = c.fetchone()
         if not vendor_data:
+            log_to_telegram(
+                level='WARNING',
+                message=f"Vendedor no encontrado: {g.vendor_id}",
+                data={'vendor_id': g.vendor_id},
+                business_id=g.business_id,
+                request_info=request_info
+            )
             return jsonify({'success': False, 'message': 'Vendedor no encontrado'}), 404
         
         return jsonify({
@@ -983,7 +1420,15 @@ def perfil_vendedor():
         
     except Exception as e:
         logger.error(f"Error en perfil_vendedor: {e}")
+        log_to_telegram(
+            level='ERROR',
+            message=f"Error en perfil_vendedor: {str(e)}",
+            data={'error': str(e), 'traceback': traceback.format_exc()},
+            business_id=g.business_id if hasattr(g, 'business_id') else None,
+            request_info=request_info
+        )
         return jsonify({'success': False, 'message': str(e)}), 500
+
 
 # ==================== ENDPOINTS PARA GESTIÓN DE VENDEDORES (PANEL WEB) ====================
 
@@ -991,9 +1436,21 @@ def perfil_vendedor():
 @login_required
 def get_vendedores_web():
     """Obtener lista de vendedores del negocio (desde panel web)"""
+    request_info = {
+        'method': request.method,
+        'path': request.path,
+        'ip': request.remote_addr
+    }
+    
     try:
-        # Verificar que el usuario sea admin
         if current_user.role != 'admin':
+            log_to_telegram(
+                level='WARNING',
+                message=f"Intento de acceso no autorizado a vendedores por {current_user.username}",
+                data={'role': current_user.role},
+                business_id=current_user.business_id,
+                request_info=request_info
+            )
             return jsonify({'success': False, 'message': 'Solo administradores pueden ver vendedores'}), 403
         
         from database.db_manager import DatabaseManager
@@ -1028,6 +1485,14 @@ def get_vendedores_web():
                     'created_at': row[4]
                 })
         
+        log_to_telegram(
+            level='INFO',
+            message=f"Vendedores consultados desde panel web por {current_user.username}",
+            data={'total': len(vendedores)},
+            business_id=current_user.business_id,
+            request_info=request_info
+        )
+        
         return jsonify({
             'success': True,
             'vendedores': vendedores,
@@ -1036,6 +1501,13 @@ def get_vendedores_web():
         
     except Exception as e:
         logger.error(f"Error en get_vendedores_web: {e}")
+        log_to_telegram(
+            level='ERROR',
+            message=f"Error en get_vendedores_web: {str(e)}",
+            data={'error': str(e), 'traceback': traceback.format_exc()},
+            business_id=current_user.business_id if current_user.is_authenticated else None,
+            request_info=request_info
+        )
         return jsonify({'success': False, 'message': str(e)}), 500
 
 
@@ -1043,8 +1515,20 @@ def get_vendedores_web():
 @login_required
 def crear_vendedor_web():
     """Crear un nuevo vendedor (desde panel web)"""
+    request_info = {
+        'method': request.method,
+        'path': request.path,
+        'ip': request.remote_addr
+    }
+    
     try:
         if current_user.role != 'admin':
+            log_to_telegram(
+                level='WARNING',
+                message=f"Intento de crear vendedor no autorizado por {current_user.username}",
+                business_id=current_user.business_id,
+                request_info=request_info
+            )
             return jsonify({'success': False, 'message': 'Solo administradores pueden crear vendedores'}), 403
         
         data = request.json
@@ -1057,7 +1541,6 @@ def crear_vendedor_web():
         db = DatabaseManager(current_user.business_id)
         is_postgres = 'RENDER' in os.environ and os.environ.get('DATABASE_URL')
         
-        # Generar ID único de 8 caracteres
         import random
         import string
         def generate_vendor_id():
@@ -1066,7 +1549,6 @@ def crear_vendedor_web():
         
         vendor_id = generate_vendor_id()
         
-        # Verificar que el ID no exista ya
         if is_postgres:
             existing = db.execute_query("SELECT id FROM vendors WHERE id = %s", (vendor_id,))
         else:
@@ -1079,7 +1561,6 @@ def crear_vendedor_web():
             else:
                 existing = db.execute_query("SELECT id FROM vendors WHERE id = ?", (vendor_id,))
         
-        # Insertar vendedor
         if is_postgres:
             db.execute_query("""
                 INSERT INTO vendors (id, name, business_id, role, active)
@@ -1091,17 +1572,18 @@ def crear_vendedor_web():
                 VALUES (?, ?, ?, ?, ?)
             """, (vendor_id, name, current_user.business_id, 'vendedor', 1))
         
-        # Enviar log de vendedor creado
-        try:
-            send_telegram_message(
-                f"✅ Nuevo vendedor creado desde panel web\n"
-                f"ID: {vendor_id}\n"
-                f"Nombre: {name}\n"
-                f"Negocio: {current_user.business_id}\n"
-                f"Timestamp: {datetime.datetime.now().isoformat()}"
-            )
-        except:
-            pass
+        log_to_telegram(
+            level='SUCCESS',
+            message=f"✅ Nuevo vendedor creado desde panel web",
+            data={
+                'vendor_id': vendor_id,
+                'vendor_name': name,
+                'business_id': current_user.business_id,
+                'creado_por': current_user.username
+            },
+            business_id=current_user.business_id,
+            request_info=request_info
+        )
         
         return jsonify({
             'success': True,
@@ -1112,6 +1594,13 @@ def crear_vendedor_web():
         
     except Exception as e:
         logger.error(f"Error en crear_vendedor_web: {e}")
+        log_to_telegram(
+            level='ERROR',
+            message=f"Error en crear_vendedor_web: {str(e)}",
+            data={'error': str(e), 'traceback': traceback.format_exc()},
+            business_id=current_user.business_id if current_user.is_authenticated else None,
+            request_info=request_info
+        )
         return jsonify({'success': False, 'message': str(e)}), 500
 
 
@@ -1119,6 +1608,12 @@ def crear_vendedor_web():
 @login_required
 def actualizar_vendedor_web(vendor_id):
     """Actualizar un vendedor (desde panel web)"""
+    request_info = {
+        'method': request.method,
+        'path': request.path,
+        'ip': request.remote_addr
+    }
+    
     try:
         if current_user.role != 'admin':
             return jsonify({'success': False, 'message': 'Solo administradores pueden actualizar vendedores'}), 403
@@ -1162,6 +1657,19 @@ def actualizar_vendedor_web(vendor_id):
         
         db.execute_query(query, tuple(params))
         
+        log_to_telegram(
+            level='SUCCESS',
+            message=f"Vendedor actualizado desde panel web",
+            data={
+                'vendor_id': vendor_id,
+                'updated_by': current_user.username,
+                'active': active,
+                'name': name
+            },
+            business_id=current_user.business_id,
+            request_info=request_info
+        )
+        
         return jsonify({
             'success': True,
             'message': 'Vendedor actualizado correctamente'
@@ -1169,6 +1677,13 @@ def actualizar_vendedor_web(vendor_id):
         
     except Exception as e:
         logger.error(f"Error en actualizar_vendedor_web: {e}")
+        log_to_telegram(
+            level='ERROR',
+            message=f"Error en actualizar_vendedor_web: {str(e)}",
+            data={'error': str(e), 'traceback': traceback.format_exc()},
+            business_id=current_user.business_id if current_user.is_authenticated else None,
+            request_info=request_info
+        )
         return jsonify({'success': False, 'message': str(e)}), 500
 
 
@@ -1176,6 +1691,12 @@ def actualizar_vendedor_web(vendor_id):
 @login_required
 def eliminar_vendedor_web(vendor_id):
     """Eliminar un vendedor (desde panel web)"""
+    request_info = {
+        'method': request.method,
+        'path': request.path,
+        'ip': request.remote_addr
+    }
+    
     try:
         if current_user.role != 'admin':
             return jsonify({'success': False, 'message': 'Solo administradores pueden eliminar vendedores'}), 403
@@ -1184,10 +1705,30 @@ def eliminar_vendedor_web(vendor_id):
         db = DatabaseManager(current_user.business_id)
         is_postgres = 'RENDER' in os.environ and os.environ.get('DATABASE_URL')
         
+        # Obtener nombre del vendedor antes de eliminar
+        if is_postgres:
+            vendor_info = db.execute_query("SELECT name FROM vendors WHERE id = %s AND business_id = %s", (vendor_id, current_user.business_id))
+        else:
+            vendor_info = db.execute_query("SELECT name FROM vendors WHERE id = ? AND business_id = ?", (vendor_id, current_user.business_id))
+        
+        vendor_name = vendor_info[0][0] if vendor_info else 'DESCONOCIDO'
+        
         if is_postgres:
             db.execute_query("DELETE FROM vendors WHERE id = %s AND business_id = %s", (vendor_id, current_user.business_id))
         else:
             db.execute_query("DELETE FROM vendors WHERE id = ? AND business_id = ?", (vendor_id, current_user.business_id))
+        
+        log_to_telegram(
+            level='WARNING',
+            message=f"Vendedor eliminado desde panel web",
+            data={
+                'vendor_id': vendor_id,
+                'vendor_name': vendor_name,
+                'deleted_by': current_user.username
+            },
+            business_id=current_user.business_id,
+            request_info=request_info
+        )
         
         return jsonify({
             'success': True,
@@ -1196,7 +1737,15 @@ def eliminar_vendedor_web(vendor_id):
         
     except Exception as e:
         logger.error(f"Error en eliminar_vendedor_web: {e}")
+        log_to_telegram(
+            level='ERROR',
+            message=f"Error en eliminar_vendedor_web: {str(e)}",
+            data={'error': str(e), 'traceback': traceback.format_exc()},
+            business_id=current_user.business_id if current_user.is_authenticated else None,
+            request_info=request_info
+        )
         return jsonify({'success': False, 'message': str(e)}), 500
+
 
 # ==================== ENDPOINTS PARA GESTIÓN DE VENDEDORES (APP ANDROID) ====================
 
@@ -1204,8 +1753,21 @@ def eliminar_vendedor_web(vendor_id):
 @token_required
 def get_vendedores_app():
     """Obtener lista de vendedores del negocio (desde app Android)"""
+    request_info = {
+        'method': request.method,
+        'path': request.path,
+        'ip': request.remote_addr
+    }
+    
     try:
         if g.role != 'admin':
+            log_to_telegram(
+                level='WARNING',
+                message=f"Intento de acceso no autorizado a vendedores desde app",
+                data={'role': g.role, 'vendor_id': g.vendor_id},
+                business_id=g.business_id,
+                request_info=request_info
+            )
             return jsonify({'success': False, 'message': 'Solo administradores pueden ver vendedores'}), 403
         
         from database.db_manager import DatabaseManager
@@ -1248,6 +1810,13 @@ def get_vendedores_app():
         
     except Exception as e:
         logger.error(f"Error en get_vendedores_app: {e}")
+        log_to_telegram(
+            level='ERROR',
+            message=f"Error en get_vendedores_app: {str(e)}",
+            data={'error': str(e), 'traceback': traceback.format_exc()},
+            business_id=g.business_id if hasattr(g, 'business_id') else None,
+            request_info=request_info
+        )
         return jsonify({'success': False, 'message': str(e)}), 500
 
 
@@ -1255,8 +1824,21 @@ def get_vendedores_app():
 @token_required
 def crear_vendedor_app():
     """Crear un nuevo vendedor (desde app Android)"""
+    request_info = {
+        'method': request.method,
+        'path': request.path,
+        'ip': request.remote_addr
+    }
+    
     try:
         if g.role != 'admin':
+            log_to_telegram(
+                level='WARNING',
+                message=f"Intento de crear vendedor no autorizado desde app",
+                data={'role': g.role, 'vendor_id': g.vendor_id},
+                business_id=g.business_id,
+                request_info=request_info
+            )
             return jsonify({'success': False, 'message': 'Solo administradores pueden crear vendedores'}), 403
         
         data = request.json
@@ -1269,7 +1851,6 @@ def crear_vendedor_app():
         db = DatabaseManager(g.business_id)
         is_postgres = 'RENDER' in os.environ and os.environ.get('DATABASE_URL')
         
-        # Generar ID único de 8 caracteres
         import random
         import string
         def generate_vendor_id():
@@ -1278,7 +1859,6 @@ def crear_vendedor_app():
         
         vendor_id = generate_vendor_id()
         
-        # Verificar que el ID no exista ya
         if is_postgres:
             existing = db.execute_query("SELECT id FROM vendors WHERE id = %s", (vendor_id,))
         else:
@@ -1291,7 +1871,6 @@ def crear_vendedor_app():
             else:
                 existing = db.execute_query("SELECT id FROM vendors WHERE id = ?", (vendor_id,))
         
-        # Insertar vendedor
         if is_postgres:
             db.execute_query("""
                 INSERT INTO vendors (id, name, business_id, role, active)
@@ -1303,18 +1882,19 @@ def crear_vendedor_app():
                 VALUES (?, ?, ?, ?, ?)
             """, (vendor_id, name, g.business_id, 'vendedor', 1))
         
-        # Enviar log de vendedor creado desde app
-        try:
-            send_telegram_message(
-                f"✅ Nuevo vendedor creado desde App Android\n"
-                f"ID: {vendor_id}\n"
-                f"Nombre: {name}\n"
-                f"Negocio: {g.business_id}\n"
-                f"Creado por: {g.vendor_id} ({g.vendor_name})\n"
-                f"Timestamp: {datetime.datetime.now().isoformat()}"
-            )
-        except:
-            pass
+        log_to_telegram(
+            level='SUCCESS',
+            message=f"✅ Nuevo vendedor creado desde App Android",
+            data={
+                'vendor_id': vendor_id,
+                'vendor_name': name,
+                'business_id': g.business_id,
+                'creado_por': g.vendor_id,
+                'creado_por_nombre': g.vendor_name
+            },
+            business_id=g.business_id,
+            request_info=request_info
+        )
         
         return jsonify({
             'success': True,
@@ -1325,7 +1905,15 @@ def crear_vendedor_app():
         
     except Exception as e:
         logger.error(f"Error en crear_vendedor_app: {e}")
+        log_to_telegram(
+            level='ERROR',
+            message=f"Error en crear_vendedor_app: {str(e)}",
+            data={'error': str(e), 'traceback': traceback.format_exc()},
+            business_id=g.business_id if hasattr(g, 'business_id') else None,
+            request_info=request_info
+        )
         return jsonify({'success': False, 'message': str(e)}), 500
+
 
 # ==================== DESCARGA DE APK ====================
 
