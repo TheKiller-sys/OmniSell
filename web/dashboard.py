@@ -1090,7 +1090,7 @@ def create_app():
             logger.error(f"Error en eliminar_producto: {e}")
             return jsonify({'success': False, 'message': str(e)}), 500
 
-    @app.route('/api/registrar-venta', methods=['POST'])
+    @app.route('/api/registrar-venta-web', methods=['POST'])
     @login_required
     def registrar_venta_web():
         """Registrar una venta desde el panel web"""
