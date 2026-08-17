@@ -347,98 +347,38 @@ def handle_exception(error):
 def token_required(f):
     """
     Decorador para verificar token JWT en peticiones de la app Android.
-    ✅ Usa flask.g para almacenar los datos del token de forma segura.
-    ✅ Valida que user_id sea numérico.
+    ✅ Usa SOLO vendor_id del token.
     """
     @wraps(f)
     def decorated(*args, **kwargs):
         auth_header = request.headers.get('Authorization')
         if not auth_header:
-            # Log de intento sin token
-            log_to_telegram(
-                level='WARNING',
-                message=f"Intento de acceso sin token a {request.path}",
-                request_info={
-                    'method': request.method,
-                    'path': request.path,
-                    'ip': request.remote_addr
-                }
-            )
             return jsonify({'success': False, 'message': 'Token requerido'}), 401
         
         try:
             token = auth_header.split(' ')[1]
             payload = jwt.decode(token, os.environ.get('JWT_SECRET', 'secret-key'), algorithms=['HS256'])
             
-            # ✅ Usar flask.g para almacenar datos del token
+            # ✅ SOLO usar vendor_id - NO user_id
             g.vendor_id = payload.get('vendor_id')
-            g.user_id = payload.get('user_id')
             g.business_id = payload.get('business_id')
             g.vendor_name = payload.get('name')
             g.role = payload.get('role', 'vendedor')
             
-            # ✅ Validar que user_id sea numérico y > 0
-            if not g.user_id:
-                log_to_telegram(
-                    level='WARNING',
-                    message=f"Token sin user_id: vendor_id={g.vendor_id}",
-                    data={'vendor_id': g.vendor_id},
-                    business_id=g.business_id
-                )
-                return jsonify({
-                    'success': False, 
-                    'message': 'Token inválido: user_id requerido. Contacta al administrador.'
-                }), 401
+            # ✅ Validar que vendor_id exista
+            if not g.vendor_id:
+                return jsonify({'success': False, 'message': 'Token inválido'}), 401
             
-            if not str(g.user_id).isdigit():
-                log_to_telegram(
-                    level='WARNING',
-                    message=f"user_id no numérico: {g.user_id}",
-                    data={'user_id': g.user_id},
-                    business_id=g.business_id
-                )
-                return jsonify({
-                    'success': False, 
-                    'message': 'Token inválido: user_id debe ser numérico'
-                }), 401
-            
-            logger.debug(f"🔐 Token válido: vendor={g.vendor_id}, user_id={g.user_id}, business={g.business_id}")
+            logger.debug(f"🔐 Token válido: vendor={g.vendor_id}, business={g.business_id}")
             
             return f(*args, **kwargs)
             
         except jwt.ExpiredSignatureError:
-            log_to_telegram(
-                level='WARNING',
-                message=f"Token expirado en {request.path}",
-                request_info={
-                    'method': request.method,
-                    'path': request.path,
-                    'ip': request.remote_addr
-                }
-            )
             return jsonify({'success': False, 'message': 'Token expirado'}), 401
         except jwt.InvalidTokenError as e:
-            log_to_telegram(
-                level='WARNING',
-                message=f"Token inválido en {request.path}: {str(e)}",
-                request_info={
-                    'method': request.method,
-                    'path': request.path,
-                    'ip': request.remote_addr
-                }
-            )
             return jsonify({'success': False, 'message': 'Token inválido'}), 401
         except Exception as e:
-            log_to_telegram(
-                level='ERROR',
-                message=f"Error en token_required: {str(e)}",
-                data={'traceback': traceback.format_exc()},
-                request_info={
-                    'method': request.method,
-                    'path': request.path,
-                    'ip': request.remote_addr
-                }
-            )
+            logger.error(f"Error en token_required: {e}")
             return jsonify({'success': False, 'message': 'Error de autenticación'}), 401
     return decorated
 
@@ -613,7 +553,7 @@ def test_log_endpoint():
 
 @app.route('/api/login-vendedor', methods=['POST'])
 def login_vendedor():
-    """Login para vendedores con ID de 8 caracteres - VERSIÓN CORREGIDA"""
+    """Login para vendedores - SOLO con ID de 8 caracteres"""
     request_info = {
         'method': request.method,
         'path': request.path,
@@ -621,7 +561,6 @@ def login_vendedor():
     }
     
     try:
-        # Verificar que la base de datos esté lista
         DatabaseManager.verify_and_fix_global_tables()
         
         data = request.json
@@ -631,51 +570,27 @@ def login_vendedor():
         # CONVERTIR A MAYÚSCULAS
         vendor_id = data.get('vendor_id', '').strip().upper()
         
-        # VALIDACIÓN ESTRICTA
+        # VALIDACIÓN
         if not vendor_id:
-            log_to_telegram(
-                level='WARNING',
-                message="Intento de login sin ID de vendedor",
-                request_info=request_info
-            )
             return jsonify({'success': False, 'message': 'ID de vendedor requerido'}), 400
         
         if len(vendor_id) != 8:
-            log_to_telegram(
-                level='WARNING',
-                message=f"Intento de login con ID inválido: {vendor_id} (longitud incorrecta)",
-                data={'vendor_id': vendor_id},
-                request_info=request_info
-            )
             return jsonify({'success': False, 'message': 'El ID debe tener exactamente 8 caracteres'}), 400
         
         if not vendor_id.isalnum():
-            log_to_telegram(
-                level='WARNING',
-                message=f"Intento de login con ID inválido: {vendor_id} (caracteres no permitidos)",
-                data={'vendor_id': vendor_id},
-                request_info=request_info
-            )
             return jsonify({'success': False, 'message': 'El ID solo debe contener letras y números'}), 400
         
-        # OBTENER CONEXIÓN GLOBAL
         conn = DatabaseManager.get_global_connection()
         if conn is None:
-            log_to_telegram(
-                level='ERROR',
-                message="Error de conexión a la base de datos en login_vendedor",
-                request_info=request_info
-            )
             return jsonify({'success': False, 'message': 'Error de conexión al servidor'}), 500
         
         c = conn.cursor()
         is_postgres = 'RENDER' in os.environ and os.environ.get('DATABASE_URL')
         
-        # CONFIGURAR search_path PARA POSTGRESQL
         if is_postgres:
             c.execute("SET search_path TO public")
         
-        # PRIMERO: Buscar el vendedor en la tabla vendors
+        # BUSCAR EL VENDEDOR - ¡SOLO EN LA TABLA vendors!
         if is_postgres:
             c.execute("""
                 SELECT 
@@ -720,13 +635,7 @@ def login_vendedor():
             is_active = active_value == 1 or active_value == 'True' or active_value == 't' or active_value == 'true'
         
         if not is_active:
-            log_to_telegram(
-                level='WARNING',
-                message=f"Login fallido: Vendedor inactivo: {vendor_id}",
-                data={'vendor_id': vendor_id, 'active': active_value},
-                request_info=request_info
-            )
-            return jsonify({'success': False, 'message': 'El vendedor está inactivo. Contacta al administrador.'}), 401
+            return jsonify({'success': False, 'message': 'El vendedor está inactivo'}), 401
         
         vendor_id_db = vendor_data[0]
         vendor_name = vendor_data[1]
@@ -742,67 +651,15 @@ def login_vendedor():
         business_result = c.fetchone()
         business_name = business_result[0] if business_result else business_id
         
-        # ====== CRÍTICO: OBTENER O CREAR USER_ID ======
-        if is_postgres:
-            c.execute("SELECT id FROM users WHERE business_id = %s LIMIT 1", (business_id,))
-        else:
-            c.execute("SELECT id FROM users WHERE business_id = ? LIMIT 1", (business_id,))
-        
-        user_result = c.fetchone()
-        
-        if not user_result:
-            # Crear un usuario automáticamente si no existe
-            log_to_telegram(
-                level='WARNING',
-                message=f"No hay usuarios para el negocio {business_id}, creando uno automáticamente",
-                data={'business_id': business_id, 'vendor_id': vendor_id_db},
-                request_info=request_info
-            )
-            
-            # Generar username basado en el vendor_id
-            username = f'vendor_{vendor_id_db.lower()}'
-            
-            # Generar contraseña aleatoria (el vendedor no la necesita para login con ID)
-            import bcrypt
-            random_password = vendor_id_db + '123'  # Contraseña temporal
-            hashed_password = bcrypt.hashpw(random_password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
-            
-            if is_postgres:
-                c.execute("""
-                    INSERT INTO users (business_id, username, password, role)
-                    VALUES (%s, %s, %s, 'vendedor')
-                    RETURNING id
-                """, (business_id, username, hashed_password))
-                user_id = c.fetchone()[0]
-            else:
-                c.execute("""
-                    INSERT INTO users (business_id, username, password, role)
-                    VALUES (?, ?, ?, 'vendedor')
-                """, (business_id, username, hashed_password))
-                user_id = c.lastrowid
-            
-            conn.commit()
-            
-            log_to_telegram(
-                level='SUCCESS',
-                message=f"✅ Usuario creado automáticamente para vendedor {vendor_id_db}",
-                data={'username': username, 'user_id': user_id, 'business_id': business_id},
-                request_info=request_info
-            )
-        else:
-            user_id = user_result[0]
-        
-        # ====== GENERAR TOKEN JWT ======
+        # ====== GENERAR TOKEN JWT - SOLO CON vendor_id ======
         token = jwt.encode({
             'vendor_id': vendor_id_db,
-            'user_id': int(user_id),
             'business_id': business_id,
             'name': vendor_name,
             'role': vendor_role,
             'exp': datetime.datetime.utcnow() + datetime.timedelta(days=7)
         }, os.environ.get('JWT_SECRET', 'secret-key'), algorithm='HS256')
         
-        # LOG DE ÉXITO
         log_to_telegram(
             level='SUCCESS',
             message=f"✅ Login exitoso desde App Android",
@@ -810,13 +667,11 @@ def login_vendedor():
                 'vendor_id': vendor_id_db,
                 'vendor_name': vendor_name,
                 'business_id': business_id,
-                'business_name': business_name,
-                'user_id': user_id
+                'business_name': business_name
             },
             request_info=request_info
         )
         
-        # RESPUESTA COMPLETA
         return jsonify({
             'success': True,
             'token': token,
@@ -825,15 +680,12 @@ def login_vendedor():
                 'name': vendor_name,
                 'business_id': business_id,
                 'business_name': business_name,
-                'role': vendor_role,
-                'user_id': int(user_id)
+                'role': vendor_role
             }
         })
         
     except Exception as e:
         logger.error(f"❌ Error en login_vendedor: {e}")
-        import traceback
-        logger.error(traceback.format_exc())
         log_to_telegram(
             level='ERROR',
             message=f"Error en login_vendedor: {str(e)}",
