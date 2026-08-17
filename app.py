@@ -558,7 +558,7 @@ def test_log_endpoint():
 @app.route('/api/login-vendedor', methods=['POST'])
 def login_vendedor():
     """
-    Login para vendedores - BUSCA EN vendors Y users
+    Login para vendedores - BUSCA EN public.vendors Y business_*.vendors
     """
     request_info = {
         'method': request.method,
@@ -591,82 +591,108 @@ def login_vendedor():
         c = conn.cursor()
         is_postgres = 'RENDER' in os.environ and os.environ.get('DATABASE_URL')
         
-        if is_postgres:
-            c.execute("SET search_path TO public")
+        vendor_data = None
+        business_id = None
         
-        # 🔴 CAMBIO: Buscar PRIMERO en vendors
         if is_postgres:
+            # ============================================================
+            # 1️⃣ PRIMERO: Buscar en public.vendors
+            # ============================================================
+            c.execute("SET search_path TO public")
             c.execute("""
-                SELECT 
-                    id, 
-                    name, 
-                    business_id, 
-                    role, 
-                    active
+                SELECT id, name, business_id, role, active
                 FROM vendors
                 WHERE id = %s
             """, (vendor_id,))
-        else:
-            c.execute("""
-                SELECT 
-                    id, 
-                    name, 
-                    business_id, 
-                    role, 
-                    active
-                FROM vendors
-                WHERE id = ?
-            """, (vendor_id,))
-        
-        vendor_data = c.fetchone()
-        
-        # Si NO está en vendors, buscar en users
-        if not vendor_data:
-            logger.info(f"⚠️ Vendor {vendor_id} no encontrado en vendors, buscando en users...")
+            vendor_data = c.fetchone()
             
-            if is_postgres:
+            if vendor_data:
+                logger.info(f"✅ Vendor {vendor_id} encontrado en public.vendors")
+                business_id = vendor_data[2]
+            
+            # ============================================================
+            # 2️⃣ SEGUNDO: Si no está en public, buscar en business_*.vendors
+            # ============================================================
+            if not vendor_data:
+                logger.info(f"⚠️ Vendor {vendor_id} no encontrado en public, buscando en esquemas business_*...")
+                
+                # Obtener todos los business_id de la tabla businesses
+                c.execute("SET search_path TO public")
+                c.execute("SELECT id FROM businesses")
+                businesses = c.fetchall()
+                
+                for biz in businesses:
+                    biz_id = biz[0]
+                    schema_name = f"business_{biz_id.replace('-', '_')}"
+                    
+                    try:
+                        # Verificar si el vendedor existe en este esquema
+                        c.execute(f"""
+                            SELECT id, name, %s as business_id, role, active
+                            FROM {schema_name}.vendors
+                            WHERE id = %s
+                        """, (biz_id, vendor_id))
+                        
+                        result = c.fetchone()
+                        if result:
+                            vendor_data = result
+                            business_id = biz_id
+                            logger.info(f"✅ Vendor {vendor_id} encontrado en esquema {schema_name}")
+                            break
+                    except Exception as e:
+                        # El esquema puede no existir o no tener la tabla vendors
+                        logger.debug(f"Buscando en {schema_name}: {e}")
+                        continue
+            
+            # ============================================================
+            # 3️⃣ TERCERO: Si no está en vendors, buscar en users
+            # ============================================================
+            if not vendor_data:
+                logger.info(f"⚠️ Vendor {vendor_id} no encontrado en vendors, buscando en users...")
+                c.execute("SET search_path TO public")
                 c.execute("""
-                    SELECT 
-                        id, 
-                        username as name, 
-                        business_id, 
-                        role, 
-                        TRUE as active
+                    SELECT id, username as name, business_id, role, TRUE as active
                     FROM users
                     WHERE username = %s OR id::text = %s
                 """, (vendor_id, vendor_id))
-            else:
+                user_data = c.fetchone()
+                
+                if user_data:
+                    logger.info(f"✅ Vendor {vendor_id} encontrado en users, creando en vendors...")
+                    # Crear el vendedor en public.vendors
+                    c.execute("""
+                        INSERT INTO public.vendors (id, name, business_id, role, active)
+                        VALUES (%s, %s, %s, %s, %s)
+                    """, (vendor_id, user_data[1], user_data[2], user_data[3], True))
+                    conn.commit()
+                    vendor_data = user_data
+                    business_id = user_data[2]
+                    logger.info(f"✅ Vendor {vendor_id} creado en public.vendors automáticamente")
+        
+        else:
+            # SQLite - buscar en la tabla vendors local
+            c.execute("""
+                SELECT id, name, business_id, role, active
+                FROM vendors
+                WHERE id = ?
+            """, (vendor_id,))
+            vendor_data = c.fetchone()
+            
+            if not vendor_data:
+                # Buscar en users
                 c.execute("""
-                    SELECT 
-                        id, 
-                        username as name, 
-                        business_id, 
-                        role, 
-                        1 as active
+                    SELECT id, username as name, business_id, role, 1 as active
                     FROM users
                     WHERE username = ? OR id = ?
                 """, (vendor_id, vendor_id))
-            
-            user_data = c.fetchone()
-            
-            if user_data:
-                logger.info(f"✅ Vendor {vendor_id} encontrado en users, creando en vendors...")
-                # Crear el vendedor en la tabla vendors automáticamente
-                if is_postgres:
-                    c.execute("""
-                        INSERT INTO vendors (id, name, business_id, role, active)
-                        VALUES (%s, %s, %s, %s, %s)
-                    """, (vendor_id, user_data[1], user_data[2], user_data[3], True))
-                else:
+                user_data = c.fetchone()
+                if user_data:
                     c.execute("""
                         INSERT INTO vendors (id, name, business_id, role, active)
                         VALUES (?, ?, ?, ?, ?)
                     """, (vendor_id, user_data[1], user_data[2], user_data[3], 1))
-                conn.commit()
-                
-                # Usar los datos del usuario
-                vendor_data = user_data
-                logger.info(f"✅ Vendor {vendor_id} creado en vendors automáticamente")
+                    conn.commit()
+                    vendor_data = user_data
         
         if not vendor_data:
             return jsonify({'success': False, 'message': 'ID de vendedor no encontrado'}), 401
@@ -685,10 +711,15 @@ def login_vendedor():
         
         vendor_id_db = vendor_data[0]
         vendor_name = vendor_data[1]
-        business_id = vendor_data[2]
+        
+        # Si business_id no fue asignado, usar el de vendor_data
+        if not business_id:
+            business_id = vendor_data[2]
+        
         vendor_role = vendor_data[3]
         
         # Obtener el nombre del negocio
+        c.execute("SET search_path TO public")
         if is_postgres:
             c.execute("SELECT name FROM businesses WHERE id = %s", (business_id,))
         else:
@@ -737,6 +768,7 @@ def login_vendedor():
         
     except Exception as e:
         logger.error(f"❌ Error en login_vendedor: {e}")
+        logger.error(traceback.format_exc())
         return jsonify({'success': False, 'message': f'Error del servidor: {str(e)}'}), 500
         
 def buscar_vendedor_en_todos_los_esquemas(vendor_id):
