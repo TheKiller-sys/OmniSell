@@ -7,6 +7,7 @@ from pathlib import Path
 import time
 import threading
 import bcrypt
+import re
 
 logger = logging.getLogger(__name__)
 
@@ -28,7 +29,15 @@ class DatabaseManager:
                         max_retries = 5
                         for i in range(max_retries):
                             try:
-                                cls._global_conn = psycopg2.connect(db_url, sslmode='require')
+                                cls._global_conn = psycopg2.connect(
+                                    db_url,
+                                    sslmode='require',
+                                    connect_timeout=10,
+                                    keepalives=1,
+                                    keepalives_idle=30,
+                                    keepalives_interval=10,
+                                    keepalives_count=3
+                                )
                                 # Asegurar que usamos el esquema public para tablas globales
                                 with cls._global_conn.cursor() as cur:
                                     cur.execute("SET search_path TO public")
@@ -45,11 +54,11 @@ class DatabaseManager:
                     except Exception as e:
                         logger.error(f"Error conectando a PostgreSQL: {e}")
                         logger.info("Fallback a SQLite para base de datos global")
-                        cls._global_conn = sqlite3.connect('global.db', check_same_thread=False)
+                        cls._global_conn = sqlite3.connect('global.db', check_same_thread=False, timeout=60)
                         cls._global_conn.execute("PRAGMA foreign_keys = ON")
                         logger.info("Conectado a SQLite para base de datos global (fallback)")
                 else:
-                    cls._global_conn = sqlite3.connect('global.db', check_same_thread=False)
+                    cls._global_conn = sqlite3.connect('global.db', check_same_thread=False, timeout=60)
                     cls._global_conn.execute("PRAGMA foreign_keys = ON")
                     logger.info("Conectado a SQLite para base de datos global")
             return cls._global_conn
@@ -81,9 +90,17 @@ class DatabaseManager:
                     max_retries = 5
                     for i in range(max_retries):
                         try:
-                            conn = psycopg2.connect(db_url, sslmode='require')
+                            conn = psycopg2.connect(
+                                db_url,
+                                sslmode='require',
+                                connect_timeout=10,
+                                keepalives=1,
+                                keepalives_idle=30,
+                                keepalives_interval=10,
+                                keepalives_count=3
+                            )
                             with conn.cursor() as cur:
-                                schema_name = f"business_{business_id.replace('-', '_').replace('.', '_')}"
+                                schema_name = cls._safe_schema_name(business_id)
                                 cur.execute(f"CREATE SCHEMA IF NOT EXISTS {schema_name}")
                                 cur.execute(f"SET search_path TO {schema_name}, public")
                             logger.info(f"Conexión creada para negocio: {business_id} (PostgreSQL)")
@@ -99,25 +116,36 @@ class DatabaseManager:
                 except Exception as e:
                     logger.error(f"Error conectando a PostgreSQL para negocio {business_id}: {e}")
                     logger.info(f"Fallback a SQLite para negocio {business_id}")
-                    db_path = f"{business_id}.db"
+                    db_path = cls._safe_db_path(business_id)
                     Path(db_path).parent.mkdir(parents=True, exist_ok=True)
-                    conn = sqlite3.connect(db_path, timeout=30, check_same_thread=False)
+                    conn = sqlite3.connect(db_path, timeout=60, check_same_thread=False)
                     conn.execute("PRAGMA foreign_keys = ON")
                     logger.info(f"Conexión creada para negocio: {business_id} (SQLite - fallback)")
                     return conn
             else:
-                db_path = f"{business_id}.db"
+                db_path = cls._safe_db_path(business_id)
                 Path(db_path).parent.mkdir(parents=True, exist_ok=True)
-                conn = sqlite3.connect(db_path, timeout=30, check_same_thread=False)
+                conn = sqlite3.connect(db_path, timeout=60, check_same_thread=False)
                 conn.execute("PRAGMA foreign_keys = ON")
                 logger.info(f"Conexión creada para negocio: {business_id} (SQLite)")
                 return conn
                 
         except Exception as e:
             logger.error(f"Error obteniendo conexión para negocio {business_id}: {e}")
-            conn = sqlite3.connect(':memory:', check_same_thread=False)
+            conn = sqlite3.connect(':memory:', check_same_thread=False, timeout=60)
             conn.execute("PRAGMA foreign_keys = ON")
             return conn
+
+    @classmethod
+    def _safe_schema_name(cls, business_id):
+        """Sanitizar business_id para usar como nombre de esquema en PostgreSQL"""
+        return f"business_{re.sub(r'[^a-zA-Z0-9_]', '_', business_id)}"
+
+    @classmethod
+    def _safe_db_path(cls, business_id):
+        """Sanitizar business_id para usar como nombre de archivo"""
+        safe_id = re.sub(r'[^a-zA-Z0-9_]', '_', business_id)
+        return f"{safe_id}.db"
 
     @classmethod
     def cleanup_connections(cls):
@@ -135,6 +163,7 @@ class DatabaseManager:
     @classmethod
     def verify_and_fix_global_tables(cls):
         """Verificar y corregir la estructura de las tablas globales automáticamente"""
+        conn = None
         try:
             conn = cls.get_global_connection()
             if conn is None:
@@ -218,6 +247,27 @@ class DatabaseManager:
                     else:
                         c.execute("ALTER TABLE businesses ADD COLUMN bot_configured BOOLEAN DEFAULT FALSE")
                     logger.info("Columna bot_configured agregada exitosamente")
+                
+                # Verificar si existe la columna telegram_token
+                if is_postgres:
+                    c.execute("""
+                        SELECT column_name 
+                        FROM information_schema.columns 
+                        WHERE table_name = 'businesses' AND column_name = 'telegram_token'
+                    """)
+                    has_telegram_token = c.fetchone() is not None
+                else:
+                    c.execute("PRAGMA table_info(businesses)")
+                    columns = [col[1] for col in c.fetchall()]
+                    has_telegram_token = 'telegram_token' in columns
+                
+                if not has_telegram_token:
+                    logger.warning("Columna telegram_token no existe, agregándola...")
+                    if is_postgres:
+                        c.execute("ALTER TABLE businesses ADD COLUMN telegram_token TEXT")
+                    else:
+                        c.execute("ALTER TABLE businesses ADD COLUMN telegram_token TEXT")
+                    logger.info("Columna telegram_token agregada exitosamente")
             
             # Verificar tabla users
             if is_postgres:
@@ -285,8 +335,29 @@ class DatabaseManager:
                     else:
                         c.execute("ALTER TABLE users ADD COLUMN role TEXT DEFAULT 'admin'")
                     logger.info("Columna role agregada exitosamente")
+                
+                # Verificar si existe la columna telegram_id
+                if is_postgres:
+                    c.execute("""
+                        SELECT column_name 
+                        FROM information_schema.columns 
+                        WHERE table_name = 'users' AND column_name = 'telegram_id'
+                    """)
+                    has_telegram_id = c.fetchone() is not None
+                else:
+                    c.execute("PRAGMA table_info(users)")
+                    columns = [col[1] for col in c.fetchall()]
+                    has_telegram_id = 'telegram_id' in columns
+                
+                if not has_telegram_id:
+                    logger.warning("Columna telegram_id no existe en users, agregándola...")
+                    if is_postgres:
+                        c.execute("ALTER TABLE users ADD COLUMN telegram_id TEXT")
+                    else:
+                        c.execute("ALTER TABLE users ADD COLUMN telegram_id TEXT")
+                    logger.info("Columna telegram_id agregada exitosamente")
             
-            # ==================== NUEVA TABLA: VENDORS ====================
+            # ==================== TABLA: VENDORS ====================
             if is_postgres:
                 c.execute("""
                     SELECT EXISTS (
@@ -438,6 +509,7 @@ class DatabaseManager:
         self.c = None
         self._get_connection()
         self._create_tables()
+        self._ensure_vendor_exists()  # ✅ SIEMPRE asegurar vendedor
         self._create_test_data()
         logger.info(f"Conexión establecida para negocio: {business_id}")
 
@@ -454,9 +526,17 @@ class DatabaseManager:
                     max_retries = 5
                     for i in range(max_retries):
                         try:
-                            self.conn = psycopg2.connect(db_url, sslmode='require')
+                            self.conn = psycopg2.connect(
+                                db_url,
+                                sslmode='require',
+                                connect_timeout=10,
+                                keepalives=1,
+                                keepalives_idle=30,
+                                keepalives_interval=10,
+                                keepalives_count=3
+                            )
                             with self.conn.cursor() as cur:
-                                schema_name = f"business_{self.business_id.replace('-', '_').replace('.', '_')}"
+                                schema_name = self._safe_schema_name(self.business_id)
                                 cur.execute(f"CREATE SCHEMA IF NOT EXISTS {schema_name}")
                                 cur.execute(f"SET search_path TO {schema_name}, public")
                             self.c = self.conn.cursor()
@@ -473,17 +553,17 @@ class DatabaseManager:
                 except Exception as e:
                     logger.error(f"Error conectando a PostgreSQL para negocio {self.business_id}: {e}")
                     logger.info(f"Fallback a SQLite para negocio {self.business_id}")
-                    db_path = f"{self.business_id}.db"
+                    db_path = self._safe_db_path(self.business_id)
                     Path(db_path).parent.mkdir(parents=True, exist_ok=True)
-                    self.conn = sqlite3.connect(db_path, timeout=30, check_same_thread=False)
+                    self.conn = sqlite3.connect(db_path, timeout=60, check_same_thread=False)
                     self.conn.execute("PRAGMA foreign_keys = ON")
                     self.c = self.conn.cursor()
                     logger.info(f"Conexión creada para negocio: {self.business_id} (SQLite - fallback)")
                     return self.conn
             else:
-                db_path = f"{self.business_id}.db"
+                db_path = self._safe_db_path(self.business_id)
                 Path(db_path).parent.mkdir(parents=True, exist_ok=True)
-                self.conn = sqlite3.connect(db_path, timeout=30, check_same_thread=False)
+                self.conn = sqlite3.connect(db_path, timeout=60, check_same_thread=False)
                 self.conn.execute("PRAGMA foreign_keys = ON")
                 self.c = self.conn.cursor()
                 logger.info(f"Conexión creada para negocio: {self.business_id} (SQLite)")
@@ -491,15 +571,24 @@ class DatabaseManager:
                 
         except Exception as e:
             logger.error(f"Error obteniendo conexión para negocio {self.business_id}: {e}")
-            self.conn = sqlite3.connect(':memory:', check_same_thread=False)
+            self.conn = sqlite3.connect(':memory:', check_same_thread=False, timeout=60)
             self.conn.execute("PRAGMA foreign_keys = ON")
             self.c = self.conn.cursor()
             return self.conn
 
+    def _safe_schema_name(self, business_id):
+        """Sanitizar business_id para usar como nombre de esquema en PostgreSQL"""
+        return f"business_{re.sub(r'[^a-zA-Z0-9_]', '_', business_id)}"
+
+    def _safe_db_path(self, business_id):
+        """Sanitizar business_id para usar como nombre de archivo"""
+        safe_id = re.sub(r'[^a-zA-Z0-9_]', '_', business_id)
+        return f"{safe_id}.db"
+
     def _ensure_vendor_column(self, is_postgres):
-        """✅ NUEVO MÉTODO: Asegurar que vendor_id existe en la tabla ventas"""
+        """✅ Asegurar que vendor_id existe en la tabla ventas"""
         try:
-            schema = f"business_{self.business_id.replace('-', '_').replace('.', '_')}"
+            schema = self._safe_schema_name(self.business_id)
             
             if is_postgres:
                 # Verificar con schema específico
@@ -540,6 +629,120 @@ class DatabaseManager:
             logger.error(f"Error asegurando vendor_id: {e}")
             return False
 
+    def _ensure_vendor_exists(self):
+        """✅ Asegurar que el vendedor de prueba existe (SIEMPRE)"""
+        try:
+            is_postgres = 'RENDER' in os.environ and os.environ.get('DATABASE_URL')
+            
+            # Verificar si la tabla vendors existe
+            if is_postgres:
+                table_check = self.execute_query("""
+                    SELECT EXISTS (
+                        SELECT FROM information_schema.tables 
+                        WHERE table_name = 'vendors'
+                    )
+                """)
+                if not table_check or not table_check[0][0]:
+                    self._create_vendor_table()
+            else:
+                self.execute_query("SELECT name FROM sqlite_master WHERE type='table' AND name='vendors'")
+                table_exists = self.c.fetchone() is not None
+                if not table_exists:
+                    self._create_vendor_table()
+            
+            # Verificar si el vendedor AAAA0000 existe
+            if is_postgres:
+                vendor_check = self.execute_query(
+                    "SELECT id, active FROM vendors WHERE id = %s", 
+                    ('AAAA0000',)
+                )
+            else:
+                vendor_check = self.execute_query(
+                    "SELECT id, active FROM vendors WHERE id = ?", 
+                    ('AAAA0000',)
+                )
+            
+            if not vendor_check:
+                logger.info("✅ Creando vendedor de prueba AAAA0000...")
+                
+                if is_postgres:
+                    self.execute_query("""
+                        INSERT INTO vendors (id, name, business_id, role, active)
+                        VALUES (%s, %s, %s, %s, %s)
+                    """, ('AAAA0000', 'Vendedor Prueba', self.business_id, 'vendedor', True))
+                else:
+                    self.execute_query("""
+                        INSERT INTO vendors (id, name, business_id, role, active)
+                        VALUES (?, ?, ?, ?, ?)
+                    """, ('AAAA0000', 'Vendedor Prueba', self.business_id, 'vendedor', 1))
+                
+                self.conn.commit()
+                logger.info(f"✅ Vendedor de prueba creado: AAAA0000")
+            else:
+                # Verificar que esté activo
+                active = vendor_check[0][1]
+                
+                if is_postgres:
+                    is_active = active == True or active == 't' or active == 'true'
+                else:
+                    is_active = active == 1 or active == 'True' or active == 't' or active == 'true'
+                
+                if not is_active:
+                    logger.warning("⚠️ Vendedor AAAA0000 está inactivo, activando...")
+                    if is_postgres:
+                        self.execute_query(
+                            "UPDATE vendors SET active = TRUE WHERE id = %s", 
+                            ('AAAA0000',)
+                        )
+                    else:
+                        self.execute_query(
+                            "UPDATE vendors SET active = 1 WHERE id = ?", 
+                            ('AAAA0000',)
+                        )
+                    self.conn.commit()
+                    logger.info("✅ Vendedor activado")
+                else:
+                    logger.info("✅ Vendedor de prueba AAAA0000 ya existe y está activo")
+                    
+        except Exception as e:
+            logger.error(f"Error asegurando vendedor: {e}")
+            if self.conn:
+                try:
+                    self.conn.rollback()
+                except:
+                    pass
+
+    def _create_vendor_table(self):
+        """Crear la tabla vendors si no existe"""
+        try:
+            is_postgres = 'RENDER' in os.environ and os.environ.get('DATABASE_URL')
+            
+            if is_postgres:
+                self.execute_query("""
+                    CREATE TABLE IF NOT EXISTS vendors (
+                        id TEXT PRIMARY KEY,
+                        name TEXT NOT NULL,
+                        business_id TEXT NOT NULL,
+                        role TEXT DEFAULT 'vendedor',
+                        active BOOLEAN DEFAULT TRUE,
+                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                    )
+                """)
+            else:
+                self.execute_query("""
+                    CREATE TABLE IF NOT EXISTS vendors (
+                        id TEXT PRIMARY KEY,
+                        name TEXT NOT NULL,
+                        business_id TEXT NOT NULL,
+                        role TEXT DEFAULT 'vendedor',
+                        active INTEGER DEFAULT 1,
+                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                    )
+                """)
+            logger.info("✅ Tabla vendors creada")
+        except Exception as e:
+            logger.error(f"Error creando tabla vendors: {e}")
+
     def _create_tables(self):
         """Crear tablas si no existen con sintaxis compatible"""
         try:
@@ -547,7 +750,7 @@ class DatabaseManager:
             
             if is_postgres:
                 # Configurar search_path para usar el esquema del negocio
-                schema_name = f"business_{self.business_id.replace('-', '_').replace('.', '_')}"
+                schema_name = self._safe_schema_name(self.business_id)
                 self.c.execute(f"SET search_path TO {schema_name}, public")
                 
                 # Verificar si las tablas ya existen en este esquema
@@ -696,6 +899,8 @@ class DatabaseManager:
             
             logger.info("Verificando datos de prueba del negocio...")
             
+            # ✅ El vendedor ya fue creado en __init__
+            
             # Verificar si ya hay secciones
             if is_postgres:
                 secciones = self.execute_query("SELECT COUNT(*) FROM secciones")
@@ -731,6 +936,7 @@ class DatabaseManager:
                     VALUES (?, ?, ?, ?, ?)
                 """, ('Producto Test', 100.00, 80.00, 10, seccion_id))
             
+            self.conn.commit()
             logger.info("✅ Producto de prueba creado: Producto Test ($100.00, Stock: 10)")
             
         except Exception as e:
@@ -748,7 +954,7 @@ class DatabaseManager:
             
             if is_postgres:
                 # Asegurar que el search_path esté configurado
-                schema_name = f"business_{self.business_id.replace('-', '_').replace('.', '_')}"
+                schema_name = self._safe_schema_name(self.business_id)
                 self.c.execute(f"SET search_path TO {schema_name}, public")
                 formatted_query = query
             else:
@@ -760,9 +966,13 @@ class DatabaseManager:
                 return self.c.fetchall()
             else:
                 self.conn.commit()
-                if query.strip().upper().startswith(('INSERT', 'RETURNING')):
+                if query.strip().upper().startswith('INSERT'):
                     if is_postgres:
                         try:
+                            # Intentar obtener el ID con RETURNING si está en la consulta
+                            if 'RETURNING' in query.upper():
+                                return self.c.fetchone()[0] if self.c.rowcount > 0 else None
+                            # Fallback a LASTVAL
                             self.c.execute("SELECT LASTVAL()")
                             return self.c.fetchone()[0]
                         except:
@@ -786,11 +996,16 @@ class DatabaseManager:
             is_postgres = 'RENDER' in os.environ and os.environ.get('DATABASE_URL')
             
             if is_postgres:
-                conn = psycopg2.connect(os.environ.get('DATABASE_URL'), sslmode='require')
-                with conn.cursor() as cur:
-                    schema_name = f"business_{self.business_id.replace('-', '_').replace('.', '_')}"
-                    cur.execute(f"SET search_path TO {schema_name}, public")
-                return pd.read_sql_query(query, conn, params=params)
+                # ✅ Usar context manager para asegurar cierre de conexión
+                with psycopg2.connect(
+                    os.environ.get('DATABASE_URL'),
+                    sslmode='require',
+                    connect_timeout=10
+                ) as conn:
+                    with conn.cursor() as cur:
+                        schema_name = self._safe_schema_name(self.business_id)
+                        cur.execute(f"SET search_path TO {schema_name}, public")
+                    return pd.read_sql_query(query, conn, params=params)
             else:
                 return pd.read_sql_query(query, self.conn, params=params)
         except Exception as e:
