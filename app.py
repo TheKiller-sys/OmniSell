@@ -952,6 +952,150 @@ def diagnosticar_token():
         }
     })
 
+# ==================== ENDPOINTS PARA VERIFICACIÓN DE VENDEDORES (APP ANDROID) ====================
+
+@app.route('/api/verificar-vendedor/<vendor_id>', methods=['GET'])
+def verificar_vendedor(vendor_id):
+    """
+    Verificar si un vendedor existe y está activo.
+    Endpoint público (sin autenticación) para la app Android.
+    """
+    try:
+        from database.db_manager import DatabaseManager
+        DatabaseManager.verify_and_fix_global_tables()
+        
+        conn = DatabaseManager.get_global_connection()
+        if conn is None:
+            return jsonify({'success': False, 'message': 'Error de conexión'}), 500
+        
+        c = conn.cursor()
+        is_postgres = 'RENDER' in os.environ and os.environ.get('DATABASE_URL')
+        
+        vendor_id = vendor_id.strip().upper()
+        
+        # Validar formato
+        if len(vendor_id) != 8 or not vendor_id.isalnum():
+            return jsonify({
+                'success': False,
+                'exists': False,
+                'message': 'ID inválido. Debe tener 8 caracteres alfanuméricos.'
+            }), 400
+        
+        # Buscar en vendors
+        if is_postgres:
+            c.execute("""
+                SELECT v.id, v.name, v.business_id, b.name as business_name, v.active
+                FROM vendors v
+                JOIN businesses b ON v.business_id = b.id
+                WHERE v.id = %s
+            """, (vendor_id,))
+        else:
+            c.execute("""
+                SELECT v.id, v.name, v.business_id, b.name as business_name, v.active
+                FROM vendors v
+                JOIN businesses b ON v.business_id = b.id
+                WHERE v.id = ?
+            """, (vendor_id,))
+        
+        vendor = c.fetchone()
+        
+        if not vendor:
+            return jsonify({
+                'success': False,
+                'exists': False,
+                'message': 'Vendedor no encontrado'
+            }), 404
+        
+        # Verificar si está activo
+        active_value = vendor[4]
+        if is_postgres:
+            is_active = active_value == True or active_value == 't' or active_value == 'true'
+        else:
+            is_active = active_value == 1 or active_value == 'True' or active_value == 't' or active_value == 'true'
+        
+        return jsonify({
+            'success': True,
+            'exists': True,
+            'vendor': {
+                'id': vendor[0],
+                'name': vendor[1],
+                'business_id': vendor[2],
+                'business_name': vendor[3],
+                'active': is_active
+            }
+        })
+        
+    except Exception as e:
+        logger.error(f"Error en verificar_vendedor: {e}")
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@app.route('/api/listar-vendedores', methods=['GET'])
+def listar_vendedores():
+    """
+    Listar todos los vendedores de un negocio.
+    Endpoint público (sin autenticación) para la app Android.
+    """
+    try:
+        business_id = request.args.get('business_id', '').strip()
+        
+        if not business_id:
+            return jsonify({'success': False, 'message': 'business_id es requerido'}), 400
+        
+        from database.db_manager import DatabaseManager
+        DatabaseManager.verify_and_fix_global_tables()
+        
+        conn = DatabaseManager.get_global_connection()
+        if conn is None:
+            return jsonify({'success': False, 'message': 'Error de conexión'}), 500
+        
+        c = conn.cursor()
+        is_postgres = 'RENDER' in os.environ and os.environ.get('DATABASE_URL')
+        
+        if is_postgres:
+            c.execute("""
+                SELECT id, name, business_id, role, active 
+                FROM vendors 
+                WHERE business_id = %s
+                ORDER BY created_at DESC
+            """, (business_id,))
+        else:
+            c.execute("""
+                SELECT id, name, business_id, role, active 
+                FROM vendors 
+                WHERE business_id = ?
+                ORDER BY created_at DESC
+            """, (business_id,))
+        
+        vendors = c.fetchall()
+        
+        result = []
+        if vendors:
+            for v in vendors:
+                active_value = v[4]
+                if is_postgres:
+                    is_active = active_value == True or active_value == 't' or active_value == 'true'
+                else:
+                    is_active = active_value == 1 or active_value == 'True' or active_value == 't' or active_value == 'true'
+                
+                result.append({
+                    'id': v[0],
+                    'name': v[1],
+                    'business_id': v[2],
+                    'role': v[3],
+                    'active': is_active
+                })
+        
+        return jsonify({
+            'success': True,
+            'vendedores': result,
+            'total': len(result),
+            'business_id': business_id
+        })
+        
+    except Exception as e:
+        logger.error(f"Error en listar_vendedores: {e}")
+        return jsonify({'success': False, 'message': str(e)}), 500
 
 # ==================== API PARA LA APP ANDROID ====================
 
