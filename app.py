@@ -870,7 +870,6 @@ def get_productos():
 
 
 # ==================== ENDPOINT PARA REGISTRAR VENTAS DESDE APP ANDROID ====================
-
 @app.route('/api/registrar-venta', methods=['POST', 'OPTIONS'])
 @token_required
 def registrar_venta_app():
@@ -895,195 +894,117 @@ def registrar_venta_app():
     
     try:
         logger.info(f"📥 Solicitud POST a /api/registrar-venta (Android)")
-        logger.info(f"📥 Headers: {dict(request.headers)}")
         
-        raw_data = request.get_data(as_text=True)
-        logger.info(f"📥 Raw data: {raw_data}")
-        
-        try:
-            data = request.json
-        except Exception as e:
-            logger.error(f"Error parseando JSON: {e}")
-            log_to_telegram(
-                level='ERROR',
-                message=f"Error parseando JSON en registrar_venta: {str(e)}",
-                data={'raw_data': raw_data[:200]},
-                business_id=g.business_id if hasattr(g, 'business_id') else None,
-                request_info=request_info
-            )
-            response = jsonify({'success': False, 'message': f'Error parseando JSON: {str(e)}'})
-            response.headers.add('Access-Control-Allow-Origin', '*')
-            return response, 400
-        
+        data = request.json
         if not data:
-            log_to_telegram(
-                level='WARNING',
-                message="No se recibió JSON en registrar_venta",
-                business_id=g.business_id if hasattr(g, 'business_id') else None,
-                request_info=request_info
-            )
-            response = jsonify({'success': False, 'message': 'No se recibió JSON'})
-            response.headers.add('Access-Control-Allow-Origin', '*')
-            return response, 400
+            return jsonify({'success': False, 'message': 'No se recibió JSON'}), 400
         
         producto_id = data.get('producto_id')
         cantidad = data.get('cantidad')
         precio_unitario = data.get('precio_unitario')
         
-        logger.info(f"📥 producto_id: {producto_id}, cantidad: {cantidad}, precio_unitario: {precio_unitario}")
-        
         if producto_id is None:
-            log_to_telegram(
-                level='WARNING',
-                message="Campo producto_id no enviado en registrar_venta",
-                data={'data': data},
-                business_id=g.business_id if hasattr(g, 'business_id') else None,
-                request_info=request_info
-            )
-            response = jsonify({'success': False, 'message': 'Campo producto_id no enviado'})
-            response.headers.add('Access-Control-Allow-Origin', '*')
-            return response, 400
+            return jsonify({'success': False, 'message': 'Campo producto_id requerido'}), 400
         if cantidad is None:
-            log_to_telegram(
-                level='WARNING',
-                message="Campo cantidad no enviado en registrar_venta",
-                data={'data': data},
-                business_id=g.business_id if hasattr(g, 'business_id') else None,
-                request_info=request_info
-            )
-            response = jsonify({'success': False, 'message': 'Campo cantidad no enviado'})
-            response.headers.add('Access-Control-Allow-Origin', '*')
-            return response, 400
+            return jsonify({'success': False, 'message': 'Campo cantidad requerido'}), 400
         if precio_unitario is None:
-            log_to_telegram(
-                level='WARNING',
-                message="Campo precio_unitario no enviado en registrar_venta",
-                data={'data': data},
-                business_id=g.business_id if hasattr(g, 'business_id') else None,
-                request_info=request_info
-            )
-            response = jsonify({'success': False, 'message': 'Campo precio_unitario no enviado'})
-            response.headers.add('Access-Control-Allow-Origin', '*')
-            return response, 400
-        
-        if producto_id == '':
-            response = jsonify({'success': False, 'message': 'producto_id vacío'})
-            response.headers.add('Access-Control-Allow-Origin', '*')
-            return response, 400
-        if cantidad == '':
-            response = jsonify({'success': False, 'message': 'cantidad vacía'})
-            response.headers.add('Access-Control-Allow-Origin', '*')
-            return response, 400
-        if precio_unitario == '':
-            response = jsonify({'success': False, 'message': 'precio_unitario vacío'})
-            response.headers.add('Access-Control-Allow-Origin', '*')
-            return response, 400
+            return jsonify({'success': False, 'message': 'Campo precio_unitario requerido'}), 400
         
         try:
             producto_id = int(producto_id)
             cantidad = int(cantidad)
             precio_unitario = float(precio_unitario)
         except (ValueError, TypeError) as e:
-            logger.error(f"Error de conversión de tipos: {e}")
-            log_to_telegram(
-                level='ERROR',
-                message=f"Error de conversión de tipos en registrar_venta: {str(e)}",
-                data={'producto_id': producto_id, 'cantidad': cantidad, 'precio_unitario': precio_unitario},
-                business_id=g.business_id if hasattr(g, 'business_id') else None,
-                request_info=request_info
-            )
-            response = jsonify({'success': False, 'message': f'Error en formato de datos: {str(e)}'})
-            response.headers.add('Access-Control-Allow-Origin', '*')
-            return response, 400
+            return jsonify({'success': False, 'message': f'Error en formato de datos: {str(e)}'}), 400
         
         if not hasattr(g, 'user_id') or not g.user_id:
-            log_to_telegram(
-                level='ERROR',
-                message="Token no contiene user_id en registrar_venta",
-                data={'vendor_id': g.vendor_id if hasattr(g, 'vendor_id') else None},
-                business_id=g.business_id if hasattr(g, 'business_id') else None,
-                request_info=request_info
-            )
-            response = jsonify({
+            return jsonify({
                 'success': False,
                 'message': 'El token no contiene user_id. Contacta al administrador.'
-            })
-            response.headers.add('Access-Control-Allow-Origin', '*')
-            return response, 401
+            }), 401
         
         if not str(g.user_id).isdigit():
-            log_to_telegram(
-                level='ERROR',
-                message=f"user_id inválido en token: {g.user_id}",
-                data={'user_id': g.user_id},
-                business_id=g.business_id if hasattr(g, 'business_id') else None,
-                request_info=request_info
-            )
-            response = jsonify({
+            return jsonify({
                 'success': False,
                 'message': 'user_id inválido en el token'
-            })
-            response.headers.add('Access-Control-Allow-Origin', '*')
-            return response, 401
+            }), 401
         
         from database.db_manager import DatabaseManager
         db = DatabaseManager(g.business_id)
         is_postgres = 'RENDER' in os.environ and os.environ.get('DATABASE_URL')
         
-        stock_query = "SELECT stock, nombre FROM productos WHERE id = %s" if is_postgres else "SELECT stock, nombre FROM productos WHERE id = ?"
+        # Verificar stock
+        if is_postgres:
+            stock_query = "SELECT stock, nombre FROM productos WHERE id = %s"
+        else:
+            stock_query = "SELECT stock, nombre FROM productos WHERE id = ?"
         stock_result = db.execute_query(stock_query, (producto_id,))
         
         if not stock_result:
-            log_to_telegram(
-                level='WARNING',
-                message=f"Producto no encontrado: ID {producto_id}",
-                data={'producto_id': producto_id},
-                business_id=g.business_id,
-                request_info=request_info
-            )
-            response = jsonify({'success': False, 'message': 'Producto no encontrado'})
-            response.headers.add('Access-Control-Allow-Origin', '*')
-            return response, 404
+            return jsonify({'success': False, 'message': 'Producto no encontrado'}), 404
         
         stock_disponible = stock_result[0][0]
         nombre_producto = stock_result[0][1] if len(stock_result[0]) > 1 else 'Producto'
         
         if stock_disponible < cantidad:
-            log_to_telegram(
-                level='WARNING',
-                message=f"Stock insuficiente: {nombre_producto} (ID: {producto_id})",
-                data={
-                    'producto': nombre_producto,
-                    'stock_disponible': stock_disponible,
-                    'cantidad_solicitada': cantidad
-                },
-                business_id=g.business_id,
-                request_info=request_info
-            )
-            response = jsonify({
+            return jsonify({
                 'success': False, 
                 'message': f'Stock insuficiente. Disponible: {stock_disponible}',
                 'stock_disponible': stock_disponible
-            })
-            response.headers.add('Access-Control-Allow-Origin', '*')
-            return response, 400
+            }), 400
         
+        # ============================================================
+        # 🔥 CORRECCIÓN: Asegurar que vendor_id existe en ventas
+        # ============================================================
         if is_postgres:
             db._ensure_vendor_column(is_postgres)
         else:
-            check_column = db.execute_query("PRAGMA table_info(ventas)")
-            has_vendor_column = any(col[1] == 'vendor_id' for col in check_column) if check_column else False
-            if not has_vendor_column:
-                db.execute_query("ALTER TABLE ventas ADD COLUMN vendor_id TEXT")
-                db.execute_query("CREATE INDEX IF NOT EXISTS idx_ventas_vendor_id ON ventas(vendor_id)")
+            # SQLite: verificar si la columna vendor_id existe
+            try:
+                # Ejecutar PRAGMA table_info
+                pragma_result = db.execute_query("PRAGMA table_info(ventas)")
+                
+                # Verificar que pragma_result sea una lista
+                has_vendor_column = False
+                if pragma_result and isinstance(pragma_result, list):
+                    has_vendor_column = any(col[1] == 'vendor_id' for col in pragma_result)
+                else:
+                    # Si execute_query devolvió True o None, usar método alternativo
+                    logger.warning("⚠️ PRAGMA table_info no retornó lista, verificando con SELECT...")
+                    try:
+                        db.execute_query("SELECT vendor_id FROM ventas LIMIT 1")
+                        has_vendor_column = True
+                    except Exception:
+                        has_vendor_column = False
+                
+                if not has_vendor_column:
+                    logger.info("⚠️ Agregando columna vendor_id a ventas...")
+                    db.execute_query("ALTER TABLE ventas ADD COLUMN vendor_id TEXT")
+                    db.execute_query("CREATE INDEX IF NOT EXISTS idx_ventas_vendor_id ON ventas(vendor_id)")
+                    logger.info("✅ Columna vendor_id agregada a ventas")
+                else:
+                    logger.info("✅ vendor_id ya existe en ventas")
+            except Exception as e:
+                logger.error(f"Error verificando/agregando vendor_id: {e}")
+                # Intentar agregar la columna directamente como fallback
+                try:
+                    db.execute_query("ALTER TABLE ventas ADD COLUMN vendor_id TEXT")
+                    logger.info("✅ Columna vendor_id agregada a ventas (fallback)")
+                except Exception as e2:
+                    logger.error(f"Error agregando vendor_id (fallback): {e2}")
+                    # Si no se puede agregar, continuar sin vendor_id (no debería pasar)
         
-        insert_query = """
-            INSERT INTO ventas (producto_id, cantidad, usuario_id, vendor_id) 
-            VALUES (%s, %s, %s, %s)
-        """ if is_postgres else """
-            INSERT INTO ventas (producto_id, cantidad, usuario_id, vendor_id) 
-            VALUES (?, ?, ?, ?)
-        """
+        # Registrar venta
+        if is_postgres:
+            insert_query = """
+                INSERT INTO ventas (producto_id, cantidad, usuario_id, vendor_id) 
+                VALUES (%s, %s, %s, %s)
+            """
+        else:
+            insert_query = """
+                INSERT INTO ventas (producto_id, cantidad, usuario_id, vendor_id) 
+                VALUES (?, ?, ?, ?)
+            """
         db.execute_query(insert_query, (
             producto_id, 
             cantidad, 
@@ -1091,7 +1012,11 @@ def registrar_venta_app():
             g.vendor_id
         ))
         
-        update_query = "UPDATE productos SET stock = stock - %s WHERE id = %s" if is_postgres else "UPDATE productos SET stock = stock - ? WHERE id = ?"
+        # Actualizar stock
+        if is_postgres:
+            update_query = "UPDATE productos SET stock = stock - %s WHERE id = %s"
+        else:
+            update_query = "UPDATE productos SET stock = stock - ? WHERE id = ?"
         db.execute_query(update_query, (cantidad, producto_id))
         
         total = cantidad * precio_unitario
@@ -1114,7 +1039,7 @@ def registrar_venta_app():
             request_info=request_info
         )
         
-        response = jsonify({
+        return jsonify({
             'success': True,
             'message': f'Venta registrada: {cantidad} x {nombre_producto}',
             'venta': {
@@ -1126,8 +1051,6 @@ def registrar_venta_app():
             },
             'stock_restante': stock_disponible - cantidad
         })
-        response.headers.add('Access-Control-Allow-Origin', '*')
-        return response
         
     except Exception as e:
         logger.error(f"Error en registrar_venta_app: {e}")
@@ -1138,19 +1061,14 @@ def registrar_venta_app():
             message=f"Error en registrar_venta_app: {str(e)}",
             data={
                 'error': str(e),
-                'traceback': traceback.format_exc(),
-                'vendor_id': g.vendor_id if hasattr(g, 'vendor_id') else 'DESCONOCIDO',
-                'user_id': g.user_id if hasattr(g, 'user_id') else 'DESCONOCIDO',
-                'business_id': g.business_id if hasattr(g, 'business_id') else 'DESCONOCIDO'
+                'traceback': traceback.format_exc()
             },
             business_id=g.business_id if hasattr(g, 'business_id') else None,
             request_info=request_info
         )
         
-        response = jsonify({'success': False, 'message': str(e)})
-        response.headers.add('Access-Control-Allow-Origin', '*')
-        return response, 500
-
+        return jsonify({'success': False, 'message': str(e)}), 500
+        
 
 @app.route('/api/dashboard-app', methods=['GET'])
 @token_required
