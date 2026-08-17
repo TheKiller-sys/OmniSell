@@ -558,8 +558,7 @@ def test_log_endpoint():
 @app.route('/api/login-vendedor', methods=['POST'])
 def login_vendedor():
     """
-    Login para vendedores - SOLO con ID de 8 caracteres.
-    ✅ AHORA INCLUYE user_id EN EL JWT
+    Login para vendedores - BUSCA EN vendors Y users
     """
     request_info = {
         'method': request.method,
@@ -574,10 +573,8 @@ def login_vendedor():
         if not data:
             return jsonify({'success': False, 'message': 'No se recibieron datos'}), 400
         
-        # CONVERTIR A MAYÚSCULAS
         vendor_id = data.get('vendor_id', '').strip().upper()
         
-        # VALIDACIÓN
         if not vendor_id:
             return jsonify({'success': False, 'message': 'ID de vendedor requerido'}), 400
         
@@ -597,7 +594,7 @@ def login_vendedor():
         if is_postgres:
             c.execute("SET search_path TO public")
         
-        # BUSCAR EL VENDEDOR - ¡SOLO EN LA TABLA vendors!
+        # 🔴 CAMBIO: Buscar PRIMERO en vendors
         if is_postgres:
             c.execute("""
                 SELECT 
@@ -623,16 +620,58 @@ def login_vendedor():
         
         vendor_data = c.fetchone()
         
+        # Si NO está en vendors, buscar en users
         if not vendor_data:
-            log_to_telegram(
-                level='WARNING',
-                message=f"Login fallido: Vendor ID no encontrado: {vendor_id}",
-                data={'vendor_id': vendor_id},
-                request_info=request_info
-            )
+            logger.info(f"⚠️ Vendor {vendor_id} no encontrado en vendors, buscando en users...")
+            
+            if is_postgres:
+                c.execute("""
+                    SELECT 
+                        id, 
+                        username as name, 
+                        business_id, 
+                        role, 
+                        TRUE as active
+                    FROM users
+                    WHERE username = %s OR id::text = %s
+                """, (vendor_id, vendor_id))
+            else:
+                c.execute("""
+                    SELECT 
+                        id, 
+                        username as name, 
+                        business_id, 
+                        role, 
+                        1 as active
+                    FROM users
+                    WHERE username = ? OR id = ?
+                """, (vendor_id, vendor_id))
+            
+            user_data = c.fetchone()
+            
+            if user_data:
+                logger.info(f"✅ Vendor {vendor_id} encontrado en users, creando en vendors...")
+                # Crear el vendedor en la tabla vendors automáticamente
+                if is_postgres:
+                    c.execute("""
+                        INSERT INTO vendors (id, name, business_id, role, active)
+                        VALUES (%s, %s, %s, %s, %s)
+                    """, (vendor_id, user_data[1], user_data[2], user_data[3], True))
+                else:
+                    c.execute("""
+                        INSERT INTO vendors (id, name, business_id, role, active)
+                        VALUES (?, ?, ?, ?, ?)
+                    """, (vendor_id, user_data[1], user_data[2], user_data[3], 1))
+                conn.commit()
+                
+                # Usar los datos del usuario
+                vendor_data = user_data
+                logger.info(f"✅ Vendor {vendor_id} creado en vendors automáticamente")
+        
+        if not vendor_data:
             return jsonify({'success': False, 'message': 'ID de vendedor no encontrado'}), 401
         
-        # VERIFICAR QUE ESTÉ ACTIVO
+        # Verificar que esté activo
         active_value = vendor_data[4]
         is_active = False
         
@@ -649,7 +688,7 @@ def login_vendedor():
         business_id = vendor_data[2]
         vendor_role = vendor_data[3]
         
-        # OBTENER EL NOMBRE DEL NEGOCIO
+        # Obtener el nombre del negocio
         if is_postgres:
             c.execute("SELECT name FROM businesses WHERE id = %s", (business_id,))
         else:
@@ -658,69 +697,30 @@ def login_vendedor():
         business_result = c.fetchone()
         business_name = business_result[0] if business_result else business_id
         
-        # ====== OBTENER EL user_id ASOCIADO AL NEGOCIO ======
-        # Buscar el usuario en la tabla users que pertenece al mismo negocio
+        # Obtener user_id
         if is_postgres:
-            c.execute("""
-                SELECT id FROM users 
-                WHERE business_id = %s 
-                AND role = 'admin' 
-                LIMIT 1
-            """, (business_id,))
+            c.execute("SELECT id FROM users WHERE business_id = %s LIMIT 1", (business_id,))
         else:
-            c.execute("""
-                SELECT id FROM users 
-                WHERE business_id = ? 
-                AND role = 'admin' 
-                LIMIT 1
-            """, (business_id,))
+            c.execute("SELECT id FROM users WHERE business_id = ? LIMIT 1", (business_id,))
         
         user_result = c.fetchone()
         user_id = user_result[0] if user_result else None
-
+        
         if not user_id:
-            # Si no hay admin, buscar cualquier usuario del negocio
-            if is_postgres:
-                c.execute("SELECT id FROM users WHERE business_id = %s LIMIT 1", (business_id,))
-            else:
-                c.execute("SELECT id FROM users WHERE business_id = ? LIMIT 1", (business_id,))
-            user_result = c.fetchone()
-            user_id = user_result[0] if user_result else None
-
-        if not user_id:
-            log_to_telegram(
-                level='ERROR',
-                message=f"No se encontró usuario para business_id: {business_id}",
-                data={'business_id': business_id, 'vendor_id': vendor_id_db},
-                request_info=request_info
-            )
             return jsonify({
                 'success': False, 
-                'message': 'No se encontró un usuario asociado a este negocio. Contacta al administrador.'
+                'message': 'No se encontró un usuario asociado a este negocio'
             }), 401
-
-        # ====== GENERAR TOKEN JWT CON user_id ======
+        
+        # Generar token
         token = jwt.encode({
             'vendor_id': vendor_id_db,
-            'user_id': user_id,                     # ✅ AHORA INCLUYE user_id
+            'user_id': user_id,
             'business_id': business_id,
             'name': vendor_name,
             'role': vendor_role,
             'exp': datetime.datetime.utcnow() + datetime.timedelta(days=7)
         }, os.environ.get('JWT_SECRET', 'secret-key'), algorithm='HS256')
-        
-        log_to_telegram(
-            level='SUCCESS',
-            message=f"✅ Login exitoso desde App Android",
-            data={
-                'vendor_id': vendor_id_db,
-                'vendor_name': vendor_name,
-                'user_id': user_id,
-                'business_id': business_id,
-                'business_name': business_name
-            },
-            request_info=request_info
-        )
         
         return jsonify({
             'success': True,
@@ -731,18 +731,12 @@ def login_vendedor():
                 'business_id': business_id,
                 'business_name': business_name,
                 'role': vendor_role,
-                'user_id': user_id                   # ✅ TAMBIÉN EN LA RESPUESTA
+                'user_id': user_id
             }
         })
         
     except Exception as e:
         logger.error(f"❌ Error en login_vendedor: {e}")
-        log_to_telegram(
-            level='ERROR',
-            message=f"Error en login_vendedor: {str(e)}",
-            data={'error': str(e), 'traceback': traceback.format_exc()},
-            request_info=request_info
-        )
         return jsonify({'success': False, 'message': f'Error del servidor: {str(e)}'}), 500
         
 
@@ -835,6 +829,112 @@ def diagnosticar_vendedor(vendor_id):
     except Exception as e:
         logger.error(f"Error en diagnosticar_vendedor: {e}")
         return jsonify({'success': False, 'message': str(e)}), 500
+
+@app.route('/api/diagnostico-vendedor-bd/<vendor_id>', methods=['GET'])
+def diagnosticar_vendedor_bd(vendor_id):
+    """
+    Diagnóstico completo para verificar dónde está el vendedor.
+    """
+    try:
+        from database.db_manager import DatabaseManager
+        DatabaseManager.verify_and_fix_global_tables()
+        
+        conn = DatabaseManager.get_global_connection()
+        if conn is None:
+            return jsonify({'success': False, 'message': 'Error de conexión'}), 500
+        
+        c = conn.cursor()
+        is_postgres = 'RENDER' in os.environ and os.environ.get('DATABASE_URL')
+        
+        vendor_id = vendor_id.strip().upper()
+        resultado = {
+            'vendor_id': vendor_id,
+            'tabla_vendors': None,
+            'tabla_users': None,
+            'business_id': None
+        }
+        
+        # 1. Buscar en tabla vendors
+        if is_postgres:
+            c.execute("""
+                SELECT id, name, business_id, role, active 
+                FROM vendors 
+                WHERE id = %s
+            """, (vendor_id,))
+        else:
+            c.execute("""
+                SELECT id, name, business_id, role, active 
+                FROM vendors 
+                WHERE id = ?
+            """, (vendor_id,))
+        
+        vendor = c.fetchone()
+        if vendor:
+            resultado['tabla_vendors'] = {
+                'id': vendor[0],
+                'name': vendor[1],
+                'business_id': vendor[2],
+                'role': vendor[3],
+                'active': vendor[4]
+            }
+            resultado['business_id'] = vendor[2]
+        
+        # 2. Buscar en tabla users (por si acaso)
+        if is_postgres:
+            c.execute("""
+                SELECT id, username, business_id, role 
+                FROM users 
+                WHERE username = %s OR id = %s
+            """, (vendor_id, vendor_id))
+        else:
+            c.execute("""
+                SELECT id, username, business_id, role 
+                FROM users 
+                WHERE username = ? OR id = ?
+            """, (vendor_id, vendor_id))
+        
+        user = c.fetchone()
+        if user:
+            resultado['tabla_users'] = {
+                'id': user[0],
+                'username': user[1],
+                'business_id': user[2],
+                'role': user[3]
+            }
+            if not resultado['business_id']:
+                resultado['business_id'] = user[2]
+        
+        # 3. Si no se encontró en ninguna tabla
+        if not vendor and not user:
+            return jsonify({
+                'success': False,
+                'message': f'Vendedor {vendor_id} no encontrado en ninguna tabla',
+                'diagnostico': resultado
+            })
+        
+        # 4. Verificar el negocio
+        business_id = resultado.get('business_id')
+        if business_id:
+            if is_postgres:
+                c.execute("SELECT id, name FROM businesses WHERE id = %s", (business_id,))
+            else:
+                c.execute("SELECT id, name FROM businesses WHERE id = ?", (business_id,))
+            business = c.fetchone()
+            if business:
+                resultado['business'] = {
+                    'id': business[0],
+                    'name': business[1]
+                }
+        
+        return jsonify({
+            'success': True,
+            'diagnostico': resultado
+        })
+        
+    except Exception as e:
+        logger.error(f"Error en diagnosticar_vendedor_bd: {e}")
+        return jsonify({'success': False, 'message': str(e)}), 500
+
 
 
 @app.route('/api/diagnostico-token', methods=['GET'])
