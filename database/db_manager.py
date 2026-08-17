@@ -38,7 +38,6 @@ class DatabaseManager:
                                     keepalives_interval=10,
                                     keepalives_count=3
                                 )
-                                # Asegurar que usamos el esquema public para tablas globales
                                 with cls._global_conn.cursor() as cur:
                                     cur.execute("SET search_path TO public")
                                 logger.info("Conectado a PostgreSQL para base de datos global")
@@ -173,7 +172,6 @@ class DatabaseManager:
             c = conn.cursor()
             logger.info("Verificando estructura de tablas globales...")
             
-            # Detectar si estamos en PostgreSQL o SQLite
             is_postgres = 'RENDER' in os.environ and os.environ.get('DATABASE_URL')
             
             if is_postgres:
@@ -415,10 +413,8 @@ class DatabaseManager:
             if not admin_exists:
                 logger.info("Creando datos de prueba...")
                 
-                # 1. Crear business_id fijo para pruebas
                 business_id = 'test_business_001'
                 
-                # Verificar si el business ya existe
                 if is_postgres:
                     c.execute("SELECT id FROM businesses WHERE id = %s", (business_id,))
                 else:
@@ -426,11 +422,9 @@ class DatabaseManager:
                 
                 business_exists = c.fetchone() is not None
                 
-                # Hash de contraseña (admin123)
                 hashed_password = bcrypt.hashpw('admin123'.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
                 
                 if not business_exists:
-                    # Crear negocio de prueba
                     if is_postgres:
                         c.execute("""
                             INSERT INTO businesses (id, name, admin_id, web_user, web_pass, email)
@@ -443,7 +437,6 @@ class DatabaseManager:
                         """, (business_id, 'Tienda de Prueba', '123456789', 'admin', hashed_password, 'admin@test.com'))
                     logger.info(f"✅ Negocio de prueba creado: {business_id}")
                 
-                # 2. Crear usuario admin
                 if is_postgres:
                     c.execute("""
                         INSERT INTO users (business_id, username, password, role, telegram_id)
@@ -456,32 +449,31 @@ class DatabaseManager:
                     """, (business_id, 'admin', hashed_password, 'admin', '123456789'))
                 logger.info("✅ Usuario admin creado: admin / admin123")
                 
-                # 3. Crear vendedor de prueba en la base de datos del negocio
+                # Crear vendedor de prueba en public.vendors
                 vendor_id = 'AAAA0000'
+                if is_postgres:
+                    c.execute("SET search_path TO public")
+                    c.execute("""
+                        INSERT INTO vendors (id, name, business_id, role, active)
+                        VALUES (%s, %s, %s, %s, %s)
+                    """, (vendor_id, 'Vendedor Prueba', business_id, 'vendedor', True))
+                else:
+                    c.execute("""
+                        INSERT INTO vendors (id, name, business_id, role, active)
+                        VALUES (?, ?, ?, ?, ?)
+                    """, (vendor_id, 'Vendedor Prueba', business_id, 'vendedor', 1))
+                logger.info(f"✅ Vendedor de prueba creado en public: {vendor_id}")
                 
-                # Crear conexión al negocio
+                # También en el esquema del negocio
                 try:
                     db = cls(business_id)
-                    # Verificar si el vendedor ya existe
-                    if is_postgres:
-                        vendor_check = db.execute_query("SELECT id FROM vendors WHERE id = %s", (vendor_id,))
-                    else:
-                        vendor_check = db.execute_query("SELECT id FROM vendors WHERE id = ?", (vendor_id,))
-                    
-                    if not vendor_check:
-                        if is_postgres:
-                            db.execute_query("""
-                                INSERT INTO vendors (id, name, business_id, role, active)
-                                VALUES (%s, %s, %s, %s, %s)
-                            """, (vendor_id, 'Vendedor Prueba', business_id, 'vendedor', True))
-                        else:
-                            db.execute_query("""
-                                INSERT INTO vendors (id, name, business_id, role, active)
-                                VALUES (?, ?, ?, ?, ?)
-                            """, (vendor_id, 'Vendedor Prueba', business_id, 'vendedor', 1))
-                        logger.info(f"✅ Vendedor de prueba creado: ID = {vendor_id}")
+                    db.execute_query("""
+                        INSERT INTO vendors (id, name, business_id, role, active)
+                        VALUES (?, ?, ?, ?, ?)
+                    """, (vendor_id, 'Vendedor Prueba', business_id, 'vendedor', 1))
+                    logger.info(f"✅ Vendedor de prueba creado en esquema del negocio: {vendor_id}")
                 except Exception as e:
-                    logger.error(f"Error creando vendedor de prueba: {e}")
+                    logger.error(f"Error creando vendedor en esquema del negocio: {e}")
                 
                 conn.commit()
                 logger.info("=" * 50)
@@ -577,11 +569,9 @@ class DatabaseManager:
             return self.conn
 
     def _safe_schema_name(self, business_id):
-        """Sanitizar business_id para usar como nombre de esquema en PostgreSQL"""
         return f"business_{re.sub(r'[^a-zA-Z0-9_]', '_', business_id)}"
 
     def _safe_db_path(self, business_id):
-        """Sanitizar business_id para usar como nombre de archivo"""
         safe_id = re.sub(r'[^a-zA-Z0-9_]', '_', business_id)
         return f"{safe_id}.db"
 
@@ -591,7 +581,6 @@ class DatabaseManager:
             schema = self._safe_schema_name(self.business_id)
             
             if is_postgres:
-                # Verificar con schema específico
                 self.c.execute("""
                     SELECT column_name 
                     FROM information_schema.columns 
@@ -610,7 +599,6 @@ class DatabaseManager:
                 else:
                     logger.info(f"✅ vendor_id ya existe en ventas para negocio {self.business_id}")
             else:
-                # SQLite: verificar PRAGMA
                 self.c.execute("PRAGMA table_info(ventas)")
                 columns = [col[1] for col in self.c.fetchall()]
                 exists = 'vendor_id' in columns
@@ -635,7 +623,6 @@ class DatabaseManager:
             is_postgres = 'RENDER' in os.environ and os.environ.get('DATABASE_URL')
         
             if is_postgres:
-            # ✅ Usar la conexión GLOBAL para crear el vendedor en public
                 conn = DatabaseManager.get_global_connection()
                 if conn is None:
                     logger.error("No se pudo obtener conexión global para asegurar vendedor")
@@ -644,7 +631,6 @@ class DatabaseManager:
                 c = conn.cursor()
                 c.execute("SET search_path TO public")
             
-            # Verificar si el vendedor AAAA0000 existe en public
                 c.execute("SELECT id, active FROM vendors WHERE id = %s", ('AAAA0000',))
                 vendor_check = c.fetchone()
             
@@ -657,7 +643,6 @@ class DatabaseManager:
                     conn.commit()
                     logger.info(f"✅ Vendedor de prueba creado en public: AAAA0000")
                 else:
-                # Verificar que esté activo
                     active = vendor_check[1]
                     is_active = active == True or active == 't' or active == 'true'
                 
@@ -669,12 +654,11 @@ class DatabaseManager:
                     else:
                         logger.info("✅ Vendedor de prueba AAAA0000 ya existe y está activo en public")
             
-            # ✅ TAMBIÉN asegurar que el vendedor existe en el esquema del negocio (para compatibilidad)
+                # También en el esquema del negocio
                 try:
                     schema_name = self._safe_schema_name(self.business_id)
                     c.execute(f"SET search_path TO {schema_name}, public")
                 
-                # Verificar en el esquema del negocio
                     c.execute("SELECT id, active FROM vendors WHERE id = %s", ('AAAA0000',))
                     vendor_check_schema = c.fetchone()
                 
@@ -687,23 +671,20 @@ class DatabaseManager:
                         conn.commit()
                         logger.info(f"✅ Vendedor de prueba creado en esquema {schema_name}")
                     else:
-                    logger.info(f"✅ Vendedor de prueba ya existe en esquema {schema_name}")
+                        logger.info(f"✅ Vendedor de prueba ya existe en esquema {schema_name}")
                 except Exception as e:
                     logger.warning(f"No se pudo asegurar vendedor en esquema del negocio: {e}")
               
-            # ✅ Restaurar search_path a public
                 c.execute("SET search_path TO public")
             
             else:
-            # SQLite - usar la conexión local
-            # Verificar si la tabla vendors existe
+                # SQLite
                 self.execute_query("SELECT name FROM sqlite_master WHERE type='table' AND name='vendors'")
                 table_exists = self.c.fetchone() is not None
             
                 if not table_exists:
                     self._create_vendor_table()
             
-            # Verificar si el vendedor AAAA0000 existe
                 vendor_check = self.execute_query(
                     "SELECT id, active FROM vendors WHERE id = ?", 
                     ('AAAA0000',)
@@ -718,7 +699,6 @@ class DatabaseManager:
                     self.conn.commit()
                     logger.info(f"✅ Vendedor de prueba creado: AAAA0000")
                 else:
-                # Verificar que esté activo
                     active = vendor_check[0][1]
                     is_active = active == 1 or active == 'True' or active == 't' or active == 'true'
                 
@@ -778,11 +758,9 @@ class DatabaseManager:
             is_postgres = 'RENDER' in os.environ and os.environ.get('DATABASE_URL')
             
             if is_postgres:
-                # Configurar search_path para usar el esquema del negocio
                 schema_name = self._safe_schema_name(self.business_id)
                 self.c.execute(f"SET search_path TO {schema_name}, public")
                 
-                # Verificar si las tablas ya existen en este esquema
                 self.c.execute("""
                     SELECT EXISTS (
                         SELECT FROM information_schema.tables 
@@ -793,7 +771,6 @@ class DatabaseManager:
                 
                 if tables_exist:
                     logger.info(f"Las tablas ya existen para el negocio {self.business_id}")
-                    # ✅ Usar el nuevo método para asegurar vendor_id
                     self._ensure_vendor_column(is_postgres)
                     return
                 
@@ -830,7 +807,7 @@ class DatabaseManager:
                 )
             ''')
             
-            # ✅ Tabla ventas CON vendor_id
+            # Tabla ventas CON vendor_id
             self.c.execute(f'''
                 CREATE TABLE IF NOT EXISTS ventas (
                     id {serial_type},
@@ -908,7 +885,6 @@ class DatabaseManager:
                 self.c.execute("CREATE INDEX IF NOT EXISTS idx_vendors_business ON vendors(business_id)")
                 self.c.execute("CREATE INDEX IF NOT EXISTS idx_vendors_active ON vendors(active)")
             
-            # ✅ Usar el nuevo método para asegurar vendor_id después de crear las tablas
             self._ensure_vendor_column(is_postgres)
             
             self.conn.commit()
@@ -928,9 +904,6 @@ class DatabaseManager:
             
             logger.info("Verificando datos de prueba del negocio...")
             
-            # ✅ El vendedor ya fue creado en __init__
-            
-            # Verificar si ya hay secciones
             if is_postgres:
                 secciones = self.execute_query("SELECT COUNT(*) FROM secciones")
             else:
@@ -942,7 +915,6 @@ class DatabaseManager:
             
             logger.info("Creando datos de prueba para el negocio...")
             
-            # Crear sección de ejemplo
             if is_postgres:
                 seccion_id = self.execute_query("""
                     INSERT INTO secciones (nombre) VALUES (%s) RETURNING id
@@ -953,7 +925,6 @@ class DatabaseManager:
                 """, ('Electrónicos',))
                 seccion_id = self.c.lastrowid
             
-            # Crear producto de ejemplo
             if is_postgres:
                 self.execute_query("""
                     INSERT INTO productos (nombre, precio_venta, precio_compra, stock, seccion_id)
@@ -982,7 +953,6 @@ class DatabaseManager:
             is_postgres = 'RENDER' in os.environ and os.environ.get('DATABASE_URL')
             
             if is_postgres:
-                # Asegurar que el search_path esté configurado
                 schema_name = self._safe_schema_name(self.business_id)
                 self.c.execute(f"SET search_path TO {schema_name}, public")
                 formatted_query = query
@@ -998,10 +968,8 @@ class DatabaseManager:
                 if query.strip().upper().startswith('INSERT'):
                     if is_postgres:
                         try:
-                            # Intentar obtener el ID con RETURNING si está en la consulta
                             if 'RETURNING' in query.upper():
                                 return self.c.fetchone()[0] if self.c.rowcount > 0 else None
-                            # Fallback a LASTVAL
                             self.c.execute("SELECT LASTVAL()")
                             return self.c.fetchone()[0]
                         except:
@@ -1025,7 +993,6 @@ class DatabaseManager:
             is_postgres = 'RENDER' in os.environ and os.environ.get('DATABASE_URL')
             
             if is_postgres:
-                # ✅ Usar context manager para asegurar cierre de conexión
                 with psycopg2.connect(
                     os.environ.get('DATABASE_URL'),
                     sslmode='require',
@@ -1042,7 +1009,6 @@ class DatabaseManager:
             return None
 
     def close(self):
-        """Cerrar conexión"""
         if self.conn:
             try:
                 self.conn.close()
