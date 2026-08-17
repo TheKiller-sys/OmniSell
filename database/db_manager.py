@@ -630,87 +630,116 @@ class DatabaseManager:
             return False
 
     def _ensure_vendor_exists(self):
-        """✅ Asegurar que el vendedor de prueba existe (SIEMPRE)"""
-        try:
-            is_postgres = 'RENDER' in os.environ and os.environ.get('DATABASE_URL')
+    """✅ Asegurar que el vendedor de prueba existe en el esquema PUBLIC (global)"""
+    try:
+        is_postgres = 'RENDER' in os.environ and os.environ.get('DATABASE_URL')
+        
+        if is_postgres:
+            # ✅ Usar la conexión GLOBAL para crear el vendedor en public
+            conn = DatabaseManager.get_global_connection()
+            if conn is None:
+                logger.error("No se pudo obtener conexión global para asegurar vendedor")
+                return
             
-            # Verificar si la tabla vendors existe
-            if is_postgres:
-                table_check = self.execute_query("""
-                    SELECT EXISTS (
-                        SELECT FROM information_schema.tables 
-                        WHERE table_name = 'vendors'
-                    )
-                """)
-                if not table_check or not table_check[0][0]:
-                    self._create_vendor_table()
-            else:
-                self.execute_query("SELECT name FROM sqlite_master WHERE type='table' AND name='vendors'")
-                table_exists = self.c.fetchone() is not None
-                if not table_exists:
-                    self._create_vendor_table()
+            c = conn.cursor()
+            c.execute("SET search_path TO public")
             
-            # Verificar si el vendedor AAAA0000 existe
-            if is_postgres:
-                vendor_check = self.execute_query(
-                    "SELECT id, active FROM vendors WHERE id = %s", 
-                    ('AAAA0000',)
-                )
-            else:
-                vendor_check = self.execute_query(
-                    "SELECT id, active FROM vendors WHERE id = ?", 
-                    ('AAAA0000',)
-                )
+            # Verificar si el vendedor AAAA0000 existe en public
+            c.execute("SELECT id, active FROM vendors WHERE id = %s", ('AAAA0000',))
+            vendor_check = c.fetchone()
             
             if not vendor_check:
-                logger.info("✅ Creando vendedor de prueba AAAA0000...")
+                logger.info("✅ Creando vendedor de prueba en public...")
+                c.execute("""
+                    INSERT INTO vendors (id, name, business_id, role, active)
+                    VALUES (%s, %s, %s, %s, %s)
+                """, ('AAAA0000', 'Vendedor Prueba', self.business_id, 'vendedor', True))
+                conn.commit()
+                logger.info(f"✅ Vendedor de prueba creado en public: AAAA0000")
+            else:
+                # Verificar que esté activo
+                active = vendor_check[1]
+                is_active = active == True or active == 't' or active == 'true'
                 
-                if is_postgres:
-                    self.execute_query("""
+                if not is_active:
+                    logger.warning("⚠️ Vendedor AAAA0000 está inactivo en public, activando...")
+                    c.execute("UPDATE vendors SET active = TRUE WHERE id = %s", ('AAAA0000',))
+                    conn.commit()
+                    logger.info("✅ Vendedor activado en public")
+                else:
+                    logger.info("✅ Vendedor de prueba AAAA0000 ya existe y está activo en public")
+            
+            # ✅ TAMBIÉN asegurar que el vendedor existe en el esquema del negocio (para compatibilidad)
+            try:
+                schema_name = self._safe_schema_name(self.business_id)
+                c.execute(f"SET search_path TO {schema_name}, public")
+                
+                # Verificar en el esquema del negocio
+                c.execute("SELECT id, active FROM vendors WHERE id = %s", ('AAAA0000',))
+                vendor_check_schema = c.fetchone()
+                
+                if not vendor_check_schema:
+                    logger.info(f"✅ Creando vendedor de prueba en esquema {schema_name}...")
+                    c.execute(f"""
                         INSERT INTO vendors (id, name, business_id, role, active)
                         VALUES (%s, %s, %s, %s, %s)
                     """, ('AAAA0000', 'Vendedor Prueba', self.business_id, 'vendedor', True))
+                    conn.commit()
+                    logger.info(f"✅ Vendedor de prueba creado en esquema {schema_name}")
                 else:
-                    self.execute_query("""
-                        INSERT INTO vendors (id, name, business_id, role, active)
-                        VALUES (?, ?, ?, ?, ?)
-                    """, ('AAAA0000', 'Vendedor Prueba', self.business_id, 'vendedor', 1))
-                
+                    logger.info(f"✅ Vendedor de prueba ya existe en esquema {schema_name}")
+            except Exception as e:
+                logger.warning(f"No se pudo asegurar vendedor en esquema del negocio: {e}")
+            
+            # ✅ Restaurar search_path a public
+            c.execute("SET search_path TO public")
+            
+        else:
+            # SQLite - usar la conexión local
+            # Verificar si la tabla vendors existe
+            self.execute_query("SELECT name FROM sqlite_master WHERE type='table' AND name='vendors'")
+            table_exists = self.c.fetchone() is not None
+            
+            if not table_exists:
+                self._create_vendor_table()
+            
+            # Verificar si el vendedor AAAA0000 existe
+            vendor_check = self.execute_query(
+                "SELECT id, active FROM vendors WHERE id = ?", 
+                ('AAAA0000',)
+            )
+            
+            if not vendor_check:
+                logger.info("✅ Creando vendedor de prueba AAAA0000...")
+                self.execute_query("""
+                    INSERT INTO vendors (id, name, business_id, role, active)
+                    VALUES (?, ?, ?, ?, ?)
+                """, ('AAAA0000', 'Vendedor Prueba', self.business_id, 'vendedor', 1))
                 self.conn.commit()
                 logger.info(f"✅ Vendedor de prueba creado: AAAA0000")
             else:
                 # Verificar que esté activo
                 active = vendor_check[0][1]
-                
-                if is_postgres:
-                    is_active = active == True or active == 't' or active == 'true'
-                else:
-                    is_active = active == 1 or active == 'True' or active == 't' or active == 'true'
+                is_active = active == 1 or active == 'True' or active == 't' or active == 'true'
                 
                 if not is_active:
                     logger.warning("⚠️ Vendedor AAAA0000 está inactivo, activando...")
-                    if is_postgres:
-                        self.execute_query(
-                            "UPDATE vendors SET active = TRUE WHERE id = %s", 
-                            ('AAAA0000',)
-                        )
-                    else:
-                        self.execute_query(
-                            "UPDATE vendors SET active = 1 WHERE id = ?", 
-                            ('AAAA0000',)
-                        )
+                    self.execute_query(
+                        "UPDATE vendors SET active = 1 WHERE id = ?", 
+                        ('AAAA0000',)
+                    )
                     self.conn.commit()
                     logger.info("✅ Vendedor activado")
                 else:
                     logger.info("✅ Vendedor de prueba AAAA0000 ya existe y está activo")
                     
-        except Exception as e:
-            logger.error(f"Error asegurando vendedor: {e}")
-            if self.conn:
-                try:
-                    self.conn.rollback()
-                except:
-                    pass
+    except Exception as e:
+        logger.error(f"Error asegurando vendedor: {e}")
+        if self.conn:
+            try:
+                self.conn.rollback()
+            except:
+                pass
 
     def _create_vendor_table(self):
         """Crear la tabla vendors si no existe"""
