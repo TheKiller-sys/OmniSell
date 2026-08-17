@@ -127,8 +127,8 @@ jobs:
                   applicationId "com.omniventas.app"
                   minSdk 21
                   targetSdk 34
-                  versionCode 13
-                  versionName "8.0.5"
+                  versionCode 14
+                  versionName "8.0.6"
                   testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
               }
           
@@ -731,7 +731,7 @@ jobs:
                       <TextView
                           android:layout_width="wrap_content"
                           android:layout_height="wrap_content"
-                          android:text="v8.0.5"
+                          android:text="v8.0.6"
                           android:textSize="11sp"
                           android:textColor="@color/gray"
                           android:layout_gravity="center"
@@ -2615,7 +2615,7 @@ jobs:
               private static TelegramLogger instance;
               private Context context;
               private SessionManager sessionManager;
-              private String appVersion = "8.0.5";
+              private String appVersion = "8.0.6";
           
               private TelegramLogger(Context context) {
                   this.context = context.getApplicationContext();
@@ -3713,12 +3713,12 @@ jobs:
         run: |
           echo "📤 Subiendo archivos fuente al repositorio..."
           git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git config email "github-actions[bot]@users.noreply.github.com"
           git add android-app/
           if git diff --staged --quiet; then
             echo "✅ No hay cambios nuevos en android-app/"
           else
-            git commit -m "🚀 Production Android app v8.0.5 - Mejor manejo de errores, logs y filtro por vendor_id [skip ci]"
+            git commit -m "🚀 Production Android app v8.0.6 - Fix: user_id ahora incluido en JWT para registrar ventas [skip ci]"
             git push
             echo "✅ Archivos subidos al repositorio"
           fi
@@ -3750,17 +3750,18 @@ jobs:
         run: |
           echo "🚀 APK DE PRODUCCIÓN COMPILADOS EXITOSAMENTE!"
           echo ""
-          echo "📱 Versión: 8.0.5"
+          echo "📱 Versión: 8.0.6"
           echo ""
-          echo "✨ MEJORAS INCLUIDAS:"
-          echo "   - ✅ Mejor manejo de errores en RetrofitClient"
-          echo "   - ✅ Mejor manejo de errores en VentasFragment"
-          echo "   - ✅ Detección de respuestas HTML en lugar de JSON"
-          echo "   - ✅ Mensajes de error más claros para el usuario"
-          echo "   - ✅ Logs mejorados con más información de depuración"
-          echo "   - ✅ Filtro por vendor_id en historial de ventas"
-          echo "   - ✅ Guardado de user_id en SessionManager"
-          echo "   - ✅ Actualización automática de ventas cada 30s"
+          echo "✨ CORRECCIÓN CRÍTICA:"
+          echo "   - ✅ user_id AHORA se incluye en el JWT durante el login"
+          echo "   - ✅ El endpoint /api/registrar-venta ahora recibe user_id del token"
+          echo "   - ✅ Los vendedores pueden registrar ventas correctamente"
+          echo ""
+          echo "📋 Resumen de cambios:"
+          echo "   - LoginResponse ahora incluye user_id"
+          echo "   - SessionManager guarda user_id"
+          echo "   - Decorador token_required extrae user_id del token"
+          echo "   - /api/registrar-venta usa g.user_id para la columna usuario_id"
           echo ""
           echo "🔑 Credenciales de prueba:"
           echo "   Vendor ID: AAAA0000"
