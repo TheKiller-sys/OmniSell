@@ -342,12 +342,12 @@ def handle_exception(error):
     return response
 
 
-# ==================== DECORADOR DE AUTENTICACIÓN ====================
+# ==================== DECORADOR DE AUTENTICACIÓN (CORREGIDO) ====================
 
 def token_required(f):
     """
     Decorador para verificar token JWT en peticiones de la app Android.
-    ✅ Usa SOLO vendor_id del token.
+    ✅ Usa vendor_id y user_id del token.
     """
     @wraps(f)
     def decorated(*args, **kwargs):
@@ -359,27 +359,31 @@ def token_required(f):
             token = auth_header.split(' ')[1]
             payload = jwt.decode(token, os.environ.get('JWT_SECRET', 'secret-key'), algorithms=['HS256'])
             
-            # ✅ SOLO usar vendor_id - NO user_id
+            # ✅ Obtener todos los campos del token
             g.vendor_id = payload.get('vendor_id')
+            g.user_id = payload.get('user_id')      # ✅ AHORA user_id viene del token
             g.business_id = payload.get('business_id')
             g.vendor_name = payload.get('name')
             g.role = payload.get('role', 'vendedor')
             
-            # ✅ Validar que vendor_id exista
+            # ✅ Validar campos requeridos
             if not g.vendor_id:
-                return jsonify({'success': False, 'message': 'Token inválido'}), 401
+                return jsonify({'success': False, 'message': 'Token inválido: falta vendor_id'}), 401
             
-            logger.debug(f"🔐 Token válido: vendor={g.vendor_id}, business={g.business_id}")
+            if not g.user_id:
+                return jsonify({'success': False, 'message': 'Token inválido: falta user_id'}), 401
+            
+            logger.debug(f"🔐 Token válido: vendor={g.vendor_id}, user_id={g.user_id}, business={g.business_id}")
             
             return f(*args, **kwargs)
             
         except jwt.ExpiredSignatureError:
             return jsonify({'success': False, 'message': 'Token expirado'}), 401
         except jwt.InvalidTokenError as e:
-            return jsonify({'success': False, 'message': 'Token inválido'}), 401
+            return jsonify({'success': False, 'message': f'Token inválido: {str(e)}'}), 401
         except Exception as e:
             logger.error(f"Error en token_required: {e}")
-            return jsonify({'success': False, 'message': 'Error de autenticación'}), 401
+            return jsonify({'success': False, 'message': f'Error de autenticación: {str(e)}'}), 401
     return decorated
 
 
@@ -553,7 +557,10 @@ def test_log_endpoint():
 
 @app.route('/api/login-vendedor', methods=['POST'])
 def login_vendedor():
-    """Login para vendedores - SOLO con ID de 8 caracteres"""
+    """
+    Login para vendedores - SOLO con ID de 8 caracteres.
+    ✅ AHORA INCLUYE user_id EN EL JWT
+    """
     request_info = {
         'method': request.method,
         'path': request.path,
@@ -651,9 +658,51 @@ def login_vendedor():
         business_result = c.fetchone()
         business_name = business_result[0] if business_result else business_id
         
-        # ====== GENERAR TOKEN JWT - SOLO CON vendor_id ======
+        # ====== OBTENER EL user_id ASOCIADO AL NEGOCIO ======
+        # Buscar el usuario en la tabla users que pertenece al mismo negocio
+        if is_postgres:
+            c.execute("""
+                SELECT id FROM users 
+                WHERE business_id = %s 
+                AND role = 'admin' 
+                LIMIT 1
+            """, (business_id,))
+        else:
+            c.execute("""
+                SELECT id FROM users 
+                WHERE business_id = ? 
+                AND role = 'admin' 
+                LIMIT 1
+            """, (business_id,))
+        
+        user_result = c.fetchone()
+        user_id = user_result[0] if user_result else None
+
+        if not user_id:
+            # Si no hay admin, buscar cualquier usuario del negocio
+            if is_postgres:
+                c.execute("SELECT id FROM users WHERE business_id = %s LIMIT 1", (business_id,))
+            else:
+                c.execute("SELECT id FROM users WHERE business_id = ? LIMIT 1", (business_id,))
+            user_result = c.fetchone()
+            user_id = user_result[0] if user_result else None
+
+        if not user_id:
+            log_to_telegram(
+                level='ERROR',
+                message=f"No se encontró usuario para business_id: {business_id}",
+                data={'business_id': business_id, 'vendor_id': vendor_id_db},
+                request_info=request_info
+            )
+            return jsonify({
+                'success': False, 
+                'message': 'No se encontró un usuario asociado a este negocio. Contacta al administrador.'
+            }), 401
+
+        # ====== GENERAR TOKEN JWT CON user_id ======
         token = jwt.encode({
             'vendor_id': vendor_id_db,
+            'user_id': user_id,                     # ✅ AHORA INCLUYE user_id
             'business_id': business_id,
             'name': vendor_name,
             'role': vendor_role,
@@ -666,6 +715,7 @@ def login_vendedor():
             data={
                 'vendor_id': vendor_id_db,
                 'vendor_name': vendor_name,
+                'user_id': user_id,
                 'business_id': business_id,
                 'business_name': business_name
             },
@@ -680,7 +730,8 @@ def login_vendedor():
                 'name': vendor_name,
                 'business_id': business_id,
                 'business_name': business_name,
-                'role': vendor_role
+                'role': vendor_role,
+                'user_id': user_id                   # ✅ TAMBIÉN EN LA RESPUESTA
             }
         })
         
@@ -784,6 +835,23 @@ def diagnosticar_vendedor(vendor_id):
     except Exception as e:
         logger.error(f"Error en diagnosticar_vendedor: {e}")
         return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@app.route('/api/diagnostico-token', methods=['GET'])
+@token_required
+def diagnosticar_token():
+    """Diagnóstico del token JWT - VERIFICA QUE user_id ESTÉ PRESENTE"""
+    return jsonify({
+        'success': True,
+        'token_info': {
+            'vendor_id': g.vendor_id,
+            'user_id': g.user_id,
+            'business_id': g.business_id,
+            'vendor_name': g.vendor_name,
+            'role': g.role
+        }
+    })
+
 
 # ==================== API PARA LA APP ANDROID ====================
 
@@ -985,6 +1053,7 @@ def registrar_venta_app():
             response.headers.add('Access-Control-Allow-Origin', '*')
             return response, 400
         
+        # ✅ VERIFICAR que g.user_id EXISTA
         if not hasattr(g, 'user_id') or not g.user_id:
             log_to_telegram(
                 level='ERROR',
@@ -1068,7 +1137,7 @@ def registrar_venta_app():
                 db.execute_query("ALTER TABLE ventas ADD COLUMN vendor_id TEXT")
                 db.execute_query("CREATE INDEX IF NOT EXISTS idx_ventas_vendor_id ON ventas(vendor_id)")
         
-        # ✅ INSERTAR VENTA
+        # ✅ INSERTAR VENTA CON user_id y vendor_id
         insert_query = """
             INSERT INTO ventas (producto_id, cantidad, usuario_id, vendor_id) 
             VALUES (%s, %s, %s, %s)
@@ -1079,8 +1148,8 @@ def registrar_venta_app():
         db.execute_query(insert_query, (
             producto_id, 
             cantidad, 
-            g.user_id,
-            g.vendor_id
+            g.user_id,      # ✅ user_id del JWT
+            g.vendor_id     # ✅ vendor_id del JWT
         ))
         
         # Actualizar stock
@@ -1168,6 +1237,7 @@ def dashboard_app():
                 FROM ventas v
                 JOIN productos p ON v.producto_id = p.id
                 WHERE DATE(v.fecha) = %s
+                AND v.vendor_id = %s
             """
         else:
             ventas_hoy_query = """
@@ -1175,9 +1245,10 @@ def dashboard_app():
                 FROM ventas v
                 JOIN productos p ON v.producto_id = p.id
                 WHERE DATE(v.fecha) = ?
+                AND v.vendor_id = ?
             """
         
-        ventas_hoy = db.execute_query(ventas_hoy_query, (hoy,))
+        ventas_hoy = db.execute_query(ventas_hoy_query, (hoy, g.vendor_id))
         total_ventas = ventas_hoy[0][0] if ventas_hoy else 0
         total_ingresos = float(ventas_hoy[0][1]) if ventas_hoy and ventas_hoy[0][1] else 0
         
@@ -1192,6 +1263,7 @@ def dashboard_app():
                 FROM ventas v
                 JOIN productos p ON v.producto_id = p.id
                 WHERE to_char(v.fecha, 'YYYY-MM') = %s
+                AND v.vendor_id = %s
             """
         else:
             ventas_mes_query = """
@@ -1199,9 +1271,10 @@ def dashboard_app():
                 FROM ventas v
                 JOIN productos p ON v.producto_id = p.id
                 WHERE strftime('%%Y-%%m', v.fecha) = ?
+                AND v.vendor_id = ?
             """
         
-        ventas_mes = db.execute_query(ventas_mes_query, (mes_actual,))
+        ventas_mes = db.execute_query(ventas_mes_query, (mes_actual, g.vendor_id))
         ventas_mes_total = ventas_mes[0][0] if ventas_mes else 0
         ingresos_mes = float(ventas_mes[0][1]) if ventas_mes and ventas_mes[0][1] else 0
         
