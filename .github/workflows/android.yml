@@ -3713,7 +3713,7 @@ jobs:
         run: |
           echo "📤 Subiendo archivos fuente al repositorio..."
           git config user.name "github-actions[bot]"
-          git config email "github-actions[bot]@users.noreply.github.com"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
           git add android-app/
           if git diff --staged --quiet; then
             echo "✅ No hay cambios nuevos en android-app/"
