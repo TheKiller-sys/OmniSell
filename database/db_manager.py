@@ -949,21 +949,27 @@ class DatabaseManager:
         try:
             if not self.conn or (hasattr(self.conn, 'closed') and self.conn.closed):
                 self._get_connection()
-                
-            is_postgres = 'RENDER' in os.environ and os.environ.get('DATABASE_URL')
             
+            is_postgres = 'RENDER' in os.environ and os.environ.get('DATABASE_URL')
+        
             if is_postgres:
                 schema_name = self._safe_schema_name(self.business_id)
                 self.c.execute(f"SET search_path TO {schema_name}, public")
                 formatted_query = query
             else:
                 formatted_query = query.replace('%s', '?')
-                
+        
+        # Determinar si es una consulta SELECT
+            is_select = query.strip().upper().startswith('SELECT')
+            is_pragma = query.strip().upper().startswith('PRAGMA')
+        
             self.c.execute(formatted_query, params)
-            
-            if query.strip().upper().startswith('SELECT'):
+        
+            if is_select or is_pragma:
+            # Para SELECT o PRAGMA, retornar los resultados
                 return self.c.fetchall()
             else:
+            # Para INSERT, UPDATE, DELETE, etc.
                 self.conn.commit()
                 if query.strip().upper().startswith('INSERT'):
                     if is_postgres:
