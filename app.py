@@ -513,13 +513,12 @@ def test_log_endpoint():
         return jsonify({'success': False, 'message': str(e)}), 500
 
 
-# ==================== ENDPOINT: LOGIN DE VENDEDOR (CORREGIDO) ====================
+# ==================== ENDPOINT: LOGIN DE VENDEDOR (CORREGIDO - FUNCIONA CON SQLITE Y POSTGRESQL) ====================
 
 @app.route('/api/login-vendedor', methods=['POST'])
 def login_vendedor():
     """
-    Login para vendedores - BUSCA EN public.vendors Y business_*.vendors
-    CORREGIDO: Si el vendedor existe en el esquema del negocio pero no en public, lo crea en public.
+    Login para vendedores - FUNCIONA CON SQLite Y PostgreSQL
     """
     request_info = {
         'method': request.method,
@@ -555,110 +554,72 @@ def login_vendedor():
         vendor_data = None
         business_id = None
         
-        if is_postgres:
-            # 1️⃣ Buscar en public.vendors
-            c.execute("SET search_path TO public")
-            c.execute("""
-                SELECT id, name, business_id, role, active
-                FROM vendors
-                WHERE id = %s
-            """, (vendor_id,))
+        # ============================================================
+        # 1️⃣ BUSCAR EN VENDORS (SIN search_path PARA SQLITE)
+        # ============================================================
+        try:
+            if is_postgres:
+                # PostgreSQL: usar search_path
+                c.execute("SET search_path TO public")
+                c.execute("""
+                    SELECT id, name, business_id, role, active
+                    FROM vendors
+                    WHERE id = %s
+                """, (vendor_id,))
+            else:
+                # SQLite: consulta directa
+                c.execute("""
+                    SELECT id, name, business_id, role, active
+                    FROM vendors
+                    WHERE id = ?
+                """, (vendor_id,))
             vendor_data = c.fetchone()
             
             if vendor_data:
-                logger.info(f"✅ Vendor {vendor_id} encontrado en public.vendors")
+                logger.info(f"✅ Vendor {vendor_id} encontrado en vendors")
                 business_id = vendor_data[2]
-            
-            # 2️⃣ Si no está en public, buscar en business_*.vendors
-            if not vendor_data:
-                logger.info(f"⚠️ Vendor {vendor_id} no encontrado en public, buscando en esquemas business_*...")
-                
-                c.execute("SET search_path TO public")
-                c.execute("SELECT id FROM businesses")
-                businesses = c.fetchall()
-                
-                for biz in businesses:
-                    biz_id = biz[0]
-                    schema_name = f"business_{biz_id.replace('-', '_')}"
-                    
-                    try:
-                        c.execute(f"""
-                            SELECT id, name, %s as business_id, role, active
-                            FROM {schema_name}.vendors
-                            WHERE id = %s
-                        """, (biz_id, vendor_id))
-                        
-                        result = c.fetchone()
-                        if result:
-                            vendor_data = result
-                            business_id = biz_id
-                            logger.info(f"✅ Vendor {vendor_id} encontrado en esquema {schema_name}")
-                            
-                            # 🔥 CORRECCIÓN: Sincronizar a public.vendors
-                            c.execute("SET search_path TO public")
-                            c.execute("""
-                                INSERT INTO vendors (id, name, business_id, role, active)
-                                VALUES (%s, %s, %s, %s, %s)
-                                ON CONFLICT (id) DO UPDATE SET
-                                    name = EXCLUDED.name,
-                                    business_id = EXCLUDED.business_id,
-                                    role = EXCLUDED.role,
-                                    active = EXCLUDED.active
-                            """, (vendor_data[0], vendor_data[1], biz_id, vendor_data[3], vendor_data[4]))
-                            conn.commit()
-                            logger.info(f"✅ Vendor {vendor_id} sincronizado a public.vendors")
-                            break
-                    except Exception as e:
-                        logger.debug(f"Buscando en {schema_name}: {e}")
-                        continue
-            
-            # 3️⃣ Si no está en vendors, buscar en users y crear en vendors
-            if not vendor_data:
-                logger.info(f"⚠️ Vendor {vendor_id} no encontrado en vendors, buscando en users...")
-                c.execute("SET search_path TO public")
-                c.execute("""
-                    SELECT id, username as name, business_id, role, TRUE as active
-                    FROM users
-                    WHERE username = %s OR id::text = %s
-                """, (vendor_id, vendor_id))
+        except Exception as e:
+            logger.error(f"Error buscando en vendors: {e}")
+        
+        # ============================================================
+        # 2️⃣ SI NO ESTÁ EN VENDORS, BUSCAR EN USERS
+        # ============================================================
+        if not vendor_data:
+            logger.info(f"⚠️ Vendor {vendor_id} no encontrado en vendors, buscando en users...")
+            try:
+                if is_postgres:
+                    c.execute("""
+                        SELECT id, username as name, business_id, role, TRUE as active
+                        FROM users
+                        WHERE username = %s OR id::text = %s
+                    """, (vendor_id, vendor_id))
+                else:
+                    c.execute("""
+                        SELECT id, username as name, business_id, role, 1 as active
+                        FROM users
+                        WHERE username = ? OR id = ?
+                    """, (vendor_id, vendor_id))
                 user_data = c.fetchone()
                 
                 if user_data:
                     logger.info(f"✅ Vendor {vendor_id} encontrado en users, creando en vendors...")
-                    c.execute("""
-                        INSERT INTO public.vendors (id, name, business_id, role, active)
-                        VALUES (%s, %s, %s, %s, %s)
-                        ON CONFLICT (id) DO NOTHING
-                    """, (vendor_id, user_data[1], user_data[2], user_data[3], True))
+                    if is_postgres:
+                        c.execute("""
+                            INSERT INTO vendors (id, name, business_id, role, active)
+                            VALUES (%s, %s, %s, %s, %s)
+                            ON CONFLICT (id) DO NOTHING
+                        """, (vendor_id, user_data[1], user_data[2], user_data[3], True))
+                    else:
+                        c.execute("""
+                            INSERT OR IGNORE INTO vendors (id, name, business_id, role, active)
+                            VALUES (?, ?, ?, ?, ?)
+                        """, (vendor_id, user_data[1], user_data[2], user_data[3], 1))
                     conn.commit()
                     vendor_data = user_data
                     business_id = user_data[2]
-                    logger.info(f"✅ Vendor {vendor_id} creado en public.vendors automáticamente")
-        
-        else:
-            # SQLite - buscar en la tabla vendors local
-            c.execute("""
-                SELECT id, name, business_id, role, active
-                FROM vendors
-                WHERE id = ?
-            """, (vendor_id,))
-            vendor_data = c.fetchone()
-            
-            if not vendor_data:
-                # Buscar en users
-                c.execute("""
-                    SELECT id, username as name, business_id, role, 1 as active
-                    FROM users
-                    WHERE username = ? OR id = ?
-                """, (vendor_id, vendor_id))
-                user_data = c.fetchone()
-                if user_data:
-                    c.execute("""
-                        INSERT INTO vendors (id, name, business_id, role, active)
-                        VALUES (?, ?, ?, ?, ?)
-                    """, (vendor_id, user_data[1], user_data[2], user_data[3], 1))
-                    conn.commit()
-                    vendor_data = user_data
+                    logger.info(f"✅ Vendor {vendor_id} creado en vendors automáticamente")
+            except Exception as e:
+                logger.error(f"Error buscando en users: {e}")
         
         if not vendor_data:
             return jsonify({'success': False, 'message': 'ID de vendedor no encontrado'}), 401
@@ -681,53 +642,64 @@ def login_vendedor():
         if not business_id:
             business_id = vendor_data[2]
         
-        vendor_role = vendor_data[3]
+        vendor_role = vendor_data[3] if len(vendor_data) > 3 else 'vendedor'
         
-        # Obtener el nombre del negocio
-        c.execute("SET search_path TO public")
-        if is_postgres:
-            c.execute("SELECT name FROM businesses WHERE id = %s", (business_id,))
-        else:
-            c.execute("SELECT name FROM businesses WHERE id = ?", (business_id,))
-        
-        business_result = c.fetchone()
-        business_name = business_result[0] if business_result else business_id
-        
-        # Obtener user_id - MEJORADO: si no existe, crearlo automáticamente
-        if is_postgres:
-            c.execute("SELECT id FROM users WHERE business_id = %s LIMIT 1", (business_id,))
-        else:
-            c.execute("SELECT id FROM users WHERE business_id = ? LIMIT 1", (business_id,))
-        
-        user_result = c.fetchone()
-        user_id = user_result[0] if user_result else None
-        
-        # 🔥 CORRECCIÓN: Si no hay usuario, crear uno automáticamente
-        if not user_id:
-            logger.warning(f"⚠️ Negocio {business_id} no tiene usuario. Creando usuario automático...")
-            default_username = f"admin_{business_id[:6]}"
-            default_password = bcrypt.hashpw('admin123'.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
-            
+        # ============================================================
+        # 3️⃣ OBTENER NOMBRE DEL NEGOCIO (SIN search_path)
+        # ============================================================
+        try:
             if is_postgres:
-                c.execute("""
-                    INSERT INTO users (business_id, username, password, role)
-                    VALUES (%s, %s, %s, 'admin')
-                """, (business_id, default_username, default_password))
+                c.execute("SELECT name FROM businesses WHERE id = %s", (business_id,))
             else:
-                c.execute("""
-                    INSERT INTO users (business_id, username, password, role)
-                    VALUES (?, ?, ?, 'admin')
-                """, (business_id, default_username, default_password))
-            conn.commit()
-            logger.info(f"✅ Usuario creado: {default_username} para negocio {business_id}")
-            
-            # Obtener el nuevo user_id
+                c.execute("SELECT name FROM businesses WHERE id = ?", (business_id,))
+            business_result = c.fetchone()
+            business_name = business_result[0] if business_result else business_id
+        except Exception as e:
+            logger.error(f"Error obteniendo nombre del negocio: {e}")
+            business_name = business_id
+        
+        # ============================================================
+        # 4️⃣ OBTENER USER_ID (O CREARLO AUTOMÁTICAMENTE)
+        # ============================================================
+        user_id = None
+        try:
             if is_postgres:
                 c.execute("SELECT id FROM users WHERE business_id = %s LIMIT 1", (business_id,))
             else:
                 c.execute("SELECT id FROM users WHERE business_id = ? LIMIT 1", (business_id,))
             user_result = c.fetchone()
             user_id = user_result[0] if user_result else None
+        except Exception as e:
+            logger.error(f"Error obteniendo user_id: {e}")
+        
+        # Si no hay usuario, crear uno automáticamente
+        if not user_id:
+            logger.warning(f"⚠️ Negocio {business_id} no tiene usuario. Creando usuario automático...")
+            default_username = f"admin_{business_id[:6]}"
+            default_password = bcrypt.hashpw('admin123'.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+            
+            try:
+                if is_postgres:
+                    c.execute("""
+                        INSERT INTO users (business_id, username, password, role)
+                        VALUES (%s, %s, %s, 'admin')
+                    """, (business_id, default_username, default_password))
+                else:
+                    c.execute("""
+                        INSERT INTO users (business_id, username, password, role)
+                        VALUES (?, ?, ?, 'admin')
+                    """, (business_id, default_username, default_password))
+                conn.commit()
+                logger.info(f"✅ Usuario creado: {default_username} para negocio {business_id}")
+                
+                if is_postgres:
+                    c.execute("SELECT id FROM users WHERE business_id = %s LIMIT 1", (business_id,))
+                else:
+                    c.execute("SELECT id FROM users WHERE business_id = ? LIMIT 1", (business_id,))
+                user_result = c.fetchone()
+                user_id = user_result[0] if user_result else None
+            except Exception as e:
+                logger.error(f"Error creando usuario automático: {e}")
         
         if not user_id:
             return jsonify({
@@ -770,7 +742,7 @@ def login_vendedor():
         logger.error(f"❌ Error en login_vendedor: {e}")
         logger.error(traceback.format_exc())
         return jsonify({'success': False, 'message': f'Error del servidor: {str(e)}'}), 500
-        
+
 
 def buscar_vendedor_en_todos_los_esquemas(vendor_id):
     """Buscar un vendedor en todos los esquemas de la base de datos"""
@@ -782,16 +754,19 @@ def buscar_vendedor_en_todos_los_esquemas(vendor_id):
         c = conn.cursor()
         is_postgres = 'RENDER' in os.environ and os.environ.get('DATABASE_URL')
         
+        # SQLite: búsqueda simple
         if not is_postgres:
             c.execute("SELECT id, name, business_id, role, active FROM vendors WHERE id = ?", (vendor_id,))
             return c.fetchone()
         
+        # PostgreSQL: búsqueda con search_path
         c.execute("SET search_path TO public")
         c.execute("SELECT id, name, business_id, role, active FROM vendors WHERE id = %s", (vendor_id,))
         result = c.fetchone()
         if result:
             return result
         
+        # Buscar en esquemas business_*
         c.execute("""
             SELECT 
                 nspname as schema_name,
@@ -1176,6 +1151,7 @@ def registrar_venta_app():
         response.headers.add('Access-Control-Allow-Origin', '*')
         return response, 500
 
+
 @app.route('/api/dashboard-app', methods=['GET'])
 @token_required
 def dashboard_app():
@@ -1540,7 +1516,7 @@ def get_vendedores_web():
 @app.route('/api/vendedor', methods=['POST'])
 @login_required
 def crear_vendedor_web():
-    """Crear un nuevo vendedor (desde panel web) - CORREGIDO: guarda en public y en negocio"""
+    """Crear un nuevo vendedor (desde panel web) - CORREGIDO: funciona con SQLite y PostgreSQL"""
     request_info = {
         'method': request.method,
         'path': request.path,
@@ -1573,7 +1549,7 @@ def crear_vendedor_web():
         vendor_id = generate_vendor_id()
         is_postgres = 'RENDER' in os.environ and os.environ.get('DATABASE_URL')
         
-        # 🔥 CORRECCIÓN: Guardar en public.vendors (GLOBAL)
+        # Guardar en la tabla vendors (SIN search_path para SQLite)
         conn = DatabaseManager.get_global_connection()
         if conn:
             c = conn.cursor()
@@ -1589,20 +1565,7 @@ def crear_vendedor_web():
                     VALUES (?, ?, ?, ?, ?)
                 """, (vendor_id, name, current_user.business_id, 'vendedor', 1))
             conn.commit()
-            logger.info(f"✅ Vendedor {vendor_id} creado en public.vendors")
-        
-        # Guardar en la tabla del negocio (redundancia)
-        db = DatabaseManager(current_user.business_id)
-        if is_postgres:
-            db.execute_query("""
-                INSERT INTO vendors (id, name, business_id, role, active)
-                VALUES (%s, %s, %s, %s, %s)
-            """, (vendor_id, name, current_user.business_id, 'vendedor', True))
-        else:
-            db.execute_query("""
-                INSERT INTO vendors (id, name, business_id, role, active)
-                VALUES (?, ?, ?, ?, ?)
-            """, (vendor_id, name, current_user.business_id, 'vendedor', 1))
+            logger.info(f"✅ Vendedor {vendor_id} creado")
         
         log_to_telegram(
             level='SUCCESS',
@@ -1689,19 +1652,6 @@ def actualizar_vendedor_web(vendor_id):
         
         db.execute_query(query, tuple(params))
         
-        # También actualizar en public.vendors
-        conn = DatabaseManager.get_global_connection()
-        if conn:
-            c = conn.cursor()
-            if is_postgres:
-                c.execute("SET search_path TO public")
-                update_query = f"UPDATE vendors SET {', '.join(updates)} WHERE id = %s"
-                c.execute(update_query, tuple(params[:-1] + [vendor_id]))
-            else:
-                update_query = f"UPDATE vendors SET {', '.join(updates)} WHERE id = ?"
-                c.execute(update_query, tuple(params[:-1] + [vendor_id]))
-            conn.commit()
-        
         log_to_telegram(
             level='SUCCESS',
             message=f"Vendedor actualizado desde panel web",
@@ -1762,17 +1712,6 @@ def eliminar_vendedor_web(vendor_id):
             db.execute_query("DELETE FROM vendors WHERE id = %s AND business_id = %s", (vendor_id, current_user.business_id))
         else:
             db.execute_query("DELETE FROM vendors WHERE id = ? AND business_id = ?", (vendor_id, current_user.business_id))
-        
-        # También eliminar de public.vendors
-        conn = DatabaseManager.get_global_connection()
-        if conn:
-            c = conn.cursor()
-            if is_postgres:
-                c.execute("SET search_path TO public")
-                c.execute("DELETE FROM vendors WHERE id = %s", (vendor_id,))
-            else:
-                c.execute("DELETE FROM vendors WHERE id = ?", (vendor_id,))
-            conn.commit()
         
         log_to_telegram(
             level='WARNING',
@@ -1879,7 +1818,7 @@ def get_vendedores_app():
 @app.route('/api/vendedor-app', methods=['POST'])
 @token_required
 def crear_vendedor_app():
-    """Crear un nuevo vendedor (desde app Android) - CORREGIDO: guarda en public y en negocio"""
+    """Crear un nuevo vendedor (desde app Android) - CORREGIDO: funciona con SQLite y PostgreSQL"""
     request_info = {
         'method': request.method,
         'path': request.path,
@@ -1913,7 +1852,7 @@ def crear_vendedor_app():
         vendor_id = generate_vendor_id()
         is_postgres = 'RENDER' in os.environ and os.environ.get('DATABASE_URL')
         
-        # 🔥 CORRECCIÓN: Guardar en public.vendors (GLOBAL)
+        # Guardar en la tabla vendors (SIN search_path para SQLite)
         conn = DatabaseManager.get_global_connection()
         if conn:
             c = conn.cursor()
@@ -1929,20 +1868,7 @@ def crear_vendedor_app():
                     VALUES (?, ?, ?, ?, ?)
                 """, (vendor_id, name, g.business_id, 'vendedor', 1))
             conn.commit()
-            logger.info(f"✅ Vendedor {vendor_id} creado en public.vendors")
-        
-        # Guardar en la tabla del negocio (redundancia)
-        db = DatabaseManager(g.business_id)
-        if is_postgres:
-            db.execute_query("""
-                INSERT INTO vendors (id, name, business_id, role, active)
-                VALUES (%s, %s, %s, %s, %s)
-            """, (vendor_id, name, g.business_id, 'vendedor', True))
-        else:
-            db.execute_query("""
-                INSERT INTO vendors (id, name, business_id, role, active)
-                VALUES (?, ?, ?, ?, ?)
-            """, (vendor_id, name, g.business_id, 'vendedor', 1))
+            logger.info(f"✅ Vendedor {vendor_id} creado")
         
         log_to_telegram(
             level='SUCCESS',
