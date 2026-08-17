@@ -739,6 +739,61 @@ def login_vendedor():
         logger.error(f"❌ Error en login_vendedor: {e}")
         return jsonify({'success': False, 'message': f'Error del servidor: {str(e)}'}), 500
         
+def buscar_vendedor_en_todos_los_esquemas(vendor_id):
+    """Buscar un vendedor en todos los esquemas de la base de datos"""
+    try:
+        conn = DatabaseManager.get_global_connection()
+        if conn is None:
+            return None
+        
+        c = conn.cursor()
+        is_postgres = 'RENDER' in os.environ and os.environ.get('DATABASE_URL')
+        
+        if not is_postgres:
+            # SQLite - buscar en la tabla vendors
+            c.execute("SELECT id, name, business_id, role, active FROM vendors WHERE id = ?", (vendor_id,))
+            return c.fetchone()
+        
+        # PostgreSQL - buscar en todos los esquemas
+        c.execute("SET search_path TO public")
+        
+        # 1. Buscar en public.vendors
+        c.execute("SELECT id, name, business_id, role, active FROM vendors WHERE id = %s", (vendor_id,))
+        result = c.fetchone()
+        if result:
+            return result
+        
+        # 2. Buscar en todos los esquemas que empiecen con 'business_'
+        c.execute("""
+            SELECT 
+                nspname as schema_name,
+                id, name, business_id, role, active
+            FROM (
+                SELECT 
+                    nspname,
+                    (SELECT row_to_json(t) FROM (SELECT id, name, business_id, role, active FROM vendors) t) as vendor_data
+                FROM pg_namespace
+                WHERE nspname LIKE 'business_%'
+            ) s
+            WHERE vendor_data->>'id' = %s
+        """, (vendor_id,))
+        
+        result = c.fetchone()
+        if result:
+            schema_name = result[0]
+            # Extraer los datos del vendedor
+            c.execute(f"""
+                SELECT id, name, business_id, role, active
+                FROM {schema_name}.vendors
+                WHERE id = %s
+            """, (vendor_id,))
+            return c.fetchone()
+        
+        return None
+        
+    except Exception as e:
+        logger.error(f"Error buscando vendedor en todos los esquemas: {e}")
+        return None
 
 @app.route('/api/diagnostico-vendedor/<vendor_id>', methods=['GET'])
 def diagnosticar_vendedor(vendor_id):
