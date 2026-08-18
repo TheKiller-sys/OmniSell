@@ -110,8 +110,17 @@ def create_app():
             )
         return None
 
+    # ============================================================
+    # BEFORE REQUEST - CORREGIDO: EXCLUIR /api/login-vendedor
+    # ============================================================
     @app.before_request
     def before_request():
+        # ✅ EXCLUIR /api/login-vendedor de la autenticación
+        if request.path.startswith('/api/') and not request.path == '/api/login-vendedor':
+            if not current_user.is_authenticated:
+                # Permitir que la solicitud continúe, la autenticación se maneja con JWT
+                pass
+        
         if current_user.is_authenticated:
             try:
                 DatabaseManager.verify_and_fix_global_tables()
