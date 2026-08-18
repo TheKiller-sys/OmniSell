@@ -631,39 +631,20 @@ def create_app():
             'path': request.path,
             'ip': request.remote_addr
         }
-        
+    
         try:
             DatabaseManager.verify_and_fix_global_tables()
-            
+        
             data = request.json
             business_id = data.get('business_id')
-            
+        
             if not business_id:
                 return jsonify({'success': False, 'message': 'Business ID requerido'})
-            
-            conn = DatabaseManager.get_global_connection()
-            if conn is None:
-                return jsonify({'success': False, 'message': 'Error de conexión a la base de datos'})
-                
-            c = conn.cursor()
-            is_postgres = 'RENDER' in os.environ and os.environ.get('DATABASE_URL')
-            
-            if is_postgres:
-                c.execute(
-                    "UPDATE businesses SET bot_configured = TRUE WHERE id = %s",
-                    (business_id,)
-                )
-            else:
-                c.execute(
-                    "UPDATE businesses SET bot_configured = TRUE WHERE id = ?",
-                    (business_id,)
-                )
-            conn.commit()
-            
+        
             session.pop('new_business_id', None)
             session.pop('new_business_name', None)
             session.pop('new_username', None)
-            
+        
             log_to_telegram(
                 level='SUCCESS',
                 message=f"✅ Configuración finalizada para negocio: {business_id}",
@@ -671,13 +652,13 @@ def create_app():
                 business_id=business_id,
                 request_info=request_info
             )
-            
-            return jsonify({
+        
+             return jsonify({
                 'success': True, 
                 'message': 'Configuración completada exitosamente',
                 'redirect': url_for('login', message='✅ Configuración completada. Ahora puedes iniciar sesión.')
             })
-            
+        
         except Exception as e:
             logger.error(f"Error finalizando configuración: {e}")
             log_to_telegram(
