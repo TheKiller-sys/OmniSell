@@ -1,0 +1,116 @@
+/* ============================================
+   ESTILOS ADICIONALES PARA LA LANDING PAGE
+   ============================================ */
+
+/* Mejora de accesibilidad y rendimiento */
+@media (prefers-reduced-motion: reduce) {
+    * {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+}
+
+/* Efecto de brillo en el botón CTA */
+.btn-primary-hero {
+    position: relative;
+    overflow: hidden;
+}
+
+.btn-primary-hero::after {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: linear-gradient(45deg, transparent, rgba(255,255,255,0.1), transparent);
+    transform: rotate(45deg);
+    animation: shimmer 3s infinite;
+}
+
+/* Animación de números en estadísticas */
+.counter-number {
+    display: inline-block;
+    transition: all 0.3s ease;
+}
+
+/* Efecto de hover en tarjetas de características */
+.feature-card .icon-wrapper {
+    transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+.feature-card:hover .icon-wrapper {
+    transform: scale(1.1) rotate(-5deg);
+}
+
+/* Estilos para el mockup del dashboard */
+.mockup-dashboard {
+    background: linear-gradient(145deg, #f8fafc 0%, #e2e8f0 100%);
+    border-radius: 16px;
+    padding: 24px;
+    min-height: 420px;
+    display: flex;
+    flex-direction: column;
+}
+
+.mockup-dashboard .mockup-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px;
+}
+
+.mockup-dashboard .mockup-dots {
+    display: flex;
+    gap: 8px;
+}
+
+.mockup-dashboard .mockup-dots span {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    display: inline-block;
+}
+
+.mockup-dashboard .mockup-dots span:nth-child(1) { background: #EF4444; }
+.mockup-dashboard .mockup-dots span:nth-child(2) { background: #F59E0B; }
+.mockup-dashboard .mockup-dots span:nth-child(3) { background: #10B981; }
+
+.mockup-dashboard .mockup-chart {
+    flex: 1;
+    display: flex;
+    align-items: flex-end;
+    gap: 12px;
+    padding: 20px 0;
+}
+
+.mockup-dashboard .mockup-chart .bar {
+    flex: 1;
+    border-radius: 6px 6px 0 0;
+    background: linear-gradient(180deg, #4361EE, #818CF8);
+    min-height: 20px;
+    transition: all 0.5s ease;
+}
+
+.mockup-dashboard .mockup-chart .bar:hover {
+    opacity: 0.8;
+    transform: scaleY(1.05);
+    transform-origin: bottom;
+}
+
+/* Animación de entrada para los números de estadísticas */
+@keyframes countUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.stat-item .number {
+    animation: countUp 0.8s ease-out forwards;
+}
