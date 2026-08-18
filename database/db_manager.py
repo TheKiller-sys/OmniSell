@@ -177,7 +177,9 @@ class DatabaseManager:
             if is_postgres:
                 c.execute("SET search_path TO public")
             
-            # Verificar si la tabla businesses existe
+            # ============================================================
+            # 1. VERIFICAR TABLA businesses
+            # ============================================================
             if is_postgres:
                 c.execute("""
                     SELECT EXISTS (
@@ -221,7 +223,9 @@ class DatabaseManager:
                     ''')
                 logger.info("Tabla businesses creada exitosamente")
             
-            # Verificar tabla users
+            # ============================================================
+            # 2. VERIFICAR TABLA users
+            # ============================================================
             if is_postgres:
                 c.execute("""
                     SELECT EXISTS (
@@ -265,7 +269,9 @@ class DatabaseManager:
                     ''')
                 logger.info("Tabla users creada exitosamente")
             
-            # Verificar si existe la columna role en users
+            # ============================================================
+            # 3. VERIFICAR COLUMNA role EN users
+            # ============================================================
             if is_postgres:
                 c.execute("""
                     SELECT column_name 
@@ -286,7 +292,9 @@ class DatabaseManager:
                     c.execute("ALTER TABLE users ADD COLUMN role TEXT DEFAULT 'admin'")
                 logger.info("Columna role agregada exitosamente")
             
-            # ==================== TABLA: VENDORS ====================
+            # ============================================================
+            # 4. VERIFICAR TABLA vendors
+            # ============================================================
             if is_postgres:
                 c.execute("""
                     SELECT EXISTS (
@@ -330,11 +338,45 @@ class DatabaseManager:
                     ''')
                 logger.info("Tabla vendors creada exitosamente")
             
-            # ==================== NO SE CREAN DATOS DE PRUEBA ====================
+            # ============================================================
+            # 5. VERIFICAR COLUMNA active EN vendors (para compatibilidad)
+            # ============================================================
+            if is_postgres:
+                c.execute("""
+                    SELECT column_name 
+                    FROM information_schema.columns 
+                    WHERE table_name = 'vendors' AND column_name = 'active'
+                """)
+                has_active = c.fetchone() is not None
+            else:
+                c.execute("PRAGMA table_info(vendors)")
+                columns = [col[1] for col in c.fetchall()]
+                has_active = 'active' in columns
+            
+            if not has_active:
+                logger.warning("Columna active no existe en vendors, agregándola...")
+                if is_postgres:
+                    c.execute("ALTER TABLE vendors ADD COLUMN active BOOLEAN DEFAULT TRUE")
+                else:
+                    c.execute("ALTER TABLE vendors ADD COLUMN active INTEGER DEFAULT 1")
+                logger.info("Columna active agregada a vendors")
+            
+            # ============================================================
+            # 6. VERIFICAR COLUMNA vendor_id EN ventas (para compatibilidad)
+            # ============================================================
+            # Nota: Esto es para la base de datos global, pero ventas está en la BD del negocio
+            # Esta verificación se hace en _ensure_vendor_column
+            # ============================================================
+            
+            # ============================================================
+            # ❌ NO SE CREAN DATOS DE PRUEBA
+            # ❌ NO SE CREA BOT_CONFIGURED
+            # ❌ NO SE CREA TELEGRAM_ID
             # El sistema SOLO crea tablas, nunca inserta datos de ejemplo
+            # ============================================================
             
             conn.commit()
-            logger.info("Estructura de tablas globales verificada y corregida correctamente")
+            logger.info("✅ Estructura de tablas globales verificada y corregida correctamente")
             
         except Exception as e:
             logger.error(f"Error verificando estructura de tablas: {e}")
@@ -424,7 +466,7 @@ class DatabaseManager:
         return f"{safe_id}.db"
 
     def _ensure_vendor_column(self, is_postgres):
-        """Asegurar que vendor_id existe en la tabla ventas"""
+        """Asegurar que vendor_id existe en la tabla ventas (para el negocio específico)"""
         try:
             schema = self._safe_schema_name(self.business_id)
             
@@ -497,7 +539,9 @@ class DatabaseManager:
                 timestamp_type = "TIMESTAMP DEFAULT CURRENT_TIMESTAMP"
                 boolean_type = "BOOLEAN DEFAULT FALSE"
             
-            # Tabla secciones
+            # ============================================================
+            # TABLA: secciones
+            # ============================================================
             self.c.execute(f'''
                 CREATE TABLE IF NOT EXISTS secciones (
                     id {serial_type},
@@ -505,7 +549,9 @@ class DatabaseManager:
                 )
             ''')
             
-            # Tabla productos
+            # ============================================================
+            # TABLA: productos
+            # ============================================================
             self.c.execute(f'''
                 CREATE TABLE IF NOT EXISTS productos (
                     id {serial_type},
@@ -520,7 +566,9 @@ class DatabaseManager:
                 )
             ''')
             
-            # Tabla ventas CON vendor_id
+            # ============================================================
+            # TABLA: ventas CON vendor_id
+            # ============================================================
             self.c.execute(f'''
                 CREATE TABLE IF NOT EXISTS ventas (
                     id {serial_type},
@@ -532,7 +580,9 @@ class DatabaseManager:
                 )
             ''')
             
-            # Tabla inversiones
+            # ============================================================
+            # TABLA: inversiones
+            # ============================================================
             self.c.execute(f'''
                 CREATE TABLE IF NOT EXISTS inversiones (
                     id {serial_type},
@@ -544,7 +594,9 @@ class DatabaseManager:
                 )
             ''')
             
-            # Tabla objetivos financieros
+            # ============================================================
+            # TABLA: objetivos_financieros
+            # ============================================================
             self.c.execute(f'''
                 CREATE TABLE IF NOT EXISTS objetivos_financieros (
                     id {serial_type},
@@ -556,7 +608,9 @@ class DatabaseManager:
                 )
             ''')
             
-            # Tabla vendedores
+            # ============================================================
+            # TABLA: vendors (vendedores)
+            # ============================================================
             if is_postgres:
                 self.c.execute(f'''
                     CREATE TABLE IF NOT EXISTS vendors (
@@ -580,7 +634,9 @@ class DatabaseManager:
                     )
                 ''')
             
-            # Crear índices para mejorar rendimiento
+            # ============================================================
+            # ÍNDICES para mejorar rendimiento
+            # ============================================================
             if is_postgres:
                 self.c.execute("CREATE INDEX IF NOT EXISTS idx_productos_seccion ON productos(seccion_id)")
                 self.c.execute("CREATE INDEX IF NOT EXISTS idx_ventas_producto ON ventas(producto_id)")
@@ -598,6 +654,9 @@ class DatabaseManager:
                 self.c.execute("CREATE INDEX IF NOT EXISTS idx_vendors_business ON vendors(business_id)")
                 self.c.execute("CREATE INDEX IF NOT EXISTS idx_vendors_active ON vendors(active)")
             
+            # ============================================================
+            # VERIFICAR COLUMNA vendor_id EN ventas
+            # ============================================================
             self._ensure_vendor_column(is_postgres)
             
             self.conn.commit()
