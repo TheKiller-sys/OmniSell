@@ -1,0 +1,620 @@
+<!DOCTYPE html>
+<html lang="es" data-bs-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Precios - OmniVentas</title>
+    
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    
+    <style>
+        /* ============================================
+           VARIABLES Y BASE
+           ============================================ */
+        :root {
+            --primary: #4361EE;
+            --primary-dark: #3651D4;
+            --primary-light: #EEF2FF;
+            --primary-gradient: linear-gradient(135deg, #4361EE 0%, #3A0CA3 100%);
+            --secondary: #FF6B35;
+            --success: #10B981;
+            --warning: #F59E0B;
+            --danger: #EF4444;
+            --dark: #0F172A;
+            --dark-secondary: #1E293B;
+            --gray: #64748B;
+            --gray-light: #F1F5F9;
+            --white: #FFFFFF;
+            --shadow-sm: 0 1px 3px rgba(0,0,0,0.06);
+            --shadow-md: 0 4px 20px rgba(0,0,0,0.08);
+            --shadow-lg: 0 20px 60px rgba(0,0,0,0.10);
+            --shadow-xl: 0 30px 80px rgba(0,0,0,0.15);
+            --radius-sm: 10px;
+            --radius-md: 16px;
+            --radius-lg: 24px;
+            --radius-xl: 32px;
+            --transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            --sidebar-width: 260px;
+            --header-height: 72px;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #F8FAFC;
+            color: var(--dark);
+            overflow-x: hidden;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: var(--gray-light); }
+        ::-webkit-scrollbar-thumb { background: var(--primary); border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--primary-dark); }
+
+        /* ============================================
+           ANIMACIONES
+           ============================================ */
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(30px) scale(0.98); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+        }
+
+        @keyframes pulse-ring {
+            0%, 100% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.05); opacity: 0.7; }
+        }
+
+        .animate-on-load {
+            opacity: 0;
+            animation: fadeInUp 0.6s ease-out forwards;
+        }
+        .delay-1 { animation-delay: 0.05s; }
+        .delay-2 { animation-delay: 0.10s; }
+        .delay-3 { animation-delay: 0.15s; }
+        .delay-4 { animation-delay: 0.20s; }
+
+        /* ============================================
+           HEADER
+           ============================================ */
+        .header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: var(--header-height);
+            background: rgba(255,255,255,0.85);
+            backdrop-filter: blur(20px) saturate(180%);
+            border-bottom: 1px solid rgba(255,255,255,0.2);
+            z-index: 1050;
+            display: flex;
+            align-items: center;
+            padding: 0 28px;
+            transition: var(--transition);
+        }
+        .header.scrolled { box-shadow: var(--shadow-md); }
+
+        .header .toggle-sidebar {
+            display: none;
+        }
+
+        .header .header-title {
+            font-weight: 800;
+            font-size: 1.5rem;
+            background: var(--primary-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            letter-spacing: -0.5px;
+            margin-bottom: 0;
+        }
+        .header .header-title i { -webkit-text-fill-color: var(--primary); margin-right: 8px; }
+
+        .header .header-actions {
+            display: flex; align-items: center; gap: 16px; margin-left: auto;
+        }
+        .header .header-actions .btn-logout {
+            background: transparent; border: 2px solid #FEE2E2;
+            color: var(--danger); padding: 8px 18px;
+            border-radius: var(--radius-sm);
+            font-weight: 600; font-size: 0.85rem;
+            transition: var(--transition);
+        }
+        .header .header-actions .btn-logout:hover {
+            background: var(--danger); color: white;
+            border-color: var(--danger);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(239,68,68,0.3);
+        }
+
+        .header .header-actions .btn-back {
+            background: var(--primary-gradient);
+            color: white;
+            border: none;
+            padding: 8px 18px;
+            border-radius: var(--radius-sm);
+            font-weight: 600;
+            font-size: 0.85rem;
+            transition: var(--transition);
+        }
+        .header .header-actions .btn-back:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(67,97,238,0.3);
+        }
+
+        /* ============================================
+           MAIN CONTENT
+           ============================================ */
+        .main-content {
+            margin-top: var(--header-height);
+            padding: 40px 32px 60px;
+            min-height: calc(100vh - var(--header-height));
+            transition: var(--transition);
+        }
+
+        /* ============================================
+           SECTION HEADER
+           ============================================ */
+        .section-header-wrapper {
+            text-align: center;
+            max-width: 700px;
+            margin: 0 auto 48px;
+        }
+
+        .section-header-wrapper .tag {
+            display: inline-block;
+            background: var(--primary-light);
+            color: var(--primary);
+            padding: 6px 18px;
+            border-radius: 50px;
+            font-weight: 600;
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 16px;
+        }
+
+        .section-header-wrapper h1 {
+            font-weight: 900;
+            font-size: clamp(2.2rem, 4vw, 3.2rem);
+            letter-spacing: -0.02em;
+            margin-bottom: 12px;
+        }
+
+        .section-header-wrapper h1 .highlight {
+            background: var(--primary-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .section-header-wrapper p {
+            color: var(--gray);
+            font-size: 1.1rem;
+            line-height: 1.7;
+        }
+
+        /* ============================================
+           PRICING CARDS
+           ============================================ */
+        .pricing-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 28px;
+            max-width: 1100px;
+            margin: 0 auto;
+        }
+
+        .pricing-card {
+            background: var(--white);
+            border-radius: var(--radius-lg);
+            padding: 32px 28px 36px;
+            box-shadow: var(--shadow-sm);
+            border: 2px solid var(--gray-light);
+            transition: var(--transition);
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .pricing-card:hover {
+            transform: translateY(-8px);
+            box-shadow: var(--shadow-lg);
+            border-color: var(--primary-light);
+        }
+
+        .pricing-card.popular {
+            border-color: var(--primary);
+            box-shadow: var(--shadow-md);
+        }
+
+        .pricing-card.popular:hover {
+            box-shadow: var(--shadow-xl);
+        }
+
+        .pricing-card .popular-badge {
+            position: absolute;
+            top: 0;
+            right: 0;
+            background: var(--primary-gradient);
+            color: white;
+            font-size: 0.7rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            padding: 6px 18px;
+            border-radius: 0 var(--radius-lg) 0 var(--radius-md);
+        }
+
+        .pricing-card .plan-icon {
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            margin-bottom: 16px;
+        }
+
+        .pricing-card .plan-icon.free { background: var(--gray-light); color: var(--gray); }
+        .pricing-card .plan-icon.pro { background: var(--primary-light); color: var(--primary); }
+        .pricing-card .plan-icon.business { background: #EDE9FE; color: #7C3AED; }
+        .pricing-card .plan-icon.enterprise { background: #FEF3C7; color: #D97706; }
+
+        .pricing-card .plan-name {
+            font-weight: 700;
+            font-size: 1.2rem;
+            color: var(--dark);
+            margin-bottom: 4px;
+        }
+
+        .pricing-card .plan-price {
+            font-weight: 900;
+            font-size: 2.8rem;
+            color: var(--dark);
+            line-height: 1;
+            margin: 12px 0 4px;
+        }
+
+        .pricing-card .plan-price .currency {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: var(--gray);
+        }
+
+        .pricing-card .plan-price .period {
+            font-size: 0.9rem;
+            font-weight: 500;
+            color: var(--gray);
+        }
+
+        .pricing-card .plan-description {
+            color: var(--gray);
+            font-size: 0.9rem;
+            margin-bottom: 20px;
+        }
+
+        .pricing-card .plan-features {
+            list-style: none;
+            padding: 0;
+            margin: 0 0 24px;
+            text-align: left;
+        }
+
+        .pricing-card .plan-features li {
+            padding: 8px 0;
+            font-size: 0.9rem;
+            color: var(--dark-secondary);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            border-bottom: 1px solid var(--gray-light);
+        }
+
+        .pricing-card .plan-features li:last-child {
+            border-bottom: none;
+        }
+
+        .pricing-card .plan-features li i {
+            color: var(--success);
+            font-size: 0.85rem;
+            width: 20px;
+            text-align: center;
+        }
+
+        .pricing-card .plan-features li i.text-muted {
+            color: var(--gray);
+        }
+
+        .pricing-card .btn-plan {
+            width: 100%;
+            padding: 12px;
+            border-radius: var(--radius-sm);
+            font-weight: 700;
+            font-size: 0.95rem;
+            border: none;
+            transition: var(--transition);
+            cursor: pointer;
+        }
+
+        .pricing-card .btn-plan.primary {
+            background: var(--primary-gradient);
+            color: white;
+            box-shadow: 0 4px 15px rgba(67,97,238,0.3);
+        }
+
+        .pricing-card .btn-plan.primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 30px rgba(67,97,238,0.4);
+        }
+
+        .pricing-card .btn-plan.secondary {
+            background: var(--gray-light);
+            color: var(--dark-secondary);
+        }
+
+        .pricing-card .btn-plan.secondary:hover {
+            background: #E2E8F0;
+        }
+
+        .pricing-card .btn-plan.outline {
+            background: transparent;
+            color: var(--primary);
+            border: 2px solid var(--primary);
+        }
+
+        .pricing-card .btn-plan.outline:hover {
+            background: var(--primary);
+            color: white;
+        }
+
+        .pricing-card .btn-plan.success {
+            background: var(--success);
+            color: white;
+            box-shadow: 0 4px 15px rgba(16,185,129,0.3);
+        }
+
+        .pricing-card .btn-plan.success:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 30px rgba(16,185,129,0.4);
+        }
+
+        /* ============================================
+           FOOTER
+           ============================================ */
+        .footer {
+            background: var(--dark-secondary);
+            color: rgba(255,255,255,0.6);
+            padding: 48px 0 32px;
+            border-top: 1px solid rgba(255,255,255,0.05);
+        }
+
+        .footer a {
+            color: rgba(255,255,255,0.6);
+            text-decoration: none;
+            transition: var(--transition);
+            font-size: 0.9rem;
+        }
+
+        .footer a:hover {
+            color: var(--color-white);
+        }
+
+        .footer .logo-footer {
+            font-weight: 800;
+            font-size: 1.4rem;
+            color: var(--color-white);
+        }
+
+        .footer .logo-footer i {
+            color: var(--primary);
+            margin-right: 8px;
+        }
+
+        /* ============================================
+           RESPONSIVE
+           ============================================ */
+        @media (max-width: 992px) {
+            .main-content { padding: 32px 20px 40px; }
+            .pricing-grid { grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); }
+        }
+
+        @media (max-width: 768px) {
+            .header { padding: 0 16px; }
+            .main-content { padding: 24px 16px 32px; }
+            .pricing-grid { grid-template-columns: 1fr; max-width: 420px; }
+            .pricing-card { padding: 24px 20px; }
+            .pricing-card .plan-price { font-size: 2.2rem; }
+            .section-header-wrapper h1 { font-size: 1.8rem; }
+        }
+
+        @media (max-width: 576px) {
+            .pricing-grid { max-width: 100%; }
+            .pricing-card .plan-features li { font-size: 0.85rem; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- ============================================
+    HEADER
+    ============================================ -->
+    <header class="header" id="header">
+        <h1 class="header-title"><i class="fas fa-tag"></i>OmniVentas</h1>
+        <div class="header-actions">
+            <a href="/" class="btn btn-back">
+                <i class="fas fa-arrow-left me-1"></i>Volver
+            </a>
+        </div>
+    </header>
+
+    <!-- ============================================
+    MAIN CONTENT
+    ============================================ -->
+    <main class="main-content">
+
+        <!-- Section Header -->
+        <div class="section-header-wrapper animate-on-load">
+            <span class="tag">Planes y Precios</span>
+            <h1>Elige el plan <span class="highlight">perfecto</span> para tu negocio</h1>
+            <p>Comienza gratis y actualiza cuando necesites más funcionalidades. Sin compromiso, cancela cuando quieras.</p>
+        </div>
+
+        <!-- Pricing Grid -->
+        <div class="pricing-grid">
+
+            <!-- Plan Free -->
+            <div class="pricing-card animate-on-load delay-1">
+                <div class="plan-icon free">
+                    <i class="fas fa-rocket"></i>
+                </div>
+                <div class="plan-name">Free</div>
+                <div class="plan-price">
+                    <span class="currency">$</span>0
+                    <span class="period">/mes</span>
+                </div>
+                <div class="plan-description">Perfecto para negocios que empiezan</div>
+                <ul class="plan-features">
+                    <li><i class="fas fa-check"></i> Hasta 50 productos</li>
+                    <li><i class="fas fa-check"></i> 1 vendedor</li>
+                    <li><i class="fas fa-check"></i> Panel web completo</li>
+                    <li><i class="fas fa-check"></i> Reportes básicos</li>
+                    <li><i class="fas fa-check text-muted"></i> <span style="color: var(--gray);">Soporte por email</span></li>
+                </ul>
+                <button class="btn-plan secondary" onclick="window.location.href='/signup'">
+                    Comenzar Gratis
+                </button>
+            </div>
+
+            <!-- Plan Pro (Popular) -->
+            <div class="pricing-card popular animate-on-load delay-2">
+                <span class="popular-badge">Más Popular</span>
+                <div class="plan-icon pro">
+                    <i class="fas fa-chart-line"></i>
+                </div>
+                <div class="plan-name">Pro</div>
+                <div class="plan-price">
+                    <span class="currency">$</span>29
+                    <span class="period">/mes</span>
+                </div>
+                <div class="plan-description">Para negocios en crecimiento</div>
+                <ul class="plan-features">
+                    <li><i class="fas fa-check"></i> Hasta 500 productos</li>
+                    <li><i class="fas fa-check"></i> 5 vendedores</li>
+                    <li><i class="fas fa-check"></i> App móvil incluida</li>
+                    <li><i class="fas fa-check"></i> Análisis avanzado</li>
+                    <li><i class="fas fa-check"></i> Soporte prioritario</li>
+                </ul>
+                <button class="btn-plan primary" onclick="window.location.href='/signup'">
+                    Empezar Prueba
+                </button>
+            </div>
+
+            <!-- Plan Business -->
+            <div class="pricing-card animate-on-load delay-3">
+                <div class="plan-icon business">
+                    <i class="fas fa-building"></i>
+                </div>
+                <div class="plan-name">Business</div>
+                <div class="plan-price">
+                    <span class="currency">$</span>79
+                    <span class="period">/mes</span>
+                </div>
+                <div class="plan-description">Para negocios consolidados</div>
+                <ul class="plan-features">
+                    <li><i class="fas fa-check"></i> Productos ilimitados</li>
+                    <li><i class="fas fa-check"></i> Vendedores ilimitados</li>
+                    <li><i class="fas fa-check"></i> Integración con WhatsApp</li>
+                    <li><i class="fas fa-check"></i> Análisis predictivo</li>
+                    <li><i class="fas fa-check"></i> Soporte 24/7</li>
+                </ul>
+                <button class="btn-plan outline" onclick="window.location.href='/signup'">
+                    Empezar Prueba
+                </button>
+            </div>
+
+            <!-- Plan Enterprise -->
+            <div class="pricing-card animate-on-load delay-4" style="grid-column: span 1; max-width: 100%;">
+                <div class="plan-icon enterprise">
+                    <i class="fas fa-crown"></i>
+                </div>
+                <div class="plan-name">Enterprise</div>
+                <div class="plan-price" style="font-size: 2rem;">
+                    <span style="font-size: 1rem; font-weight: 600; color: var(--gray);">Personalizado</span>
+                </div>
+                <div class="plan-description">Para grandes empresas y cadenas</div>
+                <ul class="plan-features">
+                    <li><i class="fas fa-check"></i> Todo lo de Business</li>
+                    <li><i class="fas fa-check"></i> Multi-sucursal</li>
+                    <li><i class="fas fa-check"></i> API personalizada</li>
+                    <li><i class="fas fa-check"></i> Integraciones a medida</li>
+                    <li><i class="fas fa-check"></i> Cuenta dedicada</li>
+                </ul>
+                <button class="btn-plan success" onclick="window.location.href='mailto:ventas@omniventas.com'">
+                    Contactar Ventas
+                </button>
+            </div>
+
+        </div>
+
+        <!-- FAQ -->
+        <div style="text-align: center; margin-top: 60px; padding-top: 40px; border-top: 2px solid var(--gray-light);">
+            <p style="color: var(--gray); font-size: 0.9rem;">
+                <i class="fas fa-question-circle me-1" style="color: var(--primary);"></i>
+                ¿Tienes preguntas? 
+                <a href="/contacto" style="color: var(--primary); font-weight: 600; text-decoration: none;">Contáctanos</a>
+            </p>
+        </div>
+
+    </main>
+
+    <!-- ============================================
+    FOOTER
+    ============================================ -->
+    <footer class="footer">
+        <div class="container">
+            <div class="row g-4">
+                <div class="col-md-6">
+                    <div class="logo-footer">
+                        <i class="fas fa-chart-line"></i>OmniVentas
+                    </div>
+                    <p style="margin-top: 12px; font-size: 0.9rem;">
+                        La plataforma de gestión inteligente para tu negocio.
+                    </p>
+                </div>
+                <div class="col-md-6 text-md-end">
+                    <a href="/" style="color: rgba(255,255,255,0.6); margin-right: 16px;">Inicio</a>
+                    <a href="/terms" style="color: rgba(255,255,255,0.6); margin-right: 16px;">Términos</a>
+                    <a href="/privacy" style="color: rgba(255,255,255,0.6);">Privacidad</a>
+                </div>
+            </div>
+            <hr style="border-color: rgba(255,255,255,0.08); margin: 24px 0 16px;">
+            <div class="text-center">
+                <small>&copy; 2024 OmniVentas. Todos los derechos reservados.</small>
+            </div>
+        </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        window.addEventListener('scroll', function() {
+            const header = document.getElementById('header');
+            if (window.scrollY > 20) {
+                header.classList.add('scrolled');
+            } else {
+                header.classList.remove('scrolled');
+            }
+        });
+    </script>
+
+</body>
+</html>
