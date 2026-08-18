@@ -506,7 +506,7 @@ def test_log_endpoint():
 
 @app.route('/api/login-vendedor', methods=['POST'])
 def login_vendedor():
-    """Login para vendedores - Busca en BD del negocio y global"""
+    """Login para vendedores - CORREGIDO: busca business_id correctamente"""
     request_info = {
         'method': request.method,
         'path': request.path,
@@ -545,99 +545,95 @@ def login_vendedor():
         is_active = True
         
         # ============================================================
-        # PASO 1: BUSCAR EN LA BASE DE DATOS DEL NEGOCIO
+        # PASO 1: BUSCAR EN LA BD GLOBAL (public)
         # ============================================================
-        try:
-            db = DatabaseManager(vendor_id)
-            
-            if is_postgres:
-                result = db.execute_query("""
-                    SELECT id, name, business_id, role, active
-                    FROM vendors
-                    WHERE id = %s
-                """, (vendor_id,))
-            else:
-                result = db.execute_query("""
-                    SELECT id, name, business_id, role, active
-                    FROM vendors
-                    WHERE id = ?
-                """, (vendor_id,))
-            
-            if result and len(result) > 0:
-                row = result[0]
-                vendor_data = row
-                business_id = row[2]
-                vendor_name = row[1]
-                vendor_role = row[3] if len(row) > 3 else 'vendedor'
-                
-                active_value = row[4] if len(row) > 4 else True
-                if is_postgres:
-                    is_active = active_value == True or active_value == 't' or active_value == 'true'
-                else:
-                    is_active = active_value == 1 or active_value == 'True' or active_value == 't' or active_value == 'true'
-                
-                logger.info(f"✅ Vendor {vendor_id} encontrado en BD del negocio")
-        except Exception as e:
-            logger.warning(f"No se encontró vendor en BD del negocio: {e}")
+        logger.info(f"🔍 Buscando vendor {vendor_id} en BD global...")
         
-        # ============================================================
-        # PASO 2: SI NO SE ENCONTRÓ, BUSCAR EN LA BD GLOBAL
-        # ============================================================
-        if not vendor_data:
-            logger.info(f"Buscando vendor {vendor_id} en BD global...")
-            try:
-                if is_postgres:
-                    c.execute("SET search_path TO public")
-                    c.execute("""
-                        SELECT id, name, business_id, role, active
-                        FROM vendors
-                        WHERE id = %s
-                    """, (vendor_id,))
-                else:
-                    c.execute("""
-                        SELECT id, name, business_id, role, active
-                        FROM vendors
-                        WHERE id = ?
-                    """, (vendor_id,))
-                vendor_data = c.fetchone()
-                
-                if vendor_data:
-                    business_id = vendor_data[2]
-                    vendor_name = vendor_data[1]
-                    vendor_role = vendor_data[3] if len(vendor_data) > 3 else 'vendedor'
-                    
-                    active_value = vendor_data[4] if len(vendor_data) > 4 else True
-                    if is_postgres:
-                        is_active = active_value == True or active_value == 't' or active_value == 'true'
-                    else:
-                        is_active = active_value == 1 or active_value == 'True' or active_value == 't' or active_value == 'true'
-                    
-                    logger.info(f"✅ Vendor {vendor_id} encontrado en BD global")
-            except Exception as e:
-                logger.error(f"Error buscando en BD global: {e}")
+        if is_postgres:
+            c.execute("SET search_path TO public")
+            c.execute("""
+                SELECT id, name, business_id, role, active
+                FROM vendors
+                WHERE id = %s
+            """, (vendor_id,))
+        else:
+            c.execute("""
+                SELECT id, name, business_id, role, active
+                FROM vendors
+                WHERE id = ?
+            """, (vendor_id,))
+        
+        vendor_data = c.fetchone()
         
         if not vendor_data:
+            logger.warning(f"❌ Vendor {vendor_id} no encontrado en BD global")
             return jsonify({'success': False, 'message': 'ID de vendedor no encontrado'}), 401
+        
+        # ============================================================
+        # PASO 2: EXTRAER BUSINESS_ID (¡ÉSTE ES EL IMPORTANTE!)
+        # ============================================================
+        vendor_id_db = vendor_data[0]
+        vendor_name = vendor_data[1]
+        business_id = vendor_data[2]  # ✅ ¡ESTE ES EL BUSINESS_ID!
+        vendor_role = vendor_data[3] if len(vendor_data) > 3 else 'vendedor'
+        active_value = vendor_data[4] if len(vendor_data) > 4 else True
+        
+        # Verificar que esté activo
+        if is_postgres:
+            is_active = active_value == True or active_value == 't' or active_value == 'true'
+        else:
+            is_active = active_value == 1 or active_value == 'True' or active_value == 't' or active_value == 'true'
         
         if not is_active:
             return jsonify({'success': False, 'message': 'El vendedor está inactivo'}), 401
         
-        if not business_id:
-            return jsonify({'success': False, 'message': 'Business ID no encontrado'}), 401
+        logger.info(f"✅ Vendor {vendor_id} encontrado. Business ID: {business_id}")
         
-        # Obtener nombre del negocio
+        # ============================================================
+        # PASO 3: CONECTAR A LA BD DEL NEGOCIO (USANDO BUSINESS_ID)
+        # ============================================================
         try:
-            if is_postgres:
-                c.execute("SELECT name FROM businesses WHERE id = %s", (business_id,))
-            else:
-                c.execute("SELECT name FROM businesses WHERE id = ?", (business_id,))
-            business_result = c.fetchone()
-            business_name = business_result[0] if business_result else business_id
+            # ✅ CORRECTO: usa business_id, NO vendor_id
+            db = DatabaseManager(business_id)
+            logger.info(f"✅ Conectado a BD del negocio: {business_id}")
         except Exception as e:
-            logger.error(f"Error obteniendo nombre del negocio: {e}")
-            business_name = business_id
+            logger.error(f"❌ Error conectando a BD del negocio {business_id}: {e}")
+            return jsonify({'success': False, 'message': 'Error conectando al negocio'}), 500
         
-        # Obtener USER_ID
+        # ============================================================
+        # PASO 4: VERIFICAR QUE EL VENDEDOR EXISTA EN LA BD DEL NEGOCIO
+        # ============================================================
+        if is_postgres:
+            result = db.execute_query("""
+                SELECT id, name, business_id, role, active
+                FROM vendors
+                WHERE id = %s AND business_id = %s
+            """, (vendor_id, business_id))
+        else:
+            result = db.execute_query("""
+                SELECT id, name, business_id, role, active
+                FROM vendors
+                WHERE id = ? AND business_id = ?
+            """, (vendor_id, business_id))
+        
+        # Si no existe en la BD del negocio, CREARLO
+        if not result:
+            logger.info(f"⚠️ Vendor {vendor_id} no está en BD del negocio, creándolo...")
+            if is_postgres:
+                db.execute_query("""
+                    INSERT INTO vendors (id, name, business_id, role, active)
+                    VALUES (%s, %s, %s, %s, %s)
+                """, (vendor_id, vendor_name, business_id, vendor_role, True))
+            else:
+                db.execute_query("""
+                    INSERT INTO vendors (id, name, business_id, role, active)
+                    VALUES (?, ?, ?, ?, ?)
+                """, (vendor_id, vendor_name, business_id, vendor_role, 1))
+            logger.info(f"✅ Vendor {vendor_id} creado en BD del negocio {business_id}")
+        
+        # ============================================================
+        # PASO 5: OBTENER USER_ID
+        # ============================================================
         user_id = None
         try:
             if is_postgres:
@@ -649,6 +645,7 @@ def login_vendedor():
         except Exception as e:
             logger.error(f"Error obteniendo user_id: {e}")
         
+        # Si no hay usuario, crear uno automáticamente
         if not user_id:
             logger.warning(f"⚠️ Negocio {business_id} no tiene usuario. Creando usuario automático...")
             default_username = f"admin_{business_id[:6]}"
@@ -690,6 +687,23 @@ def login_vendedor():
                 'message': 'Error de configuración: user_id inválido. Contacta al administrador.'
             }), 500
         
+        # ============================================================
+        # PASO 6: OBTENER NOMBRE DEL NEGOCIO
+        # ============================================================
+        try:
+            if is_postgres:
+                c.execute("SELECT name FROM businesses WHERE id = %s", (business_id,))
+            else:
+                c.execute("SELECT name FROM businesses WHERE id = ?", (business_id,))
+            business_result = c.fetchone()
+            business_name = business_result[0] if business_result else business_id
+        except Exception as e:
+            logger.error(f"Error obteniendo nombre del negocio: {e}")
+            business_name = business_id
+        
+        # ============================================================
+        # PASO 7: GENERAR TOKEN JWT
+        # ============================================================
         token = jwt.encode({
             'vendor_id': vendor_id,
             'user_id': user_id,
@@ -701,12 +715,13 @@ def login_vendedor():
         
         log_to_telegram(
             level='SUCCESS',
-            message=f"✅ Login exitoso desde app: {vendor_name}",
+            message=f"✅ Login exitoso desde app: {vendor_name} (negocio: {business_name})",
             data={
                 'vendor_id': vendor_id,
                 'business_id': business_id,
                 'business_name': business_name,
-                'role': vendor_role
+                'role': vendor_role,
+                'user_id': user_id
             },
             business_id=business_id,
             request_info=request_info
