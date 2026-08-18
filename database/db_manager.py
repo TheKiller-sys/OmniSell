@@ -1,4 +1,4 @@
-# database/db_manager.py - Gestor de base de datos SIN Telegram por negocio
+# database/db_manager.py - Gestor de base de datos SIN Telegram por negocio (CORREGIDO)
 import sqlite3
 import os
 import psycopg2
@@ -360,20 +360,6 @@ class DatabaseManager:
                 else:
                     c.execute("ALTER TABLE vendors ADD COLUMN active INTEGER DEFAULT 1")
                 logger.info("Columna active agregada a vendors")
-            
-            # ============================================================
-            # 6. VERIFICAR COLUMNA vendor_id EN ventas (para compatibilidad)
-            # ============================================================
-            # Nota: Esto es para la base de datos global, pero ventas está en la BD del negocio
-            # Esta verificación se hace en _ensure_vendor_column
-            # ============================================================
-            
-            # ============================================================
-            # ❌ NO SE CREAN DATOS DE PRUEBA
-            # ❌ NO SE CREA BOT_CONFIGURED
-            # ❌ NO SE CREA TELEGRAM_ID
-            # El sistema SOLO crea tablas, nunca inserta datos de ejemplo
-            # ============================================================
             
             conn.commit()
             logger.info("✅ Estructura de tablas globales verificada y corregida correctamente")
