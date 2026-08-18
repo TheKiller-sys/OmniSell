@@ -1,5 +1,5 @@
 # web/dashboard.py - Panel de administración web con LOGS A TELEGRAM
-from flask import Flask, render_template, request, redirect, url_for, jsonify, g, session, flash
+from flask import Flask, render_template, request, redirect, url_for, jsonify, g, session, flash, send_from_directory
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
 from flask_socketio import SocketIO
 from database.db_manager import DatabaseManager
@@ -157,7 +157,7 @@ def create_app():
             return result[0][0]
         return None
 
-# ==================== RUTA DE LANDING PAGE ====================
+    # ==================== RUTA DE LANDING PAGE ====================
     @app.route('/')
     def index():
         """
@@ -165,7 +165,7 @@ def create_app():
         Si el usuario ya está autenticado, redirige al dashboard.
         """
         try:
-        # Verificar si el usuario ya está logueado
+            # Verificar si el usuario ya está logueado
             if current_user and current_user.is_authenticated:
                 log_to_telegram(
                     level='INFO',
@@ -176,11 +176,11 @@ def create_app():
                 )
                 return redirect(url_for('dashboard'))
         
-        # Si hay una sesión activa de configuración
+            # Si hay una sesión activa de configuración
             if session and session.get('business_id'):
                 return redirect(url_for('dashboard'))
         
-        # Renderizar la landing page
+            # Renderizar la landing page
             return render_template('index.html')
         
         except Exception as e:
@@ -190,11 +190,23 @@ def create_app():
                 message=f"Error en landing page: {str(e)}",
                 data={'error': str(e), 'traceback': traceback.format_exc()}
             )
-        # En caso de error, mostrar la landing sin funcionalidades extras
+            # En caso de error, mostrar la landing sin funcionalidades extras
             return render_template('index.html')
 
+    # ==================== RUTA DEL FAVICON ====================
+    @app.route('/favicon.ico')
+    def favicon():
+        """Servir el favicon"""
+        try:
+            return send_from_directory(
+                os.path.join(app.root_path, 'static'),
+                'favicon.svg',
+                mimetype='image/svg+xml'
+            )
+        except:
+            return '', 404
 
-    # ==================== SIGNUP CORREGIDO ====================
+    # ==================== SIGNUP CORREGIDO (SIN telegram_id) ====================
     @app.route('/signup', methods=['GET', 'POST'])
     def signup():
         if request.method == 'POST':
@@ -212,7 +224,6 @@ def create_app():
                 username = request.form.get('username', '').strip()
                 password = request.form.get('password', '').strip()
                 email = request.form.get('email', '').strip()
-                telegram_id = request.form.get('telegram_id', '').strip() or '123456789'
                 
                 if not all([business_name, username, password]):
                     log_to_telegram(
@@ -264,27 +275,29 @@ def create_app():
                 # Hash de la contraseña
                 hashed_password = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
             
+                # INSERT en businesses SIN telegram_id
                 if is_postgres:
                     c.execute('''
                         INSERT INTO businesses (id, name, admin_id, web_user, web_pass, email)
                         VALUES (%s, %s, %s, %s, %s, %s)
-                    ''', (business_id, business_name, telegram_id, username, hashed_password, email))
+                    ''', (business_id, business_name, '123456789', username, hashed_password, email))
                 else:
                     c.execute('''
                         INSERT INTO businesses (id, name, admin_id, web_user, web_pass, email)
                         VALUES (?, ?, ?, ?, ?, ?)
-                    ''', (business_id, business_name, telegram_id, username, hashed_password, email))
+                    ''', (business_id, business_name, '123456789', username, hashed_password, email))
             
+                # INSERT en users SIN telegram_id
                 if is_postgres:
                     c.execute('''
-                        INSERT INTO users (business_id, username, password, role, telegram_id)
-                        VALUES (%s, %s, %s, 'admin', %s)
-                    ''', (business_id, username, hashed_password, telegram_id))
+                        INSERT INTO users (business_id, username, password, role)
+                        VALUES (%s, %s, %s, 'admin')
+                    ''', (business_id, username, hashed_password))
                 else:
                     c.execute('''
-                        INSERT INTO users (business_id, username, password, role, telegram_id)
-                        VALUES (?, ?, ?, 'admin', ?)
-                    ''', (business_id, username, hashed_password, telegram_id))
+                        INSERT INTO users (business_id, username, password, role)
+                        VALUES (?, ?, ?, 'admin')
+                    ''', (business_id, username, hashed_password))
             
                 conn.commit()
                 
@@ -332,7 +345,7 @@ def create_app():
         
         return render_template('signup.html')
 
-    # ==================== LOGIN CORREGIDO ====================
+    # ==================== LOGIN ====================
     @app.route('/login', methods=['GET', 'POST'])
     def login():
         message = request.args.get('message')
@@ -385,7 +398,6 @@ def create_app():
                     
                     # Verificar contraseña con bcrypt
                     try:
-                        # Asegurar que la contraseña almacenada es válida
                         if stored_password and stored_password.startswith('$2b$'):
                             if bcrypt.checkpw(password.encode('utf-8'), stored_password.encode('utf-8')):
                                 user_obj = User(user_id, business_id, username, role)
@@ -751,7 +763,7 @@ def create_app():
             return jsonify({'success': False, 'message': str(e)})
 
     # ============================================================
-    # API: DASHBOARD - CORREGIDO CON MANEJO DE ERRORES
+    # API: DASHBOARD
     # ============================================================
     @app.route('/api/dashboard')
     @login_required
@@ -768,9 +780,7 @@ def create_app():
             mes_actual = datetime.now().strftime("%Y-%m")
             is_postgres = 'RENDER' in os.environ and os.environ.get('DATABASE_URL')
             
-            # ============================================================
             # 1. VENTAS DEL MES ACTUAL
-            # ============================================================
             try:
                 if is_postgres:
                     ventas_mes_query = """
@@ -793,9 +803,7 @@ def create_app():
                 logger.error(f"Error calculando ventas del mes: {e}")
                 ventas_mes = 0.0
             
-            # ============================================================
             # 2. GANANCIA DEL MES
-            # ============================================================
             try:
                 if is_postgres:
                     ganancia_query = """
@@ -818,14 +826,10 @@ def create_app():
                 logger.error(f"Error calculando ganancia: {e}")
                 ganancia = 0.0
             
-            # ============================================================
             # 3. MARGEN PROMEDIO
-            # ============================================================
             margen = (ganancia / ventas_mes * 100) if ventas_mes > 0 else 0
             
-            # ============================================================
-            # 4. TOTAL DE VENTAS (CANTIDAD)
-            # ============================================================
+            # 4. TOTAL DE VENTAS
             try:
                 if is_postgres:
                     total_ventas_query = """
@@ -844,9 +848,7 @@ def create_app():
                 logger.error(f"Error calculando total de ventas: {e}")
                 total_ventas = 0
             
-            # ============================================================
             # 5. VENTAS DE HOY
-            # ============================================================
             try:
                 if is_postgres:
                     ventas_hoy_query = """
@@ -878,9 +880,7 @@ def create_app():
                 logger.error(f"Error obteniendo ventas de hoy: {e}")
                 ventas_hoy_list = []
             
-            # ============================================================
             # 6. INVENTARIO
-            # ============================================================
             try:
                 if is_postgres:
                     inventario_query = """
@@ -915,9 +915,7 @@ def create_app():
                 logger.error(f"Error obteniendo inventario: {e}")
                 inventario_list = []
             
-            # ============================================================
             # 7. DATOS PARA GRÁFICO MENSUAL
-            # ============================================================
             try:
                 if is_postgres:
                     ventas_mensuales_query = """
@@ -950,9 +948,7 @@ def create_app():
                 meses = []
                 ventas_mensuales_list = []
             
-            # ============================================================
             # 8. TENDENCIAS
-            # ============================================================
             try:
                 if is_postgres:
                     mes_anterior = (datetime.now() - timedelta(days=30)).strftime("%Y-%m")
@@ -991,9 +987,6 @@ def create_app():
                     'ventas': 0
                 }
             
-            # ============================================================
-            # 9. RESPUESTA
-            # ============================================================
             return jsonify({
                 'ingresos': round(ventas_mes, 2),
                 'ganancia': round(ganancia, 2),
@@ -1021,7 +1014,6 @@ def create_app():
                 request_info=request_info
             )
             
-            # Devolver datos vacíos pero con estructura correcta
             return jsonify({
                 'ingresos': 0.0,
                 'ganancia': 0.0,
@@ -1043,7 +1035,7 @@ def create_app():
             }), 500
 
     # ============================================================
-    # API: SALES DATA (GRÁFICO)
+    # API: SALES DATA
     # ============================================================
     @app.route('/api/sales')
     @login_required
@@ -1911,7 +1903,6 @@ def create_app():
     def api_clientes():
         """Obtener datos de clientes"""
         try:
-            # Por ahora, devolvemos datos de ejemplo
             return jsonify({
                 'clientes': [],
                 'top_clientes': [],
@@ -1993,7 +1984,6 @@ def create_app():
             c = conn.cursor()
             is_postgres = 'RENDER' in os.environ and os.environ.get('DATABASE_URL')
             
-            # Actualizar en la base de datos global
             if is_postgres:
                 c.execute("""
                     UPDATE businesses 
@@ -2105,7 +2095,6 @@ def create_app():
             
             is_postgres = 'RENDER' in os.environ and os.environ.get('DATABASE_URL')
             
-            # Eliminar datos en orden
             if is_postgres:
                 db.execute_query("DELETE FROM ventas")
                 db.execute_query("DELETE FROM inversiones")
@@ -2163,7 +2152,6 @@ def create_app():
             c = conn.cursor()
             is_postgres = 'RENDER' in os.environ and os.environ.get('DATABASE_URL')
             
-            # Eliminar usuario
             if is_postgres:
                 c.execute("DELETE FROM users WHERE id = %s", (current_user.id,))
                 c.execute("DELETE FROM businesses WHERE id = %s", (business_id,))
@@ -2172,7 +2160,6 @@ def create_app():
                 c.execute("DELETE FROM businesses WHERE id = ?", (business_id,))
             conn.commit()
             
-            # Eliminar archivo de base de datos SQLite si existe
             if not is_postgres:
                 import os
                 db_path = f"{business_id}.db"
