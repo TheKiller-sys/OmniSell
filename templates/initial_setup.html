@@ -1,479 +1,1067 @@
-<!-- templates/initial_setup.html - Configuración Inicial SIN Bot -->
 <!DOCTYPE html>
-<html lang="es">
+<html lang="es" data-bs-theme="light">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Configuración Inicial - OmniVentas</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    
     <style>
+        /* ============================================
+           VARIABLES Y BASE
+           ============================================ */
+        :root {
+            --primary: #4361EE;
+            --primary-dark: #3651D4;
+            --primary-light: #EEF2FF;
+            --primary-gradient: linear-gradient(135deg, #4361EE 0%, #3A0CA3 100%);
+            --secondary: #FF6B35;
+            --success: #10B981;
+            --warning: #F59E0B;
+            --danger: #EF4444;
+            --dark: #0F172A;
+            --dark-secondary: #1E293B;
+            --gray: #64748B;
+            --gray-light: #F1F5F9;
+            --white: #FFFFFF;
+            --shadow-sm: 0 1px 3px rgba(0,0,0,0.06);
+            --shadow-md: 0 4px 20px rgba(0,0,0,0.08);
+            --shadow-lg: 0 20px 60px rgba(0,0,0,0.10);
+            --radius-sm: 10px;
+            --radius-md: 16px;
+            --radius-lg: 24px;
+            --radius-xl: 32px;
+            --transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
         body {
-            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             min-height: 100vh;
             padding: 30px 20px;
+            background: linear-gradient(135deg, #F8FAFF 0%, #EEF2FF 40%, #E0E7FF 100%);
+            position: relative;
+            overflow-x: hidden;
         }
+
+        /* Fondo decorativo */
+        body::before {
+            content: '';
+            position: fixed;
+            top: -30%;
+            right: -10%;
+            width: 600px;
+            height: 600px;
+            background: radial-gradient(circle, rgba(67, 97, 238, 0.06) 0%, transparent 70%);
+            border-radius: 50%;
+            animation: float 12s ease-in-out infinite;
+            z-index: 0;
+        }
+
+        body::after {
+            content: '';
+            position: fixed;
+            bottom: -20%;
+            left: -10%;
+            width: 500px;
+            height: 500px;
+            background: radial-gradient(circle, rgba(255, 107, 53, 0.04) 0%, transparent 70%);
+            border-radius: 50%;
+            animation: float 15s ease-in-out infinite reverse;
+            z-index: 0;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-20px); }
+        }
+
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(30px) scale(0.98); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+
+        @keyframes pulse-ring {
+            0%, 100% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.05); opacity: 0.7; }
+        }
+
+        @keyframes shimmer {
+            0% { background-position: -200% 0; }
+            100% { background-position: 200% 0; }
+        }
+
+        .animate-on-load {
+            opacity: 0;
+            animation: fadeInUp 0.6s ease-out forwards;
+        }
+        .delay-1 { animation-delay: 0.05s; }
+        .delay-2 { animation-delay: 0.10s; }
+        .delay-3 { animation-delay: 0.15s; }
+
+        /* ============================================
+           SCROLLBAR
+           ============================================ */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: var(--gray-light); }
+        ::-webkit-scrollbar-thumb { background: var(--primary); border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--primary-dark); }
+
+        /* ============================================
+           CONTAINER
+           ============================================ */
         .setup-container {
-            max-width: 800px;
+            max-width: 820px;
             margin: 0 auto;
+            position: relative;
+            z-index: 1;
         }
-        .setup-card {
-            background: white;
+
+        /* ============================================
+           HEADER
+           ============================================ */
+        .setup-header {
+            text-align: center;
+            margin-bottom: 32px;
+        }
+
+        .setup-header .logo-icon {
+            width: 72px;
+            height: 72px;
+            background: var(--primary-gradient);
             border-radius: 20px;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.1);
-            padding: 35px;
-            margin-bottom: 25px;
-            transition: all 0.3s;
-            display: none;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+            color: white;
+            margin-bottom: 16px;
+            box-shadow: 0 8px 30px rgba(67, 97, 238, 0.3);
         }
-        .setup-card.active {
-            display: block;
+
+        .setup-header h1 {
+            font-weight: 900;
+            font-size: 2.2rem;
+            color: var(--dark);
+            letter-spacing: -0.5px;
         }
-        .setup-card.completed {
-            border-left: 5px solid #28a745;
+
+        .setup-header h1 .highlight {
+            background: var(--primary-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
         }
+
+        .setup-header p {
+            color: var(--gray);
+            font-size: 1.05rem;
+            margin-top: 4px;
+        }
+
+        .setup-header .business-tag {
+            display: inline-block;
+            background: var(--primary-light);
+            color: var(--primary);
+            padding: 6px 18px;
+            border-radius: 50px;
+            font-weight: 600;
+            font-size: 0.85rem;
+            margin-top: 8px;
+            border: 1px solid rgba(67, 97, 238, 0.15);
+        }
+
+        /* ============================================
+           STEP INDICATOR
+           ============================================ */
         .step-indicator {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 30px;
+            margin-bottom: 32px;
             position: relative;
+            padding: 0 20px;
         }
+
         .step-indicator::before {
             content: '';
             position: absolute;
             top: 50%;
-            left: 0;
-            right: 0;
+            left: 10%;
+            right: 10%;
             height: 3px;
-            background: #e9ecef;
+            background: var(--gray-light);
             transform: translateY(-50%);
             z-index: 0;
+            border-radius: 2px;
         }
-        .step-dot {
-            width: 45px;
-            height: 45px;
-            border-radius: 50%;
-            background: #e9ecef;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: 700;
-            font-size: 1.1rem;
-            color: #6c757d;
-            position: relative;
-            z-index: 1;
-            transition: all 0.3s;
-            cursor: pointer;
-        }
-        .step-dot.active {
-            background: linear-gradient(135deg, #4361ee, #3a0ca3);
-            color: white;
-            box-shadow: 0 5px 15px rgba(67, 97, 238, 0.3);
-        }
-        .step-dot.completed {
-            background: #28a745;
-            color: white;
-            cursor: default;
-        }
-        .step-dot:hover:not(.completed) {
-            transform: scale(1.1);
-        }
-        .step-label {
-            font-size: 0.75rem;
-            text-align: center;
-            margin-top: 5px;
-            color: #6c757d;
-        }
-        .step-dot-wrapper {
+
+        .step-indicator .step-dot-wrapper {
             display: flex;
             flex-direction: column;
             align-items: center;
             position: relative;
             z-index: 1;
         }
-        .product-form {
-            background: #f8f9fa;
-            border-radius: 12px;
-            padding: 20px;
-            margin-bottom: 15px;
-            transition: all 0.3s;
-            border-left: 4px solid #4361ee;
-        }
-        .product-form:hover {
-            background: #f1f3f5;
-        }
-        .btn-android {
-            background: #3DDC84;
-            color: white;
-            border: none;
-            border-radius: 12px;
-            padding: 14px 30px;
-            font-weight: 600;
-            font-size: 1.1rem;
-            transition: all 0.3s;
-        }
-        .btn-android:hover {
-            background: #34c77a;
-            transform: translateY(-3px);
-            box-shadow: 0 10px 30px rgba(61, 220, 132, 0.4);
-            color: white;
-        }
-        .business-id-box {
-            background: #f8f9fa;
-            border-radius: 12px;
-            padding: 16px;
-            text-align: center;
-            border: 2px dashed #4361ee;
-            margin: 15px 0;
-        }
-        .business-id-box code {
-            font-size: 1.2rem;
-            background: white;
-            padding: 8px 20px;
-            border-radius: 8px;
-            display: inline-block;
+
+        .step-indicator .step-dot {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            background: var(--gray-light);
+            display: flex;
+            align-items: center;
+            justify-content: center;
             font-weight: 700;
-            color: #4361ee;
+            font-size: 1.1rem;
+            color: var(--gray);
+            transition: var(--transition);
+            cursor: pointer;
+            border: 3px solid transparent;
+            position: relative;
         }
-        .status-badge {
-            padding: 6px 14px;
-            border-radius: 20px;
+
+        .step-indicator .step-dot::after {
+            content: '';
+            position: absolute;
+            inset: -4px;
+            border-radius: 50%;
+            background: var(--primary-gradient);
+            opacity: 0;
+            transition: var(--transition);
+            z-index: -1;
+        }
+
+        .step-indicator .step-dot.active {
+            background: var(--white);
+            color: var(--primary);
+            border-color: var(--primary);
+            box-shadow: 0 4px 20px rgba(67, 97, 238, 0.3);
+        }
+
+        .step-indicator .step-dot.active::after {
+            opacity: 1;
+        }
+
+        .step-indicator .step-dot.completed {
+            background: var(--success);
+            color: white;
+            border-color: var(--success);
+            cursor: default;
+        }
+
+        .step-indicator .step-dot.completed::after {
+            opacity: 0;
+        }
+
+        .step-indicator .step-dot:hover:not(.completed) {
+            transform: scale(1.1);
+        }
+
+        .step-indicator .step-label {
+            font-size: 0.7rem;
+            text-align: center;
+            margin-top: 6px;
+            color: var(--gray);
             font-weight: 600;
-            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
         }
-        .status-badge.success {
-            background: #d4edda;
-            color: #155724;
+
+        .step-indicator .step-dot.active + .step-label {
+            color: var(--primary);
         }
-        .status-badge.error {
-            background: #f8d7da;
-            color: #721c24;
+        .step-indicator .step-dot.completed + .step-label {
+            color: var(--success);
         }
-        .status-badge.info {
-            background: #d1ecf1;
-            color: #0c5460;
-        }
-        .status-badge.warning {
-            background: #fff3cd;
-            color: #856404;
-        }
+
+        /* ============================================
+           PROGRESS BAR
+           ============================================ */
         .progress-custom {
-            height: 8px;
-            border-radius: 4px;
-            background: #e9ecef;
+            height: 6px;
+            border-radius: 3px;
+            background: var(--gray-light);
             overflow: hidden;
-            margin: 20px 0;
+            margin: 0 0 32px 0;
         }
+
         .progress-custom .progress-bar {
-            background: linear-gradient(90deg, #4361ee, #3a0ca3);
-            transition: width 0.6s ease;
+            height: 100%;
+            background: var(--primary-gradient);
+            transition: width 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            border-radius: 3px;
+            width: 33%;
         }
-        .btn-action {
-            border-radius: 12px;
-            padding: 10px 25px;
-            font-weight: 600;
-            transition: all 0.3s;
+
+        /* ============================================
+           SETUP CARDS
+           ============================================ */
+        .setup-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px) saturate(180%);
+            -webkit-backdrop-filter: blur(20px) saturate(180%);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-lg);
+            padding: 36px 40px;
+            margin-bottom: 28px;
+            transition: var(--transition);
+            display: none;
+            border: 1px solid rgba(255, 255, 255, 0.3);
         }
-        .btn-action:hover {
+
+        .setup-card.active {
+            display: block;
+            animation: fadeInUp 0.6s ease-out forwards;
+        }
+
+        .setup-card:hover {
+            box-shadow: var(--shadow-lg);
             transform: translateY(-2px);
         }
-        .section-title {
-            font-weight: 700;
-            color: #2c3e50;
-            margin-bottom: 20px;
-            display: flex;
+
+        .setup-card .card-icon {
+            width: 56px;
+            height: 56px;
+            border-radius: var(--radius-sm);
+            display: inline-flex;
             align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            margin-bottom: 16px;
         }
-        .section-title i {
-            margin-right: 12px;
-            color: #4361ee;
+
+        .setup-card .card-icon.blue {
+            background: var(--primary-light);
+            color: var(--primary);
         }
-        .step-buttons {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-top: 20px;
-            padding-top: 20px;
-            border-top: 1px solid #e9ecef;
-            flex-wrap: wrap;
-            gap: 10px;
+        .setup-card .card-icon.green {
+            background: #D1FAE5;
+            color: var(--success);
         }
-        .step-buttons .left-buttons {
-            display: flex;
-            gap: 10px;
-            flex-wrap: wrap;
+        .setup-card .card-icon.orange {
+            background: #FEF3C7;
+            color: var(--warning);
         }
-        .step-buttons .right-buttons {
-            display: flex;
-            gap: 10px;
-            flex-wrap: wrap;
-        }
-        .hidden {
-            display: none !important;
-        }
-        .skip-btn {
-            color: #6c757d;
-        }
-        .skip-btn:hover {
-            color: #dc3545;
-        }
-        .download-steps {
-            background: #f8f9fa;
-            border-radius: 12px;
-            padding: 16px 20px;
-            margin: 12px 0;
-        }
-        .download-steps .step {
+
+        .setup-card .section-title {
+            font-weight: 800;
+            font-size: 1.4rem;
+            color: var(--dark);
+            margin-bottom: 6px;
             display: flex;
             align-items: center;
             gap: 12px;
-            padding: 8px 0;
         }
+
+        .setup-card .section-title i {
+            color: var(--primary);
+        }
+
+        .setup-card .section-subtitle {
+            color: var(--gray);
+            font-size: 0.95rem;
+            margin-bottom: 24px;
+        }
+
+        /* ============================================
+           ALERTS
+           ============================================ */
+        .alert-premium {
+            border-radius: var(--radius-sm);
+            border: none;
+            padding: 16px 20px;
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            font-weight: 500;
+        }
+
+        .alert-premium i {
+            font-size: 1.2rem;
+            margin-top: 2px;
+        }
+
+        .alert-premium.alert-info {
+            background: #DBEAFE;
+            color: #1E40AF;
+        }
+
+        .alert-premium.alert-warning {
+            background: #FEF3C7;
+            color: #92400E;
+        }
+
+        .alert-premium.alert-success {
+            background: #D1FAE5;
+            color: #065F46;
+        }
+
+        .alert-premium.alert-danger {
+            background: #FEE2E2;
+            color: #991B1B;
+        }
+
+        /* ============================================
+           BUSINESS ID BOX
+           ============================================ */
+        .business-id-box {
+            background: var(--gray-light);
+            border-radius: var(--radius-sm);
+            padding: 20px 24px;
+            text-align: center;
+            border: 2px dashed var(--primary);
+            margin: 16px 0 20px;
+            transition: var(--transition);
+        }
+
+        .business-id-box:hover {
+            background: var(--primary-light);
+            border-color: var(--primary);
+        }
+
+        .business-id-box .id-label {
+            font-size: 0.85rem;
+            color: var(--gray);
+            font-weight: 500;
+            margin-bottom: 8px;
+        }
+
+        .business-id-box .id-code {
+            font-family: 'Inter', monospace;
+            font-size: 1.6rem;
+            font-weight: 800;
+            color: var(--primary);
+            background: var(--white);
+            padding: 8px 28px;
+            border-radius: var(--radius-sm);
+            display: inline-block;
+            letter-spacing: 1px;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .business-id-box .btn-copy {
+            background: var(--white);
+            border: 2px solid var(--gray-light);
+            color: var(--gray);
+            padding: 6px 18px;
+            border-radius: var(--radius-sm);
+            font-weight: 600;
+            font-size: 0.85rem;
+            transition: var(--transition);
+            margin-top: 10px;
+        }
+
+        .business-id-box .btn-copy:hover {
+            border-color: var(--primary);
+            color: var(--primary);
+            background: var(--primary-light);
+        }
+
+        /* ============================================
+           CREDENTIAL BOX
+           ============================================ */
+        .credential-box {
+            background: var(--gray-light);
+            border-radius: var(--radius-sm);
+            padding: 12px 16px;
+            text-align: center;
+            border: 1px solid #E2E8F0;
+            transition: var(--transition);
+        }
+
+        .credential-box:hover {
+            border-color: var(--primary);
+        }
+
+        .credential-box .cred-label {
+            font-size: 0.7rem;
+            font-weight: 600;
+            color: var(--gray);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .credential-box .cred-value {
+            font-weight: 700;
+            font-size: 1.05rem;
+            color: var(--dark);
+            margin-top: 2px;
+        }
+
+        /* ============================================
+           DOWNLOAD STEPS
+           ============================================ */
+        .download-steps {
+            background: var(--gray-light);
+            border-radius: var(--radius-sm);
+            padding: 20px 24px;
+            margin: 16px 0;
+        }
+
+        .download-steps .step-item {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            padding: 8px 0;
+            border-bottom: 1px solid rgba(0,0,0,0.04);
+        }
+
+        .download-steps .step-item:last-child {
+            border-bottom: none;
+        }
+
         .download-steps .step-number {
-            width: 30px;
-            height: 30px;
+            width: 32px;
+            height: 32px;
             border-radius: 50%;
-            background: #4361ee;
+            background: var(--primary-gradient);
             color: white;
             display: flex;
             align-items: center;
             justify-content: center;
             font-weight: 700;
-            font-size: 0.85rem;
+            font-size: 0.8rem;
             flex-shrink: 0;
+            box-shadow: 0 2px 10px rgba(67, 97, 238, 0.2);
         }
-        .credential-box {
-            background: #e9ecef;
-            border-radius: 8px;
+
+        .download-steps .step-text {
+            font-size: 0.95rem;
+            color: var(--dark-secondary);
+        }
+
+        .download-steps .step-text strong {
+            color: var(--dark);
+        }
+
+        /* ============================================
+           PRODUCT FORM
+           ============================================ */
+        .product-form {
+            background: var(--gray-light);
+            border-radius: var(--radius-sm);
+            padding: 20px 24px;
+            margin-bottom: 16px;
+            transition: var(--transition);
+            border-left: 4px solid var(--primary);
+        }
+
+        .product-form:hover {
+            background: var(--white);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .product-form .product-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+
+        .product-form .product-header h6 {
+            font-weight: 700;
+            font-size: 0.95rem;
+            color: var(--dark-secondary);
+            margin: 0;
+        }
+
+        .product-form .product-header h6 i {
+            color: var(--primary);
+            margin-right: 8px;
+        }
+
+        .product-form .btn-remove-product {
+            background: #FEE2E2;
+            color: var(--danger);
+            border: none;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: var(--transition);
+            cursor: pointer;
+        }
+
+        .product-form .btn-remove-product:hover {
+            background: var(--danger);
+            color: white;
+            transform: scale(1.1);
+        }
+
+        /* ============================================
+           BUTTONS
+           ============================================ */
+        .btn-premium {
+            border-radius: var(--radius-sm);
+            padding: 10px 28px;
+            font-weight: 600;
+            transition: var(--transition);
+            border: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .btn-premium:hover {
+            transform: translateY(-2px);
+        }
+
+        .btn-premium.primary {
+            background: var(--primary-gradient);
+            color: white;
+            box-shadow: 0 4px 15px rgba(67, 97, 238, 0.3);
+        }
+
+        .btn-premium.primary:hover {
+            box-shadow: 0 8px 30px rgba(67, 97, 238, 0.4);
+        }
+
+        .btn-premium.success {
+            background: var(--success);
+            color: white;
+            box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);
+        }
+
+        .btn-premium.success:hover {
+            box-shadow: 0 8px 30px rgba(16, 185, 129, 0.4);
+        }
+
+        .btn-premium.secondary {
+            background: var(--gray-light);
+            color: var(--dark-secondary);
+        }
+
+        .btn-premium.secondary:hover {
+            background: #E2E8F0;
+        }
+
+        .btn-premium.danger-outline {
+            background: transparent;
+            color: var(--danger);
+            border: 2px solid #FEE2E2;
+        }
+
+        .btn-premium.danger-outline:hover {
+            background: #FEE2E2;
+            border-color: var(--danger);
+        }
+
+        .btn-premium.android {
+            background: #3DDC84;
+            color: white;
+            box-shadow: 0 4px 15px rgba(61, 220, 132, 0.3);
+            padding: 14px 36px;
+            font-size: 1.05rem;
+        }
+
+        .btn-premium.android:hover {
+            box-shadow: 0 8px 30px rgba(61, 220, 132, 0.4);
+            transform: translateY(-3px);
+        }
+
+        .btn-premium:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none !important;
+        }
+
+        /* ============================================
+           STEP BUTTONS
+           ============================================ */
+        .step-buttons {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 24px;
+            padding-top: 24px;
+            border-top: 2px solid var(--gray-light);
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        .step-buttons .left-group {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .step-buttons .right-group {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        /* ============================================
+           FORM CONTROLS
+           ============================================ */
+        .form-control-premium {
+            border: 2px solid var(--gray-light);
+            border-radius: var(--radius-sm);
             padding: 10px 16px;
-            font-family: monospace;
-            font-size: 0.9rem;
-            text-align: center;
+            font-size: 0.95rem;
+            transition: var(--transition);
+            background: var(--white);
+            width: 100%;
+        }
+
+        .form-control-premium:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 4px rgba(67, 97, 238, 0.1);
+            outline: none;
+        }
+
+        .form-control-premium.is-valid {
+            border-color: var(--success);
+            background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8'%3e%3cpath fill='%2310B981' d='M2.3 6.73L.6 4.53c-.4-1.04.46-1.4 1.1-.8l1.1 1.4 3.4-3.8c.6-.63 1.6-.27 1.2.7l-4 4.6c-.43.5-.8.4-1.1.1z'/%3e%3c/svg%3e");
+            background-repeat: no-repeat;
+            background-position: right calc(0.375em + 0.1875rem) center;
+            background-size: calc(0.75em + 0.375rem) calc(0.75em + 0.375rem);
+            padding-right: calc(1.5em + 0.75rem);
+        }
+
+        .form-control-premium.is-invalid {
+            border-color: var(--danger);
+            background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12' width='12' height='12' fill='none' stroke='%23EF4444'%3e%3ccircle cx='6' cy='6' r='4.5'/%3e%3cpath stroke-linejoin='round' d='M5.8 3.6h.4L6 6.5z'/%3e%3ccircle cx='6' cy='8.2' r='.6' fill='%23EF4444' stroke='none'/%3e%3c/svg%3e");
+            background-repeat: no-repeat;
+            background-position: right calc(0.375em + 0.1875rem) center;
+            background-size: calc(0.75em + 0.375rem) calc(0.75em + 0.375rem);
+            padding-right: calc(1.5em + 0.75rem);
+        }
+
+        .form-label-premium {
+            font-weight: 600;
+            font-size: 0.85rem;
+            color: var(--dark-secondary);
+            margin-bottom: 4px;
+        }
+
+        /* ============================================
+           RESPONSIVE
+           ============================================ */
+        @media (max-width: 992px) {
+            .setup-card { padding: 28px 24px; }
+            .setup-header h1 { font-size: 1.8rem; }
+        }
+
+        @media (max-width: 768px) {
+            .setup-card { padding: 24px 18px; }
+            .setup-header h1 { font-size: 1.5rem; }
+            .setup-header .logo-icon { width: 56px; height: 56px; font-size: 1.5rem; }
+            .step-indicator { padding: 0 8px; }
+            .step-indicator .step-dot { width: 38px; height: 38px; font-size: 0.9rem; }
+            .step-indicator .step-label { font-size: 0.6rem; }
+            .business-id-box .id-code { font-size: 1.2rem; padding: 6px 16px; }
+            .step-buttons { flex-direction: column; align-items: stretch; }
+            .step-buttons .left-group, .step-buttons .right-group { justify-content: center; }
+            .product-form { padding: 16px; }
+        }
+
+        @media (max-width: 576px) {
+            body { padding: 16px 12px; }
+            .setup-card { padding: 18px 14px; border-radius: var(--radius-md); }
+            .setup-header h1 { font-size: 1.3rem; }
+            .btn-premium { width: 100%; justify-content: center; }
+            .step-buttons .left-group, .step-buttons .right-group { width: 100%; }
+            .step-buttons .left-group .btn-premium,
+            .step-buttons .right-group .btn-premium { width: 100%; }
+            .download-steps { padding: 16px; }
+            .download-steps .step-text { font-size: 0.85rem; }
         }
     </style>
 </head>
 <body>
+
     <div class="setup-container">
-        <!-- Header -->
-        <div class="text-center mb-4">
-            <h1 class="display-5 fw-bold" style="color: #2c3e50;">
-                <i class="fas fa-rocket text-primary me-2"></i>Configura tu Negocio
+
+        <!-- ============================================
+        HEADER
+        ============================================ -->
+        <div class="setup-header animate-on-load">
+            <div class="logo-icon">
+                <i class="fas fa-rocket"></i>
+            </div>
+            <h1>
+                <span class="highlight">OmniVentas</span>
+                <span style="color: var(--dark);">Setup</span>
             </h1>
-            <p class="text-muted">Completa estos pasos para comenzar a usar OmniVentas</p>
-            <p class="text-muted small">Business: <strong>{{ business_name }}</strong> ({{ business_id }})</p>
+            <p>Completa estos pasos para comenzar a usar tu sistema</p>
+            <span class="business-tag">
+                <i class="fas fa-store me-1"></i>
+                {{ business_name }} · {{ business_id }}
+            </span>
         </div>
 
-        <!-- Step Indicator -->
-        <div class="step-indicator" id="stepIndicator">
+        <!-- ============================================
+        STEP INDICATOR
+        ============================================ -->
+        <div class="step-indicator animate-on-load delay-1" id="stepIndicator">
             <div class="step-dot-wrapper">
-                <div class="step-dot completed" data-step="1">✓</div>
-                <div class="step-label">Cuenta</div>
+                <div class="step-dot completed" data-step="1">
+                    <i class="fas fa-check"></i>
+                </div>
+                <span class="step-label">Cuenta</span>
             </div>
             <div class="step-dot-wrapper">
                 <div class="step-dot active" data-step="2">2</div>
-                <div class="step-label">App</div>
+                <span class="step-label">App</span>
             </div>
             <div class="step-dot-wrapper">
                 <div class="step-dot" data-step="3">3</div>
-                <div class="step-label">Productos</div>
+                <span class="step-label">Productos</span>
             </div>
             <div class="step-dot-wrapper">
                 <div class="step-dot" data-step="4">4</div>
-                <div class="step-label">Listo</div>
+                <span class="step-label">Listo</span>
             </div>
         </div>
 
-        <!-- Progress -->
-        <div class="progress-custom">
-            <div class="progress-bar" id="progressBar" style="width: 33%"></div>
+        <!-- ============================================
+        PROGRESS BAR
+        ============================================ -->
+        <div class="progress-custom animate-on-load delay-1">
+            <div class="progress-bar" id="progressBar" style="width: 33%;"></div>
         </div>
 
-        <!-- Paso 2: Descargar la App -->
+        <!-- ============================================
+        PASO 2: DESCARGAR APP
+        ============================================ -->
         <div class="setup-card active" id="step2">
+            <div class="card-icon blue">
+                <i class="fas fa-mobile-alt"></i>
+            </div>
             <h4 class="section-title">
-                <i class="fas fa-mobile-alt"></i>Descarga la App para Vendedores
+                <i class="fas fa-download"></i>
+                Descarga la App para Vendedores
             </h4>
-            
-            <div class="alert alert-info">
-                <i class="fas fa-info-circle me-2"></i>
-                <strong>Excelente!</strong> Tu negocio ya está creado. Ahora descarga la app para empezar a vender.
+            <p class="section-subtitle">
+                Tus vendedores podrán registrar ventas desde sus teléfonos en segundos.
+            </p>
+
+            <div class="alert-premium alert-info">
+                <i class="fas fa-info-circle"></i>
+                <div>
+                    <strong>¡Excelente!</strong> Tu negocio ya está creado. Ahora descarga la app para empezar a vender.
+                </div>
             </div>
 
             <!-- ID del negocio -->
             <div class="business-id-box">
-                <p class="text-muted mb-1">🔑 Tu ID de Negocio (necesario para iniciar sesión en la app)</p>
-                <code id="business-id-display">{{ business_id }}</code>
-                <button class="btn btn-sm btn-outline-primary mt-2" onclick="copiarId()">
+                <div class="id-label">
+                    <i class="fas fa-key me-1"></i>
+                    Tu ID de Negocio (necesario para iniciar sesión en la app)
+                </div>
+                <div class="id-code" id="business-id-display">{{ business_id }}</div>
+                <button class="btn-copy" onclick="copiarId()">
                     <i class="fas fa-copy me-1"></i>Copiar ID
                 </button>
             </div>
 
-            <!-- Información de acceso -->
-            <div class="row g-2 mb-3">
+            <!-- Credenciales -->
+            <div class="row g-3 mb-3">
                 <div class="col-6">
                     <div class="credential-box">
-                        <small class="text-muted">Usuario</small>
-                        <div class="fw-bold">{{ username }}</div>
+                        <div class="cred-label"><i class="fas fa-user me-1"></i>Usuario</div>
+                        <div class="cred-value">{{ username }}</div>
                     </div>
                 </div>
                 <div class="col-6">
                     <div class="credential-box">
-                        <small class="text-muted">Contraseña</small>
-                        <div class="fw-bold">• • • • • • • •</div>
+                        <div class="cred-label"><i class="fas fa-lock me-1"></i>Contraseña</div>
+                        <div class="cred-value">••••••••</div>
                     </div>
                 </div>
             </div>
 
-            <!-- Botón de descarga -->
+            <!-- Botón descarga -->
             <div class="text-center my-4">
-                <a href="/download-apk-public" class="btn btn-android">
-                    <i class="fab fa-android fa-2x me-3" style="vertical-align: middle;"></i>
-                    <span style="vertical-align: middle; font-size: 1.2rem;">Descargar App APK</span>
+                <a href="/download-apk-public" class="btn-premium android">
+                    <i class="fab fa-android fa-2x"></i>
+                    <span>Descargar App APK</span>
                 </a>
-                <p class="text-muted mt-2 small">Versión 8.0.6 | Android 6.0+ | Tamaño ~5MB</p>
+                <p class="text-muted mt-2 small">
+                    <i class="fas fa-info-circle me-1"></i>
+                    Versión 8.0.6 · Android 6.0+ · ~5MB
+                </p>
             </div>
 
-            <!-- Pasos para usar la app -->
+            <!-- Pasos -->
             <div class="download-steps">
-                <h6 class="mb-2"><i class="fas fa-list-check me-2"></i>¿Cómo usar la app?</h6>
-                <div class="step">
+                <h6 class="mb-2 fw-bold">
+                    <i class="fas fa-list-check me-2" style="color: var(--primary);"></i>
+                    ¿Cómo usar la app?
+                </h6>
+                <div class="step-item">
                     <span class="step-number">1</span>
-                    <span>Descarga e instala el APK en tu teléfono</span>
+                    <span class="step-text">Descarga e instala el APK en tu teléfono</span>
                 </div>
-                <div class="step">
+                <div class="step-item">
                     <span class="step-number">2</span>
-                    <span>Abre la app y usa tu <strong>usuario</strong> y <strong>contraseña</strong></span>
+                    <span class="step-text">Abre la app y usa tu <strong>usuario</strong> y <strong>contraseña</strong></span>
                 </div>
-                <div class="step">
+                <div class="step-item">
                     <span class="step-number">3</span>
-                    <span>Ingresa el <strong>ID de negocio</strong> que copiaste arriba</span>
+                    <span class="step-text">Ingresa el <strong>ID de negocio</strong> que copiaste arriba</span>
                 </div>
-                <div class="step">
+                <div class="step-item">
                     <span class="step-number">4</span>
-                    <span>¡Empieza a registrar ventas desde tu teléfono!</span>
+                    <span class="step-text">¡Empieza a registrar ventas desde tu teléfono!</span>
                 </div>
             </div>
 
-            <div class="alert alert-warning">
-                <i class="fas fa-shield-alt me-2"></i>
-                <strong>Seguridad:</strong> Guarda tus credenciales en un lugar seguro. No las compartas con nadie.
+            <div class="alert-premium alert-warning">
+                <i class="fas fa-shield-alt"></i>
+                <div>
+                    <strong>Seguridad:</strong> Guarda tus credenciales en un lugar seguro. No las compartas con nadie.
+                </div>
             </div>
-            
+
             <div class="step-buttons">
-                <div class="left-buttons">
-                    <a href="/signup" class="btn btn-outline-secondary btn-action">
-                        <i class="fas fa-arrow-left me-2"></i>Volver
+                <div class="left-group">
+                    <a href="/signup" class="btn-premium secondary">
+                        <i class="fas fa-arrow-left"></i> Volver
                     </a>
                 </div>
-                <div class="right-buttons">
-                    <button id="next-to-products" class="btn btn-primary btn-action">
-                        Continuar a Productos <i class="fas fa-arrow-right ms-2"></i>
+                <div class="right-group">
+                    <button id="next-to-products" class="btn-premium primary">
+                        Continuar a Productos <i class="fas fa-arrow-right"></i>
                     </button>
                 </div>
             </div>
         </div>
 
-        <!-- Paso 3: Configurar Productos Iniciales -->
+        <!-- ============================================
+        PASO 3: CONFIGURAR PRODUCTOS
+        ============================================ -->
         <div class="setup-card" id="step3">
-            <h4 class="section-title">
-                <i class="fas fa-boxes"></i>Añadir Primeros Productos
-            </h4>
-            
-            <div class="alert alert-warning">
-                <i class="fas fa-lightbulb me-2"></i>
-                <strong>Sugerencia:</strong> Agrega al menos 3-5 productos para empezar a vender.
+            <div class="card-icon orange">
+                <i class="fas fa-boxes"></i>
             </div>
-            
+            <h4 class="section-title">
+                <i class="fas fa-tags"></i>
+                Añadir Primeros Productos
+            </h4>
+            <p class="section-subtitle">
+                Agrega los productos que vas a vender para comenzar a registrar ventas.
+            </p>
+
+            <div class="alert-premium alert-warning">
+                <i class="fas fa-lightbulb"></i>
+                <div>
+                    <strong>Sugerencia:</strong> Agrega al menos 3-5 productos para empezar a vender.
+                </div>
+            </div>
+
             <div id="product-form-container">
                 <!-- Producto 1 -->
                 <div class="product-form">
-                    <div class="d-flex justify-content-between align-items-center mb-3">
-                        <h5 class="mb-0"><i class="fas fa-tag text-primary me-2"></i>Producto #1</h5>
+                    <div class="product-header">
+                        <h6><i class="fas fa-tag"></i>Producto #1</h6>
                     </div>
                     <div class="row g-3">
                         <div class="col-md-6">
-                            <label class="form-label fw-semibold">Nombre del Producto *</label>
-                            <input type="text" name="product_name[]" class="form-control" placeholder="Ej: Camiseta" required>
+                            <label class="form-label-premium">Nombre del Producto *</label>
+                            <input type="text" name="product_name[]" class="form-control-premium" placeholder="Ej: Camiseta" required>
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label fw-semibold">Categoría/Sección *</label>
-                            <input type="text" name="product_category[]" class="form-control" placeholder="Ej: Ropa" required>
+                            <label class="form-label-premium">Categoría/Sección *</label>
+                            <input type="text" name="product_category[]" class="form-control-premium" placeholder="Ej: Ropa" required>
                         </div>
                         <div class="col-md-4">
-                            <label class="form-label fw-semibold">Precio de Venta ($) *</label>
-                            <input type="number" step="0.01" name="product_price[]" class="form-control" placeholder="0.00" required>
+                            <label class="form-label-premium">Precio de Venta ($) *</label>
+                            <input type="number" step="0.01" name="product_price[]" class="form-control-premium" placeholder="0.00" required>
                         </div>
                         <div class="col-md-4">
-                            <label class="form-label fw-semibold">Precio de Compra ($) *</label>
-                            <input type="number" step="0.01" name="product_cost[]" class="form-control" placeholder="0.00" required>
+                            <label class="form-label-premium">Precio de Compra ($) *</label>
+                            <input type="number" step="0.01" name="product_cost[]" class="form-control-premium" placeholder="0.00" required>
                         </div>
                         <div class="col-md-4">
-                            <label class="form-label fw-semibold">Stock Inicial *</label>
-                            <input type="number" name="product_stock[]" class="form-control" placeholder="0" required>
+                            <label class="form-label-premium">Stock Inicial *</label>
+                            <input type="number" name="product_stock[]" class="form-control-premium" placeholder="0" required>
                         </div>
                     </div>
                 </div>
             </div>
-            
+
             <div class="d-flex flex-wrap gap-2 mb-3">
-                <button id="add-another" class="btn btn-outline-secondary btn-action">
-                    <i class="fas fa-plus me-2"></i>Añadir Otro Producto
+                <button id="add-another" class="btn-premium secondary">
+                    <i class="fas fa-plus"></i> Añadir Otro Producto
                 </button>
-                <button id="save-products" class="btn btn-success btn-action">
-                    <i class="fas fa-save me-2"></i>Guardar Productos
+                <button id="save-products" class="btn-premium success">
+                    <i class="fas fa-save"></i> Guardar Productos
                 </button>
             </div>
-            
+
             <div id="product-status" class="mt-3" style="display: none;"></div>
-            
+
             <div class="step-buttons">
-                <div class="left-buttons">
-                    <button id="back-to-app" class="btn btn-outline-secondary btn-action">
-                        <i class="fas fa-arrow-left me-2"></i>Volver a la App
+                <div class="left-group">
+                    <button id="back-to-app" class="btn-premium secondary">
+                        <i class="fas fa-arrow-left"></i> Volver a la App
                     </button>
                 </div>
-                <div class="right-buttons">
-                    <button id="skip-products" class="btn btn-outline-secondary btn-action skip-btn">
-                        <i class="fas fa-forward me-2"></i>Omitir (Skip)
+                <div class="right-group">
+                    <button id="skip-products" class="btn-premium danger-outline">
+                        <i class="fas fa-forward"></i> Omitir (Skip)
                     </button>
-                    <button id="finish-setup" class="btn btn-primary btn-action" disabled>
-                        <i class="fas fa-check-circle me-2"></i>Finalizar
+                    <button id="finish-setup" class="btn-premium primary" disabled>
+                        <i class="fas fa-check-circle"></i> Finalizar
                     </button>
                 </div>
             </div>
         </div>
+
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- ============================================
+    SCRIPTS
+    ============================================ -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     <script>
+        // ============================================================
+        // VARIABLES GLOBALES
+        // ============================================================
         let productCount = 1;
         let productsSaved = false;
         let productsSkipped = false;
 
-        // === FUNCIÓN COPIAR ID ===
+        // ============================================================
+        // COPIAR ID
+        // ============================================================
         function copiarId() {
             const idText = document.getElementById('business-id-display').textContent;
             navigator.clipboard.writeText(idText).then(() => {
-                const btn = document.querySelector('[onclick="copiarId()"]');
+                const btn = document.querySelector('.btn-copy');
                 const originalText = btn.innerHTML;
                 btn.innerHTML = '<i class="fas fa-check me-1"></i>¡Copiado!';
+                btn.style.borderColor = 'var(--success)';
+                btn.style.color = 'var(--success)';
                 setTimeout(() => {
                     btn.innerHTML = originalText;
+                    btn.style.borderColor = '';
+                    btn.style.color = '';
                 }, 2000);
             });
         }
 
-        // === NAVEGACIÓN ENTRE PASOS ===
+        // ============================================================
+        // NAVEGACIÓN ENTRE PASOS
+        // ============================================================
         function goToStep(step) {
-            document.querySelectorAll('.setup-card').forEach(card => card.classList.remove('active'));
-            
+            const cards = document.querySelectorAll('.setup-card');
+            cards.forEach(card => card.classList.remove('active'));
+
             const targetCard = document.getElementById('step' + step);
-            if (targetCard) {
-                targetCard.classList.add('active');
-            }
-            
-            document.querySelectorAll('.step-dot').forEach(dot => {
+            if (targetCard) targetCard.classList.add('active');
+
+            const dots = document.querySelectorAll('.step-dot');
+            dots.forEach(dot => {
                 const dotStep = parseInt(dot.dataset.step);
                 if (dotStep === step) {
                     dot.classList.add('active');
@@ -485,21 +1073,28 @@
                     dot.classList.remove('active', 'completed');
                 }
             });
-            
+
             const progress = ((step - 1) / 3) * 100;
             document.getElementById('progressBar').style.width = Math.min(progress + 33, 100) + '%';
         }
 
+        // ============================================================
+        // MOSTRAR ESTADO
+        // ============================================================
         function showStatus(elementId, message, type) {
             const statusDiv = document.getElementById(elementId);
             statusDiv.style.display = 'block';
-            const icon = type === 'success' ? 'fa-check-circle' : 
-                        type === 'danger' ? 'fa-times-circle' : 
-                        type === 'warning' ? 'fa-exclamation-triangle' : 'fa-info-circle';
+            const iconMap = {
+                success: 'fa-check-circle',
+                danger: 'fa-times-circle',
+                warning: 'fa-exclamation-triangle',
+                info: 'fa-info-circle'
+            };
+            const icon = iconMap[type] || 'fa-info-circle';
             statusDiv.innerHTML = `
-                <div class="alert alert-${type} d-flex align-items-center">
-                    <i class="fas ${icon} me-2 fa-lg"></i>
-                    <span>${message}</span>
+                <div class="alert-premium alert-${type}">
+                    <i class="fas ${icon}"></i>
+                    <div>${message}</div>
                 </div>
             `;
         }
@@ -508,29 +1103,15 @@
             showStatus('product-status', message, type);
         }
 
-        // === EVENTOS DE NAVEGACIÓN ===
-        document.getElementById('next-to-products').addEventListener('click', function() {
-            goToStep(3);
-        });
+        // ============================================================
+        // EVENTOS DE NAVEGACIÓN
+        // ============================================================
+        document.getElementById('next-to-products').addEventListener('click', () => goToStep(3));
+        document.getElementById('back-to-app').addEventListener('click', () => goToStep(2));
 
-        document.getElementById('back-to-app').addEventListener('click', function() {
-            goToStep(2);
-        });
-
-        // === BOTÓN OMITIR (SKIP) ===
-        document.getElementById('skip-products').addEventListener('click', function() {
-            if (confirm('¿Estás seguro de que quieres omitir la configuración de productos? Puedes agregarlos más tarde desde el panel de administración.')) {
-                productsSkipped = true;
-                showProductStatus('✅ Has omitido la configuración de productos. Puedes agregarlos más tarde desde el panel.', 'success');
-                document.getElementById('finish-setup').disabled = false;
-                document.getElementById('finish-setup').classList.remove('btn-primary');
-                document.getElementById('finish-setup').classList.add('btn-success');
-                document.querySelector('.step-dot[data-step="3"]').classList.add('completed');
-                document.getElementById('skip-products').style.display = 'none';
-            }
-        });
-
-        // === CLICK EN DOTS PARA NAVEGAR ===
+        // ============================================================
+        // CLICK EN DOTS
+        // ============================================================
         document.querySelectorAll('.step-dot').forEach(dot => {
             dot.addEventListener('click', function() {
                 const step = parseInt(this.dataset.step);
@@ -540,45 +1121,62 @@
             });
         });
 
-        // === AÑADIR OTRO PRODUCTO ===
+        // ============================================================
+        // OMITIR (SKIP)
+        // ============================================================
+        document.getElementById('skip-products').addEventListener('click', function() {
+            if (confirm('¿Estás seguro de que quieres omitir la configuración de productos? Puedes agregarlos más tarde desde el panel de administración.')) {
+                productsSkipped = true;
+                showProductStatus('✅ Has omitido la configuración de productos. Puedes agregarlos más tarde desde el panel.', 'success');
+                document.getElementById('finish-setup').disabled = false;
+                document.getElementById('finish-setup').classList.remove('primary');
+                document.getElementById('finish-setup').classList.add('success');
+                document.querySelector('.step-dot[data-step="3"]').classList.add('completed');
+                this.style.display = 'none';
+            }
+        });
+
+        // ============================================================
+        // AÑADIR OTRO PRODUCTO
+        // ============================================================
         document.getElementById('add-another').addEventListener('click', function() {
             productCount++;
-            const formContainer = document.getElementById('product-form-container');
+            const container = document.getElementById('product-form-container');
             const newForm = document.createElement('div');
             newForm.className = 'product-form';
             newForm.innerHTML = `
-                <div class="d-flex justify-content-between align-items-center mb-3">
-                    <h5 class="mb-0"><i class="fas fa-tag text-primary me-2"></i>Producto #${productCount}</h5>
-                    <button type="button" class="btn btn-sm btn-danger remove-product">
+                <div class="product-header">
+                    <h6><i class="fas fa-tag"></i>Producto #${productCount}</h6>
+                    <button type="button" class="btn-remove-product">
                         <i class="fas fa-times"></i>
                     </button>
                 </div>
                 <div class="row g-3">
                     <div class="col-md-6">
-                        <label class="form-label fw-semibold">Nombre del Producto *</label>
-                        <input type="text" name="product_name[]" class="form-control" placeholder="Ej: Camiseta" required>
+                        <label class="form-label-premium">Nombre del Producto *</label>
+                        <input type="text" name="product_name[]" class="form-control-premium" placeholder="Ej: Camiseta" required>
                     </div>
                     <div class="col-md-6">
-                        <label class="form-label fw-semibold">Categoría/Sección *</label>
-                        <input type="text" name="product_category[]" class="form-control" placeholder="Ej: Ropa" required>
+                        <label class="form-label-premium">Categoría/Sección *</label>
+                        <input type="text" name="product_category[]" class="form-control-premium" placeholder="Ej: Ropa" required>
                     </div>
                     <div class="col-md-4">
-                        <label class="form-label fw-semibold">Precio de Venta ($) *</label>
-                        <input type="number" step="0.01" name="product_price[]" class="form-control" placeholder="0.00" required>
+                        <label class="form-label-premium">Precio de Venta ($) *</label>
+                        <input type="number" step="0.01" name="product_price[]" class="form-control-premium" placeholder="0.00" required>
                     </div>
                     <div class="col-md-4">
-                        <label class="form-label fw-semibold">Precio de Compra ($) *</label>
-                        <input type="number" step="0.01" name="product_cost[]" class="form-control" placeholder="0.00" required>
+                        <label class="form-label-premium">Precio de Compra ($) *</label>
+                        <input type="number" step="0.01" name="product_cost[]" class="form-control-premium" placeholder="0.00" required>
                     </div>
                     <div class="col-md-4">
-                        <label class="form-label fw-semibold">Stock Inicial *</label>
-                        <input type="number" name="product_stock[]" class="form-control" placeholder="0" required>
+                        <label class="form-label-premium">Stock Inicial *</label>
+                        <input type="number" name="product_stock[]" class="form-control-premium" placeholder="0" required>
                     </div>
                 </div>
             `;
-            formContainer.appendChild(newForm);
+            container.appendChild(newForm);
 
-            newForm.querySelector('.remove-product').addEventListener('click', function() {
+            newForm.querySelector('.btn-remove-product').addEventListener('click', function() {
                 if (productCount > 1) {
                     newForm.remove();
                     productCount--;
@@ -586,26 +1184,30 @@
             });
         });
 
-        // === GUARDAR PRODUCTOS ===
+        // ============================================================
+        // GUARDAR PRODUCTOS
+        // ============================================================
         document.getElementById('save-products').addEventListener('click', function() {
             const products = [];
             const forms = document.querySelectorAll('.product-form');
             const businessId = '{{ business_id }}';
-            
+
             let valid = true;
             let emptyFields = [];
-            
+
             forms.forEach((form, index) => {
                 const inputs = form.querySelectorAll('input[required]');
                 const productData = {};
                 let productValid = true;
-                
+
                 inputs.forEach(input => {
                     if (!input.value.trim()) {
                         input.classList.add('is-invalid');
+                        input.classList.remove('is-valid');
                         productValid = false;
                         valid = false;
-                        emptyFields.push(`Producto #${index + 1}: ${input.previousElementSibling.textContent.trim().replace('*', '')}`);
+                        const label = input.closest('.row')?.querySelector('.form-label-premium');
+                        emptyFields.push(`Producto #${index + 1}: ${label ? label.textContent.trim().replace('*', '') : 'campo'}`);
                     } else {
                         input.classList.remove('is-invalid');
                         input.classList.add('is-valid');
@@ -623,7 +1225,7 @@
             });
 
             if (!valid) {
-                showProductStatus(`❌ Por favor completa todos los campos obligatorios:\n${emptyFields.join('\n')}`, 'danger');
+                showProductStatus(`❌ Por favor completa todos los campos obligatorios.`, 'danger');
                 return;
             }
 
@@ -634,13 +1236,13 @@
 
             showProductStatus('Guardando productos...', 'info');
             this.disabled = true;
-            
+
             fetch('/api/save-products', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ 
+                body: JSON.stringify({
                     products: products,
-                    business_id: businessId 
+                    business_id: businessId
                 })
             })
             .then(response => response.json())
@@ -649,8 +1251,8 @@
                     productsSaved = true;
                     showProductStatus(`✅ ${products.length} productos guardados correctamente!`, 'success');
                     document.getElementById('finish-setup').disabled = false;
-                    document.getElementById('finish-setup').classList.remove('btn-primary');
-                    document.getElementById('finish-setup').classList.add('btn-success');
+                    document.getElementById('finish-setup').classList.remove('primary');
+                    document.getElementById('finish-setup').classList.add('success');
                     document.querySelector('.step-dot[data-step="3"]').classList.add('completed');
                     document.getElementById('skip-products').style.display = 'none';
                 } else {
@@ -665,13 +1267,15 @@
             });
         });
 
-        // === FINALIZAR CONFIGURACIÓN ===
+        // ============================================================
+        // FINALIZAR CONFIGURACIÓN
+        // ============================================================
         document.getElementById('finish-setup').addEventListener('click', function() {
             const businessId = '{{ business_id }}';
-            
+
             this.disabled = true;
             this.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Finalizando...';
-            
+
             fetch('/api/finish-setup', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -694,7 +1298,9 @@
             });
         });
 
-        // === INICIALIZACIÓN ===
+        // ============================================================
+        // INICIALIZACIÓN
+        // ============================================================
         document.addEventListener('DOMContentLoaded', function() {
             {% if hay_productos %}
             productsSaved = true;
@@ -704,5 +1310,6 @@
             {% endif %}
         });
     </script>
+
 </body>
 </html>
