@@ -209,19 +209,6 @@
         .back-link { color: var(--primary); text-decoration: none; font-weight: 500; }
         .back-link:hover { text-decoration: underline; }
         
-        .bot-status {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            padding: 10px 16px;
-            background: #f8f9fa;
-            border-radius: 10px;
-        }
-        
-        .bot-status .dot { width: 12px; height: 12px; border-radius: 50%; display: inline-block; }
-        .bot-status .dot.online { background: #28a745; }
-        .bot-status .dot.offline { background: #dc3545; }
-        
         .danger-zone {
             border: 2px solid #dc3545;
             background: #fff5f5;
@@ -255,9 +242,6 @@
         <h1 class="header-title">OmniVentas</h1>
         <div class="header-actions">
             <span class="business-name"><i class="fas fa-store me-1"></i>{{ business_name }}</span>
-            <a href="/bot-diagnostic" class="btn btn-outline-primary btn-sm">
-                <i class="fas fa-robot me-1"></i>Diagnóstico
-            </a>
             <a href="/logout" class="btn btn-outline-danger btn-sm">
                 <i class="fas fa-sign-out-alt me-1"></i>Salir
             </a>
@@ -277,12 +261,12 @@
             <li class="nav-item"><a class="nav-link" href="/finanzas"><i class="fas fa-chart-pie"></i><span>Finanzas</span></a></li>
             <li class="nav-item"><a class="nav-link" href="/analisis"><i class="fas fa-chart-line"></i><span>Análisis</span></a></li>
             <li class="nav-item"><a class="nav-link" href="/clientes"><i class="fas fa-users"></i><span>Clientes</span></a></li>
+            <li class="nav-item"><a class="nav-link" href="/vendedores"><i class="fas fa-user-tie"></i><span>Vendedores</span></a></li>
             <li class="nav-item mt-4 pt-2 border-top border-white-10">
                 <a class="nav-link active" href="/configuracion"><i class="fas fa-cog"></i><span>Configuración</span></a>
             </li>
         </ul>
         <div class="sidebar-footer">
-            <a href="/bot-diagnostic" class="btn btn-outline-light"><i class="fas fa-robot me-2"></i>Diagnóstico Bot</a>
             <a href="/logout" class="btn btn-outline-danger mt-2"><i class="fas fa-sign-out-alt me-2"></i>Cerrar Sesión</a>
         </div>
     </nav>
@@ -322,6 +306,13 @@
                             <input type="text" class="form-control" id="config-direccion" placeholder="Calle, ciudad, país">
                         </div>
                     </div>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">ID del Negocio</label>
+                            <input type="text" class="form-control" id="config-business-id" value="{{ business_id }}" readonly disabled>
+                            <small class="text-muted">Este ID es único para tu negocio</small>
+                        </div>
+                    </div>
                     <button type="submit" class="btn btn-primary btn-action">
                         <i class="fas fa-save me-2"></i>Guardar Cambios
                     </button>
@@ -329,57 +320,6 @@
                         <i class="fas fa-undo me-2"></i>Restablecer
                     </button>
                 </form>
-            </div>
-        </div>
-
-        <!-- Configuración del Bot -->
-        <div class="card">
-            <div class="card-header">
-                <h6 class="m-0"><i class="fas fa-robot me-2"></i>Configuración del Bot</h6>
-                <span class="badge bg-success" id="bot-status-badge">Conectado</span>
-            </div>
-            <div class="card-body">
-                <div class="row">
-                    <div class="col-md-6">
-                        <div class="bot-status mb-3">
-                            <span class="dot online" id="bot-status-dot"></span>
-                            <span>Estado: <strong id="bot-status-text">Conectado</strong></span>
-                        </div>
-                        <p class="text-muted">Gestiona la configuración de tu bot de Telegram</p>
-                        <div class="d-flex gap-2 flex-wrap">
-                            <a href="/bot-diagnostic" class="btn btn-outline-primary btn-action">
-                                <i class="fas fa-robot me-2"></i>Diagnóstico del Bot
-                            </a>
-                            <button class="btn btn-outline-secondary btn-action" id="btn-reconectar">
-                                <i class="fas fa-sync me-2"></i>Reconectar Webhook
-                            </button>
-                            <button class="btn btn-outline-danger btn-action" id="btn-desconectar-bot">
-                                <i class="fas fa-unlink me-2"></i>Desconectar Bot
-                            </button>
-                        </div>
-                    </div>
-                    <div class="col-md-6">
-                        <div class="alert alert-info">
-                            <i class="fas fa-info-circle me-2"></i>
-                            <strong>Comandos disponibles:</strong><br>
-                            <code>/start</code> - Iniciar el bot<br>
-                            <code>/menu</code> - Ver menú principal<br>
-                            <code>/ventas</code> - Registrar ventas<br>
-                            <code>/inventario</code> - Consultar inventario<br>
-                            <code>/estadisticas</code> - Ver estadísticas
-                        </div>
-                        <div class="mt-2">
-                            <label class="form-label fw-semibold">Token del Bot</label>
-                            <div class="input-group">
-                                <input type="password" class="form-control" id="bot-token-display" value="••••••••••••••••" disabled>
-                                <button class="btn btn-outline-secondary" type="button" id="toggle-token-display">
-                                    <i class="fas fa-eye"></i>
-                                </button>
-                            </div>
-                            <small class="text-muted">El token está configurado y encriptado</small>
-                        </div>
-                    </div>
-                </div>
             </div>
         </div>
 
@@ -413,6 +353,33 @@
                         <div class="alert alert-info">
                             <i class="fas fa-clock me-2"></i>
                             <strong>Último cambio:</strong> <span id="last-password-change">Hace 3 días</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Información de la App -->
+        <div class="card">
+            <div class="card-header">
+                <h6 class="m-0"><i class="fas fa-mobile-alt me-2"></i>App Móvil</h6>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <p class="text-muted">Descarga la app para que tus vendedores puedan registrar ventas desde sus teléfonos.</p>
+                        <a href="/download-apk-public" class="btn btn-success btn-action">
+                            <i class="fab fa-android me-2"></i>Descargar APK
+                        </a>
+                        <p class="text-muted mt-2 small">Versión 8.0.6 | Android 6.0+</p>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle me-2"></i>
+                            <strong>Credenciales de prueba:</strong><br>
+                            <code>Vendedor ID: AAAA0000</code><br>
+                            <code>Usuario Admin: admin</code><br>
+                            <code>Contraseña: admin123</code>
                         </div>
                     </div>
                 </div>
@@ -461,22 +428,6 @@
                 icon.classList.add('fa-eye-slash');
             } else {
                 input.type = 'password';
-                icon.classList.remove('fa-eye-slash');
-                icon.classList.add('fa-eye');
-            }
-        });
-
-        document.getElementById('toggle-token-display')?.addEventListener('click', function() {
-            const input = document.getElementById('bot-token-display');
-            const icon = this.querySelector('i');
-            if (input.type === 'password') {
-                input.type = 'text';
-                input.value = '{{ business_id }}';
-                icon.classList.remove('fa-eye');
-                icon.classList.add('fa-eye-slash');
-            } else {
-                input.type = 'password';
-                input.value = '••••••••••••••••';
                 icon.classList.remove('fa-eye-slash');
                 icon.classList.add('fa-eye');
             }
@@ -554,66 +505,6 @@
             });
         });
 
-        // ============== RECONECTAR WEBHOOK ==============
-        document.getElementById('btn-reconectar')?.addEventListener('click', function() {
-            const businessId = '{{ business_id }}';
-            if (!businessId) {
-                alert('❌ No se pudo obtener el ID del negocio');
-                return;
-            }
-            
-            this.disabled = true;
-            this.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Reconectando...';
-            
-            fetch(`/api/webhook-refresh/${businessId}`, {
-                method: 'POST'
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    alert('✅ Webhook reconectado correctamente!');
-                } else {
-                    alert('❌ Error: ' + data.message);
-                }
-            })
-            .catch(error => {
-                alert('❌ Error de conexión: ' + error.message);
-            })
-            .finally(() => {
-                this.disabled = false;
-                this.innerHTML = '<i class="fas fa-sync me-2"></i>Reconectar Webhook';
-            });
-        });
-
-        // ============== DESCONECTAR BOT ==============
-        document.getElementById('btn-desconectar-bot')?.addEventListener('click', function() {
-            if (!confirm('⚠️ ¿Estás seguro de desconectar el bot? Los comandos de Telegram dejarán de funcionar.')) {
-                return;
-            }
-
-            const businessId = '{{ business_id }}';
-            fetch(`/api/bot-diagnostic/reset-token`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ business_id: businessId })
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    alert('✅ Bot desconectado correctamente');
-                    document.getElementById('bot-status-text').textContent = 'Desconectado';
-                    document.getElementById('bot-status-dot').className = 'dot offline';
-                    document.getElementById('bot-status-badge').className = 'badge bg-danger';
-                    document.getElementById('bot-status-badge').textContent = 'Desconectado';
-                } else {
-                    alert('❌ Error: ' + data.message);
-                }
-            })
-            .catch(error => {
-                alert('❌ Error de conexión: ' + error.message);
-            });
-        });
-
         // ============== ELIMINAR DATOS ==============
         document.getElementById('btn-eliminar-datos')?.addEventListener('click', function() {
             if (!confirm('⚠️ ¿Estás seguro de eliminar TODOS los datos? Esta acción no se puede deshacer.')) {
@@ -666,6 +557,22 @@
             .catch(error => {
                 alert('❌ Error de conexión: ' + error.message);
             });
+        });
+
+        // ============== CARGAR DATOS INICIALES ==============
+        document.addEventListener('DOMContentLoaded', function() {
+            // Cargar email desde la sesión si está disponible
+            const businessId = document.getElementById('config-business-id')?.value;
+            if (businessId) {
+                fetch('/api/business-info')
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success && data.email) {
+                            document.getElementById('config-email').value = data.email;
+                        }
+                    })
+                    .catch(() => {});
+            }
         });
     </script>
 </body>
