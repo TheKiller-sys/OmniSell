@@ -1,0 +1,1294 @@
+<!DOCTYPE html>
+<html lang="es" data-bs-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OmniVentas - La Plataforma de Gestión Inteligente para tu Negocio</title>
+    
+    <!-- Meta Tags para SEO -->
+    <meta name="description" content="Gestiona ventas, inventario, vendedores y finanzas desde una sola plataforma. OmniVentas - La solución completa para tu negocio.">
+    <meta name="keywords" content="gestión de ventas, inventario, POS, sistema de ventas, pyme, software de gestión">
+    <meta name="author" content="OmniVentas">
+    <meta property="og:title" content="OmniVentas - Gestión Inteligente para tu Negocio">
+    <meta property="og:description" content="Vende más, gestiona mejor. Todo en una plataforma.">
+    <meta property="og:type" content="website">
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
+    
+    <!-- Bootstrap 5 y Font Awesome -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet">
+    
+    <!-- Google Fonts Premium -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    
+    <style>
+        /* ============================================
+           VARIABLES DE DISEÑO (Sistema de Diseño)
+           ============================================ */
+        :root {
+            --color-primary: #4361EE;
+            --color-primary-dark: #3651D4;
+            --color-primary-light: #EEF2FF;
+            --color-primary-gradient: linear-gradient(135deg, #4361EE 0%, #3A0CA3 100%);
+            --color-secondary: #FF6B35;
+            --color-secondary-light: #FFF5F0;
+            --color-success: #10B981;
+            --color-warning: #F59E0B;
+            --color-dark: #0F172A;
+            --color-dark-secondary: #1E293B;
+            --color-gray: #64748B;
+            --color-gray-light: #F1F5F9;
+            --color-white: #FFFFFF;
+            --shadow-sm: 0 1px 3px rgba(0,0,0,0.06);
+            --shadow-md: 0 4px 20px rgba(0,0,0,0.08);
+            --shadow-lg: 0 20px 60px rgba(0,0,0,0.12);
+            --shadow-xl: 0 30px 80px rgba(0,0,0,0.15);
+            --radius-sm: 8px;
+            --radius-md: 16px;
+            --radius-lg: 24px;
+            --radius-xl: 32px;
+            --transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+        }
+
+        /* ============================================
+           RESET Y BASE
+           ============================================ */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            color: var(--color-dark);
+            background: var(--color-white);
+            overflow-x: hidden;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        /* Scrollbar personalizada */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: var(--color-gray-light);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: var(--color-primary);
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--color-primary-dark);
+        }
+
+        /* ============================================
+           ANIMACIONES AVANZADAS
+           ============================================ */
+        @keyframes float {
+            0%, 100% { transform: translateY(0px) rotate(0deg); }
+            50% { transform: translateY(-20px) rotate(2deg); }
+        }
+
+        @keyframes pulse-soft {
+            0%, 100% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.02); opacity: 0.8; }
+        }
+
+        @keyframes slide-up {
+            from { 
+                opacity: 0; 
+                transform: translateY(40px) scale(0.95);
+            }
+            to { 
+                opacity: 1; 
+                transform: translateY(0) scale(1);
+            }
+        }
+
+        @keyframes slide-in-left {
+            from {
+                opacity: 0;
+                transform: translateX(-60px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        @keyframes slide-in-right {
+            from {
+                opacity: 0;
+                transform: translateX(60px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        @keyframes scale-in {
+            from {
+                opacity: 0;
+                transform: scale(0.8);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+
+        @keyframes shimmer {
+            0% { background-position: -200% 0; }
+            100% { background-position: 200% 0; }
+        }
+
+        @keyframes typing {
+            from { width: 0; }
+            to { width: 100%; }
+        }
+
+        @keyframes blink {
+            50% { border-color: transparent; }
+        }
+
+        .animate-on-scroll {
+            opacity: 0;
+            transform: translateY(40px);
+            transition: all 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+        }
+
+        .animate-on-scroll.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* ============================================
+           NAVBAR - Efecto Glassmorphism
+           ============================================ */
+        .navbar-custom {
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(20px) saturate(180%);
+            -webkit-backdrop-filter: blur(20px) saturate(180%);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+            padding: 16px 0;
+            transition: var(--transition);
+            position: fixed;
+            width: 100%;
+            top: 0;
+            z-index: 1050;
+        }
+
+        .navbar-custom.scrolled {
+            box-shadow: var(--shadow-md);
+            padding: 10px 0;
+        }
+
+        .navbar-custom .nav-link {
+            color: var(--color-dark-secondary);
+            font-weight: 500;
+            font-size: 0.95rem;
+            padding: 8px 18px;
+            border-radius: var(--radius-sm);
+            transition: var(--transition);
+            position: relative;
+        }
+
+        .navbar-custom .nav-link:hover {
+            color: var(--color-primary);
+            background: var(--color-primary-light);
+        }
+
+        .navbar-custom .nav-link::after {
+            content: '';
+            position: absolute;
+            bottom: 4px;
+            left: 50%;
+            width: 0;
+            height: 2px;
+            background: var(--color-primary);
+            transition: var(--transition);
+            transform: translateX(-50%);
+        }
+
+        .navbar-custom .nav-link:hover::after {
+            width: 60%;
+        }
+
+        .navbar-custom .btn-primary-nav {
+            background: var(--color-primary-gradient);
+            color: white;
+            border: none;
+            padding: 10px 28px;
+            border-radius: var(--radius-sm);
+            font-weight: 600;
+            transition: var(--transition);
+            box-shadow: 0 4px 15px rgba(67, 97, 238, 0.3);
+        }
+
+        .navbar-custom .btn-primary-nav:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 30px rgba(67, 97, 238, 0.4);
+        }
+
+        .navbar-custom .btn-outline-nav {
+            background: transparent;
+            color: var(--color-dark-secondary);
+            border: 2px solid var(--color-gray-light);
+            padding: 10px 28px;
+            border-radius: var(--radius-sm);
+            font-weight: 600;
+            transition: var(--transition);
+        }
+
+        .navbar-custom .btn-outline-nav:hover {
+            border-color: var(--color-primary);
+            color: var(--color-primary);
+            background: var(--color-primary-light);
+        }
+
+        .logo-text {
+            font-weight: 900;
+            font-size: 1.6rem;
+            background: var(--color-primary-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-decoration: none;
+            letter-spacing: -0.5px;
+        }
+
+        .logo-text i {
+            -webkit-text-fill-color: var(--color-primary);
+            margin-right: 8px;
+        }
+
+        /* ============================================
+           HERO SECTION - IMPACTO VISUAL MAXIMO
+           ============================================ */
+        .hero-section {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            padding: 120px 0 80px;
+            background: linear-gradient(180deg, #F8FAFF 0%, #FFFFFF 40%, #F1F5F9 100%);
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* Efecto de fondo con gradiente animado */
+        .hero-section::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -20%;
+            width: 800px;
+            height: 800px;
+            background: radial-gradient(circle, rgba(67, 97, 238, 0.06) 0%, transparent 70%);
+            border-radius: 50%;
+            animation: float 8s ease-in-out infinite;
+        }
+
+        .hero-section::after {
+            content: '';
+            position: absolute;
+            bottom: -30%;
+            left: -10%;
+            width: 600px;
+            height: 600px;
+            background: radial-gradient(circle, rgba(255, 107, 53, 0.04) 0%, transparent 70%);
+            border-radius: 50%;
+            animation: float 10s ease-in-out infinite reverse;
+        }
+
+        .hero-content {
+            position: relative;
+            z-index: 2;
+        }
+
+        .hero-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            background: var(--color-primary-light);
+            color: var(--color-primary);
+            padding: 8px 20px;
+            border-radius: 50px;
+            font-weight: 600;
+            font-size: 0.85rem;
+            margin-bottom: 24px;
+            border: 1px solid rgba(67, 97, 238, 0.15);
+            animation: slide-up 0.8s ease-out;
+        }
+
+        .hero-badge .dot {
+            width: 8px;
+            height: 8px;
+            background: #10B981;
+            border-radius: 50%;
+            display: inline-block;
+            animation: pulse-soft 2s infinite;
+        }
+
+        .hero-title {
+            font-weight: 900;
+            font-size: clamp(2.8rem, 6vw, 4.8rem);
+            line-height: 1.05;
+            letter-spacing: -0.03em;
+            margin-bottom: 24px;
+            animation: slide-up 0.8s ease-out 0.1s both;
+        }
+
+        .hero-title .highlight {
+            background: var(--color-primary-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            position: relative;
+        }
+
+        .hero-title .highlight::after {
+            content: '';
+            position: absolute;
+            bottom: 4px;
+            left: 0;
+            width: 100%;
+            height: 8px;
+            background: rgba(67, 97, 238, 0.15);
+            border-radius: 4px;
+            z-index: -1;
+        }
+
+        .hero-subtitle {
+            font-size: clamp(1.1rem, 1.5vw, 1.3rem);
+            color: var(--color-gray);
+            max-width: 560px;
+            line-height: 1.7;
+            margin-bottom: 36px;
+            animation: slide-up 0.8s ease-out 0.2s both;
+        }
+
+        .hero-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 16px;
+            animation: slide-up 0.8s ease-out 0.3s both;
+        }
+
+        .hero-actions .btn-primary-hero {
+            background: var(--color-primary-gradient);
+            color: white;
+            border: none;
+            padding: 16px 40px;
+            border-radius: var(--radius-sm);
+            font-weight: 700;
+            font-size: 1.05rem;
+            transition: var(--transition);
+            box-shadow: 0 4px 20px rgba(67, 97, 238, 0.35);
+            display: inline-flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .hero-actions .btn-primary-hero:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 12px 40px rgba(67, 97, 238, 0.45);
+        }
+
+        .hero-actions .btn-secondary-hero {
+            background: var(--color-white);
+            color: var(--color-dark-secondary);
+            border: 2px solid var(--color-gray-light);
+            padding: 16px 32px;
+            border-radius: var(--radius-sm);
+            font-weight: 600;
+            font-size: 1.05rem;
+            transition: var(--transition);
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .hero-actions .btn-secondary-hero:hover {
+            border-color: var(--color-primary);
+            color: var(--color-primary);
+            background: var(--color-primary-light);
+            transform: translateY(-3px);
+        }
+
+        .hero-stats {
+            display: flex;
+            gap: 48px;
+            margin-top: 48px;
+            padding-top: 32px;
+            border-top: 2px solid var(--color-gray-light);
+            animation: slide-up 0.8s ease-out 0.4s both;
+        }
+
+        .hero-stats .stat-item .number {
+            font-weight: 800;
+            font-size: 1.8rem;
+            color: var(--color-dark);
+            display: block;
+        }
+
+        .hero-stats .stat-item .label {
+            font-size: 0.9rem;
+            color: var(--color-gray);
+            font-weight: 500;
+        }
+
+        /* ============================================
+           HERO IMAGE - 3D Mockup
+           ============================================ */
+        .hero-image-wrapper {
+            position: relative;
+            animation: slide-in-right 1s ease-out 0.3s both;
+        }
+
+        .hero-image-wrapper .mockup-container {
+            position: relative;
+            border-radius: var(--radius-lg);
+            background: var(--color-white);
+            box-shadow: var(--shadow-xl);
+            overflow: hidden;
+            transform: perspective(800px) rotateY(-4deg) rotateX(4deg);
+            transition: var(--transition);
+        }
+
+        .hero-image-wrapper .mockup-container:hover {
+            transform: perspective(800px) rotateY(-2deg) rotateX(2deg);
+            box-shadow: var(--shadow-xl);
+        }
+
+        .hero-image-wrapper .mockup-container img {
+            width: 100%;
+            height: auto;
+            display: block;
+        }
+
+        .hero-image-wrapper .floating-badge {
+            position: absolute;
+            background: var(--color-white);
+            padding: 12px 20px;
+            border-radius: var(--radius-sm);
+            box-shadow: var(--shadow-lg);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            animation: float 3s ease-in-out infinite;
+            border: 1px solid rgba(0,0,0,0.04);
+        }
+
+        .hero-image-wrapper .floating-badge.top-right {
+            top: -20px;
+            right: -20px;
+            animation-delay: 0s;
+        }
+
+        .hero-image-wrapper .floating-badge.bottom-left {
+            bottom: -20px;
+            left: -20px;
+            animation-delay: 1.5s;
+        }
+
+        .hero-image-wrapper .floating-badge .icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+        }
+
+        .hero-image-wrapper .floating-badge .icon.green {
+            background: #D1FAE5;
+            color: #065F46;
+        }
+
+        .hero-image-wrapper .floating-badge .icon.orange {
+            background: #FEF3C7;
+            color: #92400E;
+        }
+
+        /* ============================================
+           FEATURES SECTION
+           ============================================ */
+        .features-section {
+            padding: 100px 0;
+            background: var(--color-white);
+        }
+
+        .features-section .section-header {
+            text-align: center;
+            max-width: 700px;
+            margin: 0 auto 60px;
+        }
+
+        .features-section .section-header .tag {
+            display: inline-block;
+            background: var(--color-primary-light);
+            color: var(--color-primary);
+            padding: 6px 18px;
+            border-radius: 50px;
+            font-weight: 600;
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 16px;
+        }
+
+        .features-section .section-header h2 {
+            font-weight: 800;
+            font-size: clamp(2rem, 3.5vw, 2.8rem);
+            letter-spacing: -0.02em;
+            margin-bottom: 16px;
+        }
+
+        .features-section .section-header p {
+            color: var(--color-gray);
+            font-size: 1.1rem;
+            line-height: 1.7;
+        }
+
+        .feature-card {
+            background: var(--color-white);
+            padding: 36px 28px;
+            border-radius: var(--radius-md);
+            border: 1px solid var(--color-gray-light);
+            transition: var(--transition);
+            height: 100%;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .feature-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 4px;
+            background: var(--color-primary-gradient);
+            opacity: 0;
+            transition: var(--transition);
+        }
+
+        .feature-card:hover {
+            transform: translateY(-8px);
+            box-shadow: var(--shadow-lg);
+            border-color: transparent;
+        }
+
+        .feature-card:hover::before {
+            opacity: 1;
+        }
+
+        .feature-card .icon-wrapper {
+            width: 56px;
+            height: 56px;
+            border-radius: var(--radius-sm);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            margin-bottom: 20px;
+            background: var(--color-primary-light);
+            color: var(--color-primary);
+        }
+
+        .feature-card h4 {
+            font-weight: 700;
+            font-size: 1.15rem;
+            margin-bottom: 10px;
+        }
+
+        .feature-card p {
+            color: var(--color-gray);
+            font-size: 0.95rem;
+            line-height: 1.6;
+            margin-bottom: 0;
+        }
+
+        /* ============================================
+           TESTIMONIALS / SOCIAL PROOF
+           ============================================ */
+        .testimonials-section {
+            padding: 100px 0;
+            background: var(--color-gray-light);
+        }
+
+        .testimonial-card {
+            background: var(--color-white);
+            padding: 32px;
+            border-radius: var(--radius-md);
+            box-shadow: var(--shadow-sm);
+            transition: var(--transition);
+            height: 100%;
+        }
+
+        .testimonial-card:hover {
+            transform: translateY(-4px);
+            box-shadow: var(--shadow-md);
+        }
+
+        .testimonial-card .stars {
+            color: #F59E0B;
+            font-size: 0.9rem;
+            margin-bottom: 12px;
+            letter-spacing: 2px;
+        }
+
+        .testimonial-card .text {
+            font-size: 0.95rem;
+            line-height: 1.7;
+            color: var(--color-dark-secondary);
+            margin-bottom: 20px;
+        }
+
+        .testimonial-card .author {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+
+        .testimonial-card .author .avatar {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            background: var(--color-primary-light);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 1.1rem;
+            color: var(--color-primary);
+        }
+
+        .testimonial-card .author .name {
+            font-weight: 600;
+            font-size: 0.95rem;
+        }
+
+        .testimonial-card .author .role {
+            font-size: 0.8rem;
+            color: var(--color-gray);
+        }
+
+        /* ============================================
+           PRICING / CTA
+           ============================================ */
+        .cta-section {
+            padding: 100px 0 80px;
+            background: var(--color-dark);
+            color: var(--color-white);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .cta-section::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -20%;
+            width: 600px;
+            height: 600px;
+            background: radial-gradient(circle, rgba(67, 97, 238, 0.1) 0%, transparent 70%);
+            border-radius: 50%;
+        }
+
+        .cta-section .container {
+            position: relative;
+            z-index: 2;
+        }
+
+        .cta-section h2 {
+            font-weight: 800;
+            font-size: clamp(2rem, 3vw, 2.8rem);
+            margin-bottom: 16px;
+        }
+
+        .cta-section p {
+            color: rgba(255,255,255,0.7);
+            font-size: 1.1rem;
+            max-width: 500px;
+            margin: 0 auto 36px;
+        }
+
+        .cta-section .btn-cta {
+            background: var(--color-secondary);
+            color: white;
+            border: none;
+            padding: 16px 48px;
+            border-radius: var(--radius-sm);
+            font-weight: 700;
+            font-size: 1.1rem;
+            transition: var(--transition);
+            box-shadow: 0 4px 20px rgba(255, 107, 53, 0.3);
+        }
+
+        .cta-section .btn-cta:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 12px 40px rgba(255, 107, 53, 0.4);
+        }
+
+        .cta-section .btn-cta-outline {
+            background: transparent;
+            color: white;
+            border: 2px solid rgba(255,255,255,0.2);
+            padding: 16px 32px;
+            border-radius: var(--radius-sm);
+            font-weight: 600;
+            transition: var(--transition);
+        }
+
+        .cta-section .btn-cta-outline:hover {
+            border-color: var(--color-white);
+            background: rgba(255,255,255,0.05);
+        }
+
+        /* ============================================
+           FOOTER
+           ============================================ */
+        .footer {
+            background: var(--color-dark-secondary);
+            color: rgba(255,255,255,0.6);
+            padding: 48px 0 32px;
+            border-top: 1px solid rgba(255,255,255,0.05);
+        }
+
+        .footer a {
+            color: rgba(255,255,255,0.6);
+            text-decoration: none;
+            transition: var(--transition);
+            font-size: 0.9rem;
+        }
+
+        .footer a:hover {
+            color: var(--color-white);
+        }
+
+        .footer .logo-footer {
+            font-weight: 800;
+            font-size: 1.4rem;
+            color: var(--color-white);
+        }
+
+        .footer .logo-footer i {
+            color: var(--color-primary);
+            margin-right: 8px;
+        }
+
+        /* ============================================
+           RESPONSIVE
+           ============================================ */
+        @media (max-width: 992px) {
+            .hero-section {
+                padding: 100px 0 60px;
+                min-height: auto;
+            }
+
+            .hero-title {
+                font-size: 2.8rem;
+            }
+
+            .hero-stats {
+                gap: 24px;
+            }
+
+            .hero-image-wrapper .floating-badge {
+                display: none;
+            }
+
+            .hero-image-wrapper .mockup-container {
+                transform: none;
+                margin-top: 40px;
+            }
+
+            .hero-image-wrapper .mockup-container:hover {
+                transform: none;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .hero-title {
+                font-size: 2.2rem;
+            }
+
+            .hero-stats {
+                flex-wrap: wrap;
+                gap: 16px;
+            }
+
+            .hero-stats .stat-item .number {
+                font-size: 1.4rem;
+            }
+
+            .hero-actions {
+                flex-direction: column;
+            }
+
+            .hero-actions .btn-primary-hero,
+            .hero-actions .btn-secondary-hero {
+                width: 100%;
+                justify-content: center;
+            }
+
+            .features-section {
+                padding: 60px 0;
+            }
+
+            .testimonials-section {
+                padding: 60px 0;
+            }
+
+            .cta-section {
+                padding: 60px 0;
+            }
+        }
+
+        @media (max-width: 576px) {
+            .hero-title {
+                font-size: 1.8rem;
+            }
+
+            .hero-subtitle {
+                font-size: 1rem;
+            }
+
+            .feature-card {
+                padding: 24px 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- ============================================
+    NAVBAR
+    ============================================ -->
+    <nav class="navbar-custom" id="navbar">
+        <div class="container">
+            <div class="d-flex justify-content-between align-items-center w-100">
+                <a href="/" class="logo-text">
+                    <i class="fas fa-chart-line"></i>OmniVentas
+                </a>
+
+                <div class="d-none d-lg-flex align-items-center gap-3">
+                    <a href="#features" class="nav-link">Características</a>
+                    <a href="#testimonials" class="nav-link">Testimonios</a>
+                    <a href="/login" class="btn btn-outline-nav">Iniciar Sesión</a>
+                    <a href="/signup" class="btn btn-primary-nav">Comenzar Gratis</a>
+                </div>
+
+                <!-- Mobile Menu Toggle -->
+                <button class="btn d-lg-none" type="button" data-bs-toggle="collapse" data-bs-target="#mobileMenu" style="background: none; border: none; font-size: 1.5rem; color: var(--color-dark);">
+                    <i class="fas fa-bars"></i>
+                </button>
+            </div>
+
+            <!-- Mobile Menu -->
+            <div class="collapse mt-3" id="mobileMenu">
+                <div class="d-flex flex-column gap-2">
+                    <a href="#features" class="nav-link">Características</a>
+                    <a href="#testimonials" class="nav-link">Testimonios</a>
+                    <a href="/login" class="btn btn-outline-nav">Iniciar Sesión</a>
+                    <a href="/signup" class="btn btn-primary-nav">Comenzar Gratis</a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- ============================================
+    HERO SECTION
+    ============================================ -->
+    <section class="hero-section" id="hero">
+        <div class="container">
+            <div class="row align-items-center">
+                <!-- Hero Content -->
+                <div class="col-lg-6 hero-content">
+                    <div class="hero-badge">
+                        <span class="dot"></span>
+                        <span>Más de 1,200 negocios confían en nosotros</span>
+                    </div>
+
+                    <h1 class="hero-title">
+                        Gestiona tu negocio<br>
+                        <span class="highlight">como un profesional</span>
+                    </h1>
+
+                    <p class="hero-subtitle">
+                        OmniVentas te da el poder de gestionar ventas, inventario, vendedores y finanzas 
+                        desde una sola plataforma. Todo lo que necesitas para hacer crecer tu negocio.
+                    </p>
+
+                    <div class="hero-actions">
+                        <a href="/signup" class="btn btn-primary-hero">
+                            Comenzar Gratis
+                            <i class="fas fa-arrow-right"></i>
+                        </a>
+                        <a href="#features" class="btn btn-secondary-hero">
+                            <i class="fas fa-play-circle"></i>
+                            Ver Demo
+                        </a>
+                    </div>
+
+                    <div class="hero-stats">
+                        <div class="stat-item">
+                            <span class="number">1,200+</span>
+                            <span class="label">Negocios Activos</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="number">50k+</span>
+                            <span class="label">Ventas Registradas</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="number">4.9★</span>
+                            <span class="label">Calificación Promedio</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Hero Image -->
+                <div class="col-lg-6 hero-image-wrapper">
+                    <div class="mockup-container">
+                        <!-- Imagen del dashboard (placeholder) -->
+                        <div style="background: var(--color-gray-light); min-height: 420px; display: flex; align-items: center; justify-content: center; color: var(--color-gray); font-weight: 600; padding: 40px;">
+                            <div style="text-align: center;">
+                                <i class="fas fa-chart-line" style="font-size: 3rem; color: var(--color-primary); margin-bottom: 16px; display: block;"></i>
+                                <span style="font-size: 1.2rem;">Dashboard Interactivo</span>
+                                <span style="display: block; font-size: 0.9rem; color: var(--color-gray); margin-top: 4px;">Ventas en tiempo real</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Floating Badges -->
+                    <div class="floating-badge top-right">
+                        <div class="icon green">
+                            <i class="fas fa-check"></i>
+                        </div>
+                        <div>
+                            <div style="font-weight: 700; font-size: 0.9rem;">+32%</div>
+                            <div style="font-size: 0.75rem; color: var(--color-gray);">Crecimiento mensual</div>
+                        </div>
+                    </div>
+
+                    <div class="floating-badge bottom-left">
+                        <div class="icon orange">
+                            <i class="fas fa-rocket"></i>
+                        </div>
+                        <div>
+                            <div style="font-weight: 700; font-size: 0.9rem;">5 min</div>
+                            <div style="font-size: 0.75rem; color: var(--color-gray);">Configuración rápida</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ============================================
+    FEATURES SECTION
+    ============================================ -->
+    <section class="features-section" id="features">
+        <div class="container">
+            <div class="section-header">
+                <span class="tag">Todo en uno</span>
+                <h2>Todo lo que necesitas para <span style="color: var(--color-primary);">gestionar</span> tu negocio</h2>
+                <p>OmniVentas integra todas las herramientas que necesitas para administrar tu negocio de forma eficiente.</p>
+            </div>
+
+            <div class="row g-4">
+                <!-- Feature 1 -->
+                <div class="col-md-6 col-lg-4 animate-on-scroll">
+                    <div class="feature-card">
+                        <div class="icon-wrapper" style="background: #EEF2FF; color: #4361EE;">
+                            <i class="fas fa-chart-simple"></i>
+                        </div>
+                        <h4>Dashboard en Tiempo Real</h4>
+                        <p>Visualiza tus ventas, ingresos, y métricas clave actualizadas al instante. Toma decisiones informadas.</p>
+                    </div>
+                </div>
+
+                <!-- Feature 2 -->
+                <div class="col-md-6 col-lg-4 animate-on-scroll" style="transition-delay: 0.1s;">
+                    <div class="feature-card">
+                        <div class="icon-wrapper" style="background: #ECFDF5; color: #10B981;">
+                            <i class="fas fa-mobile-screen"></i>
+                        </div>
+                        <h4>App para Vendedores</h4>
+                        <p>Tus vendedores pueden registrar ventas desde sus teléfonos. Sin complicaciones, sin papeles.</p>
+                    </div>
+                </div>
+
+                <!-- Feature 3 -->
+                <div class="col-md-6 col-lg-4 animate-on-scroll" style="transition-delay: 0.2s;">
+                    <div class="feature-card">
+                        <div class="icon-wrapper" style="background: #FEF3C7; color: #D97706;">
+                            <i class="fas fa-boxes"></i>
+                        </div>
+                        <h4>Inventario Inteligente</h4>
+                        <p>Controla tu stock en tiempo real. Recibe alertas cuando los productos estén por agotarse.</p>
+                    </div>
+                </div>
+
+                <!-- Feature 4 -->
+                <div class="col-md-6 col-lg-4 animate-on-scroll" style="transition-delay: 0.3s;">
+                    <div class="feature-card">
+                        <div class="icon-wrapper" style="background: #FCE4EC; color: #E11D48;">
+                            <i class="fas fa-chart-pie"></i>
+                        </div>
+                        <h4>Análisis Financiero</h4>
+                        <p>Conoce la rentabilidad de cada producto y toma decisiones basadas en datos reales.</p>
+                    </div>
+                </div>
+
+                <!-- Feature 5 -->
+                <div class="col-md-6 col-lg-4 animate-on-scroll" style="transition-delay: 0.4s;">
+                    <div class="feature-card">
+                        <div class="icon-wrapper" style="background: #F3E8FF; color: #7C3AED;">
+                            <i class="fas fa-users"></i>
+                        </div>
+                        <h4>Gestión de Vendedores</h4>
+                        <p>Crea, activa y administra a tus vendedores. Asigna roles y controla su rendimiento.</p>
+                    </div>
+                </div>
+
+                <!-- Feature 6 -->
+                <div class="col-md-6 col-lg-4 animate-on-scroll" style="transition-delay: 0.5s;">
+                    <div class="feature-card">
+                        <div class="icon-wrapper" style="background: #FFE4E0; color: #EA580C;">
+                            <i class="fas fa-shield-alt"></i>
+                        </div>
+                        <h4>Seguridad y Control</h4>
+                        <p>Datos encriptados, autenticación segura y auditoría completa. Tu información está protegida.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ============================================
+    TESTIMONIALS SECTION
+    ============================================ -->
+    <section class="testimonials-section" id="testimonials">
+        <div class="container">
+            <div class="section-header text-center mb-5">
+                <span class="tag" style="background: var(--color-primary-light); color: var(--color-primary); padding: 6px 18px; border-radius: 50px; font-weight: 600; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 1px; display: inline-block; margin-bottom: 16px;">
+                    Testimonios Reales
+                </span>
+                <h2 style="font-weight: 800; font-size: clamp(2rem, 3.5vw, 2.8rem); letter-spacing: -0.02em; margin-bottom: 12px;">
+                    Lo que dicen nuestros <span style="color: var(--color-primary);">clientes</span>
+                </h2>
+                <p style="color: var(--color-gray); font-size: 1.1rem; max-width: 600px; margin: 0 auto;">
+                    Conoce las experiencias de negocios que ya confían en OmniVentas.
+                </p>
+            </div>
+
+            <div class="row g-4">
+                <div class="col-md-4 animate-on-scroll">
+                    <div class="testimonial-card">
+                        <div class="stars">★★★★★</div>
+                        <p class="text">"OmniVentas transformó por completo la forma en que gestionamos nuestras ventas. La app para vendedores es increíblemente fácil de usar."</p>
+                        <div class="author">
+                            <div class="avatar">MJ</div>
+                            <div>
+                                <div class="name">María José</div>
+                                <div class="role">Dueña, Boutique Elegance</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-4 animate-on-scroll" style="transition-delay: 0.15s;">
+                    <div class="testimonial-card">
+                        <div class="stars">★★★★★</div>
+                        <p class="text">"El control de inventario en tiempo real nos ayudó a reducir pérdidas en un 40%. La mejor inversión que hemos hecho."</p>
+                        <div class="author">
+                            <div class="avatar">CR</div>
+                            <div>
+                                <div class="name">Carlos Ruiz</div>
+                                <div class="role">Gerente, ElectroTech</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-4 animate-on-scroll" style="transition-delay: 0.3s;">
+                    <div class="testimonial-card">
+                        <div class="stars">★★★★★</div>
+                        <p class="text">"Poder ver las ventas en tiempo real desde mi teléfono me da tranquilidad. OmniVentas es la herramienta que todo emprendedor necesita."</p>
+                        <div class="author">
+                            <div class="avatar">AL</div>
+                            <div>
+                                <div class="name">Ana López</div>
+                                <div class="role">Fundadora, Sabores Caseros</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ============================================
+    CTA SECTION
+    ============================================ -->
+    <section class="cta-section" id="cta">
+        <div class="container text-center">
+            <h2>¿Listo para llevar tu negocio al <span style="color: var(--color-secondary);">siguiente nivel</span>?</h2>
+            <p>Únete a más de 1,200 negocios que ya confían en OmniVentas. Comienza gratis, sin compromiso.</p>
+            <div class="d-flex flex-wrap justify-content-center gap-3">
+                <a href="/signup" class="btn btn-cta">
+                    <i class="fas fa-rocket me-2"></i>Comenzar Gratis
+                </a>
+                <a href="#features" class="btn btn-cta-outline">
+                    <i class="fas fa-play-circle me-2"></i>Ver Demo
+                </a>
+            </div>
+            <p style="margin-top: 24px; font-size: 0.85rem; opacity: 0.6;">
+                <i class="fas fa-check-circle me-1" style="color: var(--color-success);"></i>
+                Sin tarjeta de crédito · 14 días de prueba · Cancelación en 1 clic
+            </p>
+        </div>
+    </section>
+
+    <!-- ============================================
+    FOOTER
+    ============================================ -->
+    <footer class="footer">
+        <div class="container">
+            <div class="row g-4">
+                <div class="col-md-4">
+                    <div class="logo-footer">
+                        <i class="fas fa-chart-line"></i>OmniVentas
+                    </div>
+                    <p style="margin-top: 12px; font-size: 0.9rem;">
+                        La plataforma de gestión inteligente para tu negocio. Vende más, gestiona mejor.
+                    </p>
+                </div>
+                <div class="col-md-2">
+                    <h6 style="color: var(--color-white); font-weight: 700; margin-bottom: 12px;">Producto</h6>
+                    <a href="#features">Características</a><br>
+                    <a href="#testimonials">Testimonios</a><br>
+                    <a href="#">Precios</a>
+                </div>
+                <div class="col-md-2">
+                    <h6 style="color: var(--color-white); font-weight: 700; margin-bottom: 12px;">Soporte</h6>
+                    <a href="#">Ayuda</a><br>
+                    <a href="#">Contacto</a><br>
+                    <a href="#">Blog</a>
+                </div>
+                <div class="col-md-2">
+                    <h6 style="color: var(--color-white); font-weight: 700; margin-bottom: 12px;">Legal</h6>
+                    <a href="/terms">Términos</a><br>
+                    <a href="/privacy">Privacidad</a><br>
+                    <a href="#">Cookies</a>
+                </div>
+                <div class="col-md-2">
+                    <h6 style="color: var(--color-white); font-weight: 700; margin-bottom: 12px;">Síguenos</h6>
+                    <div style="display: flex; gap: 12px; font-size: 1.2rem;">
+                        <a href="#" style="color: rgba(255,255,255,0.6);"><i class="fab fa-twitter"></i></a>
+                        <a href="#" style="color: rgba(255,255,255,0.6);"><i class="fab fa-linkedin"></i></a>
+                        <a href="#" style="color: rgba(255,255,255,0.6);"><i class="fab fa-youtube"></i></a>
+                    </div>
+                </div>
+            </div>
+            <hr style="border-color: rgba(255,255,255,0.08); margin: 32px 0 24px;">
+            <div class="text-center">
+                <small>&copy; 2024 OmniVentas. Todos los derechos reservados. Hecho con <i class="fas fa-heart" style="color: #EF4444;"></i> para emprendedores.</small>
+            </div>
+        </div>
+    </footer>
+
+    <!-- ============================================
+    SCRIPTS
+    ============================================ -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <script>
+        (function() {
+            'use strict';
+
+            // ============================================
+            // NAVBAR SCROLL EFFECT
+            // ============================================
+            const navbar = document.getElementById('navbar');
+            let lastScroll = 0;
+
+            window.addEventListener('scroll', function() {
+                const currentScroll = window.pageYOffset || document.documentElement.scrollTop;
+                
+                if (currentScroll > 50) {
+                    navbar.classList.add('scrolled');
+                } else {
+                    navbar.classList.remove('scrolled');
+                }
+                
+                lastScroll = currentScroll;
+            });
+
+            // ============================================
+            // ANIMACIONES ON SCROLL (Intersection Observer)
+            // ============================================
+            const animateElements = document.querySelectorAll('.animate-on-scroll');
+            
+            if ('IntersectionObserver' in window) {
+                const observer = new IntersectionObserver(function(entries) {
+                    entries.forEach(function(entry) {
+                        if (entry.isIntersecting) {
+                            entry.target.classList.add('visible');
+                        }
+                    });
+                }, {
+                    threshold: 0.1,
+                    rootMargin: '0px 0px -50px 0px'
+                });
+
+                animateElements.forEach(function(el) {
+                    observer.observe(el);
+                });
+            } else {
+                // Fallback para navegadores antiguos
+                animateElements.forEach(function(el) {
+                    el.classList.add('visible');
+                });
+            }
+
+            // ============================================
+            // SMOOTH SCROLL PARA ENLACES INTERNOS
+            // ============================================
+            document.querySelectorAll('a[href^="#"]').forEach(function(anchor) {
+                anchor.addEventListener('click', function(e) {
+                    const target = document.querySelector(this.getAttribute('href'));
+                    if (target) {
+                        e.preventDefault();
+                        const offsetTop = target.getBoundingClientRect().top + window.pageYOffset - 80;
+                        window.scrollTo({
+                            top: offsetTop,
+                            behavior: 'smooth'
+                        });
+                    }
+                });
+            });
+
+            // ============================================
+            // TYPING EFFECT EN EL TITULO (opcional)
+            // ============================================
+            // Pequeño efecto de bienvenida
+            console.log('🚀 OmniVentas - La plataforma de gestión inteligente para tu negocio');
+            console.log('📊 Dashboard en tiempo real | 📱 App para vendedores | 📈 Análisis avanzado');
+
+        })();
+    </script>
+
+</body>
+</html>
