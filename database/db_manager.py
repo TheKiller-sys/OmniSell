@@ -1,4 +1,4 @@
-# database/db_manager.py - Gestor de base de datos con soporte PostgreSQL/SQLite
+# database/db_manager.py - Gestor de base de datos SIN Telegram por negocio
 import sqlite3
 import os
 import psycopg2
@@ -19,7 +19,7 @@ class DatabaseManager:
     
     @classmethod
     def get_global_connection(cls):
-        """Conexión a la base de datos global (PostgreSQL en producción si DATABASE_URL está configurada, si no SQLite)"""
+        """Conexión a la base de datos global"""
         with cls._global_lock:
             if cls._global_conn is None or (hasattr(cls._global_conn, 'closed') and cls._global_conn.closed):
                 db_url = os.environ.get('DATABASE_URL')
@@ -203,9 +203,7 @@ class DatabaseManager:
                             admin_id TEXT NOT NULL,
                             web_user TEXT UNIQUE NOT NULL,
                             web_pass TEXT NOT NULL,
-                            telegram_token TEXT,
                             email TEXT,
-                            bot_configured BOOLEAN DEFAULT FALSE,
                             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                         )
                     ''')
@@ -217,55 +215,11 @@ class DatabaseManager:
                             admin_id TEXT NOT NULL,
                             web_user TEXT UNIQUE NOT NULL,
                             web_pass TEXT NOT NULL,
-                            telegram_token TEXT,
                             email TEXT,
-                            bot_configured BOOLEAN DEFAULT FALSE,
                             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                         )
                     ''')
                 logger.info("Tabla businesses creada exitosamente")
-            else:
-                # Verificar si existe la columna bot_configured
-                if is_postgres:
-                    c.execute("""
-                        SELECT column_name 
-                        FROM information_schema.columns 
-                        WHERE table_name = 'businesses' AND column_name = 'bot_configured'
-                    """)
-                    has_bot_configured = c.fetchone() is not None
-                else:
-                    c.execute("PRAGMA table_info(businesses)")
-                    columns = [col[1] for col in c.fetchall()]
-                    has_bot_configured = 'bot_configured' in columns
-                
-                if not has_bot_configured:
-                    logger.warning("Columna bot_configured no existe, agregándola...")
-                    if is_postgres:
-                        c.execute("ALTER TABLE businesses ADD COLUMN bot_configured BOOLEAN DEFAULT FALSE")
-                    else:
-                        c.execute("ALTER TABLE businesses ADD COLUMN bot_configured BOOLEAN DEFAULT FALSE")
-                    logger.info("Columna bot_configured agregada exitosamente")
-                
-                # Verificar si existe la columna telegram_token
-                if is_postgres:
-                    c.execute("""
-                        SELECT column_name 
-                        FROM information_schema.columns 
-                        WHERE table_name = 'businesses' AND column_name = 'telegram_token'
-                    """)
-                    has_telegram_token = c.fetchone() is not None
-                else:
-                    c.execute("PRAGMA table_info(businesses)")
-                    columns = [col[1] for col in c.fetchall()]
-                    has_telegram_token = 'telegram_token' in columns
-                
-                if not has_telegram_token:
-                    logger.warning("Columna telegram_token no existe, agregándola...")
-                    if is_postgres:
-                        c.execute("ALTER TABLE businesses ADD COLUMN telegram_token TEXT")
-                    else:
-                        c.execute("ALTER TABLE businesses ADD COLUMN telegram_token TEXT")
-                    logger.info("Columna telegram_token agregada exitosamente")
             
             # Verificar tabla users
             if is_postgres:
@@ -293,7 +247,6 @@ class DatabaseManager:
                             username TEXT UNIQUE NOT NULL,
                             password TEXT NOT NULL,
                             role TEXT DEFAULT 'admin',
-                            telegram_id TEXT,
                             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                             FOREIGN KEY (business_id) REFERENCES businesses(id) ON DELETE CASCADE
                         )
@@ -306,54 +259,32 @@ class DatabaseManager:
                             username TEXT UNIQUE NOT NULL,
                             password TEXT NOT NULL,
                             role TEXT DEFAULT 'admin',
-                            telegram_id TEXT,
                             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                             FOREIGN KEY (business_id) REFERENCES businesses(id) ON DELETE CASCADE
                         )
                     ''')
                 logger.info("Tabla users creada exitosamente")
+            
+            # Verificar si existe la columna role en users
+            if is_postgres:
+                c.execute("""
+                    SELECT column_name 
+                    FROM information_schema.columns 
+                    WHERE table_name = 'users' AND column_name = 'role'
+                """)
+                has_role = c.fetchone() is not None
             else:
-                # Verificar si existe la columna role
+                c.execute("PRAGMA table_info(users)")
+                columns = [col[1] for col in c.fetchall()]
+                has_role = 'role' in columns
+            
+            if not has_role:
+                logger.warning("Columna role no existe en users, agregándola...")
                 if is_postgres:
-                    c.execute("""
-                        SELECT column_name 
-                        FROM information_schema.columns 
-                        WHERE table_name = 'users' AND column_name = 'role'
-                    """)
-                    has_role = c.fetchone() is not None
+                    c.execute("ALTER TABLE users ADD COLUMN role TEXT DEFAULT 'admin'")
                 else:
-                    c.execute("PRAGMA table_info(users)")
-                    columns = [col[1] for col in c.fetchall()]
-                    has_role = 'role' in columns
-                
-                if not has_role:
-                    logger.warning("Columna role no existe en users, agregándola...")
-                    if is_postgres:
-                        c.execute("ALTER TABLE users ADD COLUMN role TEXT DEFAULT 'admin'")
-                    else:
-                        c.execute("ALTER TABLE users ADD COLUMN role TEXT DEFAULT 'admin'")
-                    logger.info("Columna role agregada exitosamente")
-                
-                # Verificar si existe la columna telegram_id
-                if is_postgres:
-                    c.execute("""
-                        SELECT column_name 
-                        FROM information_schema.columns 
-                        WHERE table_name = 'users' AND column_name = 'telegram_id'
-                    """)
-                    has_telegram_id = c.fetchone() is not None
-                else:
-                    c.execute("PRAGMA table_info(users)")
-                    columns = [col[1] for col in c.fetchall()]
-                    has_telegram_id = 'telegram_id' in columns
-                
-                if not has_telegram_id:
-                    logger.warning("Columna telegram_id no existe en users, agregándola...")
-                    if is_postgres:
-                        c.execute("ALTER TABLE users ADD COLUMN telegram_id TEXT")
-                    else:
-                        c.execute("ALTER TABLE users ADD COLUMN telegram_id TEXT")
-                    logger.info("Columna telegram_id agregada exitosamente")
+                    c.execute("ALTER TABLE users ADD COLUMN role TEXT DEFAULT 'admin'")
+                logger.info("Columna role agregada exitosamente")
             
             # ==================== TABLA: VENDORS ====================
             if is_postgres:
@@ -439,14 +370,14 @@ class DatabaseManager:
                 
                 if is_postgres:
                     c.execute("""
-                        INSERT INTO users (business_id, username, password, role, telegram_id)
-                        VALUES (%s, %s, %s, %s, %s)
-                    """, (business_id, 'admin', hashed_password, 'admin', '123456789'))
+                        INSERT INTO users (business_id, username, password, role)
+                        VALUES (%s, %s, %s, %s)
+                    """, (business_id, 'admin', hashed_password, 'admin'))
                 else:
                     c.execute("""
-                        INSERT INTO users (business_id, username, password, role, telegram_id)
-                        VALUES (?, ?, ?, ?, ?)
-                    """, (business_id, 'admin', hashed_password, 'admin', '123456789'))
+                        INSERT INTO users (business_id, username, password, role)
+                        VALUES (?, ?, ?, ?)
+                    """, (business_id, 'admin', hashed_password, 'admin'))
                 logger.info("✅ Usuario admin creado: admin / admin123")
                 
                 # Crear vendedor de prueba en public.vendors
@@ -463,17 +394,6 @@ class DatabaseManager:
                         VALUES (?, ?, ?, ?, ?)
                     """, (vendor_id, 'Vendedor Prueba', business_id, 'vendedor', 1))
                 logger.info(f"✅ Vendedor de prueba creado en public: {vendor_id}")
-                
-                # También en el esquema del negocio
-                try:
-                    db = cls(business_id)
-                    db.execute_query("""
-                        INSERT INTO vendors (id, name, business_id, role, active)
-                        VALUES (?, ?, ?, ?, ?)
-                    """, (vendor_id, 'Vendedor Prueba', business_id, 'vendedor', 1))
-                    logger.info(f"✅ Vendedor de prueba creado en esquema del negocio: {vendor_id}")
-                except Exception as e:
-                    logger.error(f"Error creando vendedor en esquema del negocio: {e}")
                 
                 conn.commit()
                 logger.info("=" * 50)
@@ -501,7 +421,7 @@ class DatabaseManager:
         self.c = None
         self._get_connection()
         self._create_tables()
-        self._ensure_vendor_exists()  # ✅ SIEMPRE asegurar vendedor
+        self._ensure_vendor_exists()
         self._create_test_data()
         logger.info(f"Conexión establecida para negocio: {business_id}")
 
@@ -898,7 +818,7 @@ class DatabaseManager:
                 self.conn.rollback()
 
     def _create_test_data(self):
-        """Crear datos de prueba para el negocio (producto y sección de ejemplo)"""
+        """Crear datos de prueba para el negocio"""
         try:
             is_postgres = 'RENDER' in os.environ and os.environ.get('DATABASE_URL')
             
@@ -959,17 +879,14 @@ class DatabaseManager:
             else:
                 formatted_query = query.replace('%s', '?')
         
-        # Determinar si es una consulta SELECT
             is_select = query.strip().upper().startswith('SELECT')
             is_pragma = query.strip().upper().startswith('PRAGMA')
         
             self.c.execute(formatted_query, params)
         
             if is_select or is_pragma:
-            # Para SELECT o PRAGMA, retornar los resultados
                 return self.c.fetchall()
             else:
-            # Para INSERT, UPDATE, DELETE, etc.
                 self.conn.commit()
                 if query.strip().upper().startswith('INSERT'):
                     if is_postgres:
