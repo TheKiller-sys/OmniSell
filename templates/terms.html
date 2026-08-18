@@ -1,141 +1,600 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="es" data-bs-theme="light">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Términos y Condiciones - OmniVentas</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    
     <style>
+        /* ============================================
+           VARIABLES Y BASE
+           ============================================ */
+        :root {
+            --primary: #4361EE;
+            --primary-dark: #3651D4;
+            --primary-light: #EEF2FF;
+            --primary-gradient: linear-gradient(135deg, #4361EE 0%, #3A0CA3 100%);
+            --secondary: #FF6B35;
+            --success: #10B981;
+            --warning: #F59E0B;
+            --danger: #EF4444;
+            --dark: #0F172A;
+            --dark-secondary: #1E293B;
+            --gray: #64748B;
+            --gray-light: #F1F5F9;
+            --white: #FFFFFF;
+            --shadow-sm: 0 1px 3px rgba(0,0,0,0.06);
+            --shadow-md: 0 4px 20px rgba(0,0,0,0.08);
+            --shadow-lg: 0 20px 60px rgba(0,0,0,0.10);
+            --radius-sm: 10px;
+            --radius-md: 16px;
+            --radius-lg: 24px;
+            --radius-xl: 32px;
+            --transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
         body {
-            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             min-height: 100vh;
-            padding: 30px 20px;
+            padding: 40px 20px;
+            background: linear-gradient(135deg, #F8FAFF 0%, #EEF2FF 40%, #E0E7FF 100%);
+            position: relative;
+            overflow-x: hidden;
         }
-        .container {
-            max-width: 800px;
+
+        /* Fondo decorativo */
+        body::before {
+            content: '';
+            position: fixed;
+            top: -30%;
+            right: -10%;
+            width: 600px;
+            height: 600px;
+            background: radial-gradient(circle, rgba(67, 97, 238, 0.05) 0%, transparent 70%);
+            border-radius: 50%;
+            animation: float 12s ease-in-out infinite;
+            z-index: 0;
         }
-        .card {
-            border-radius: 20px;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.1);
+
+        body::after {
+            content: '';
+            position: fixed;
+            bottom: -20%;
+            left: -10%;
+            width: 500px;
+            height: 500px;
+            background: radial-gradient(circle, rgba(255, 107, 53, 0.04) 0%, transparent 70%);
+            border-radius: 50%;
+            animation: float 15s ease-in-out infinite reverse;
+            z-index: 0;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-20px); }
+        }
+
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(30px) scale(0.98); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+
+        @keyframes slideInLeft {
+            from { opacity: 0; transform: translateX(-30px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+
+        .animate-on-load {
+            opacity: 0;
+            animation: fadeInUp 0.6s ease-out forwards;
+        }
+        .delay-1 { animation-delay: 0.05s; }
+
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: var(--gray-light); }
+        ::-webkit-scrollbar-thumb { background: var(--primary); border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--primary-dark); }
+
+        /* ============================================
+           CONTAINER
+           ============================================ */
+        .container-custom {
+            max-width: 820px;
+            margin: 0 auto;
+            position: relative;
+            z-index: 1;
+        }
+
+        /* ============================================
+           CARD PRINCIPAL
+           ============================================ */
+        .card-premium {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px) saturate(180%);
+            -webkit-backdrop-filter: blur(20px) saturate(180%);
+            border-radius: var(--radius-xl);
+            box-shadow: var(--shadow-lg);
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            transition: var(--transition);
+        }
+
+        .card-premium:hover {
+            box-shadow: var(--shadow-lg);
+            transform: translateY(-2px);
+        }
+
+        /* ============================================
+           HEADER DE LA CARD
+           ============================================ */
+        .card-header-premium {
+            background: var(--primary-gradient);
+            padding: 32px 40px;
             border: none;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
         }
-        .card-header {
-            border-radius: 20px 20px 0 0 !important;
-            background: linear-gradient(135deg, #4361ee, #3a0ca3);
+
+        .card-header-premium::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -20%;
+            width: 300px;
+            height: 300px;
+            background: radial-gradient(circle, rgba(255,255,255,0.08) 0%, transparent 70%);
+            border-radius: 50%;
+        }
+
+        .card-header-premium .header-icon {
+            width: 72px;
+            height: 72px;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.15);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
             color: white;
-            padding: 25px;
-            border: none;
+            margin-bottom: 16px;
+            backdrop-filter: blur(10px);
+            border: 2px solid rgba(255,255,255,0.2);
         }
-        .section-title {
-            font-weight: 700;
-            color: #2c3e50;
-            margin-top: 25px;
-            margin-bottom: 15px;
-            padding-bottom: 10px;
-            border-bottom: 2px solid #e9ecef;
+
+        .card-header-premium h4 {
+            font-weight: 800;
+            font-size: 1.8rem;
+            color: white;
+            margin-bottom: 4px;
+            letter-spacing: -0.5px;
         }
-        .section-title i {
-            color: #4361ee;
-            margin-right: 10px;
+
+        .card-header-premium p {
+            color: rgba(255,255,255,0.8);
+            font-size: 1rem;
+            margin-bottom: 0;
         }
-        .back-link {
-            color: #4361ee;
+
+        /* ============================================
+           CUERPO DE LA CARD
+           ============================================ */
+        .card-body-premium {
+            padding: 40px 48px;
+        }
+
+        /* ============================================
+           TOP BAR - Back link y fecha
+           ============================================ */
+        .top-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 12px;
+            padding-bottom: 20px;
+            border-bottom: 2px solid var(--gray-light);
+            margin-bottom: 28px;
+        }
+
+        .top-bar .back-link {
+            color: var(--gray);
             text-decoration: none;
             font-weight: 500;
-            transition: all 0.3s;
+            font-size: 0.9rem;
+            transition: var(--transition);
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
         }
-        .back-link:hover {
-            color: #3a0ca3;
+
+        .top-bar .back-link:hover {
+            color: var(--primary);
+        }
+
+        .top-bar .last-updated {
+            font-size: 0.8rem;
+            color: var(--gray);
+            font-weight: 500;
+            background: var(--gray-light);
+            padding: 4px 16px;
+            border-radius: 50px;
+        }
+
+        .top-bar .last-updated i {
+            margin-right: 6px;
+        }
+
+        /* ============================================
+           SECCIONES
+           ============================================ */
+        .section-title {
+            font-weight: 700;
+            font-size: 1.15rem;
+            color: var(--dark);
+            margin-top: 32px;
+            margin-bottom: 12px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid var(--gray-light);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .section-title i {
+            color: var(--primary);
+            font-size: 1.1rem;
+            width: 28px;
+            text-align: center;
+        }
+
+        .section-content {
+            color: var(--dark-secondary);
+            font-size: 0.95rem;
+            line-height: 1.8;
+        }
+
+        .section-content p {
+            margin-bottom: 12px;
+        }
+
+        .section-content ul {
+            padding-left: 24px;
+            margin-bottom: 16px;
+        }
+
+        .section-content ul li {
+            margin-bottom: 8px;
+            list-style-type: none;
+            position: relative;
+            padding-left: 20px;
+        }
+
+        .section-content ul li::before {
+            content: '▸';
+            position: absolute;
+            left: 0;
+            color: var(--primary);
+            font-weight: 700;
+        }
+
+        .section-content ul li strong {
+            color: var(--dark);
+        }
+
+        .section-content a {
+            color: var(--primary);
+            text-decoration: none;
+            font-weight: 500;
+            transition: var(--transition);
+        }
+
+        .section-content a:hover {
+            color: var(--primary-dark);
             text-decoration: underline;
         }
-        .last-updated {
-            color: #6c757d;
+
+        /* ============================================
+           HIGHLIGHT BOX
+           ============================================ */
+        .highlight-box {
+            background: var(--primary-light);
+            border-radius: var(--radius-sm);
+            padding: 16px 20px;
+            border-left: 4px solid var(--primary);
+            margin: 16px 0;
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+        }
+
+        .highlight-box i {
+            color: var(--primary);
+            font-size: 1.2rem;
+            margin-top: 2px;
+        }
+
+        .highlight-box strong {
+            color: var(--dark);
+        }
+
+        /* ============================================
+           BADGES
+           ============================================ */
+        .privacy-badge {
+            display: inline-block;
+            padding: 4px 14px;
+            border-radius: 50px;
+            font-size: 0.7rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+            margin: 2px;
+        }
+
+        .privacy-badge.protected {
+            background: #DBEAFE;
+            color: #1E40AF;
+        }
+
+        .privacy-badge.encrypted {
+            background: #D1FAE5;
+            color: #065F46;
+        }
+
+        .privacy-badge.confidential {
+            background: #EDE9FE;
+            color: #5B21B6;
+        }
+
+        .privacy-badge.secure {
+            background: #FEF3C7;
+            color: #92400E;
+        }
+
+        /* ============================================
+           BOTÓN DE VOLVER
+           ============================================ */
+        .btn-back {
+            background: var(--primary-gradient);
+            color: white;
+            border: none;
+            padding: 12px 32px;
+            border-radius: var(--radius-sm);
+            font-weight: 600;
+            font-size: 0.95rem;
+            transition: var(--transition);
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            box-shadow: 0 4px 15px rgba(67, 97, 238, 0.3);
+        }
+
+        .btn-back:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 30px rgba(67, 97, 238, 0.4);
+            color: white;
+        }
+
+        /* ============================================
+           FOOTER DE LA CARD
+           ============================================ */
+        .card-footer-premium {
+            padding: 24px 48px 32px;
+            border-top: 2px solid var(--gray-light);
+            text-align: center;
+            background: var(--gray-light);
+        }
+
+        .card-footer-premium p {
             font-size: 0.85rem;
-            font-style: italic;
+            color: var(--gray);
+            margin-bottom: 16px;
+        }
+
+        /* ============================================
+           RESPONSIVE
+           ============================================ */
+        @media (max-width: 992px) {
+            .card-body-premium { padding: 32px 28px; }
+            .card-footer-premium { padding: 20px 28px 24px; }
+            .card-header-premium { padding: 28px 24px; }
+            .card-header-premium h4 { font-size: 1.5rem; }
+        }
+
+        @media (max-width: 768px) {
+            body { padding: 20px 12px; }
+            .card-body-premium { padding: 24px 18px; }
+            .card-footer-premium { padding: 16px 18px 20px; }
+            .card-header-premium { padding: 24px 16px; }
+            .card-header-premium h4 { font-size: 1.3rem; }
+            .card-header-premium .header-icon { width: 56px; height: 56px; font-size: 1.5rem; }
+            .top-bar { flex-direction: column; align-items: flex-start; }
+            .top-bar .last-updated { font-size: 0.7rem; }
+            .section-title { font-size: 1rem; }
+            .section-content { font-size: 0.9rem; }
+        }
+
+        @media (max-width: 576px) {
+            .card-body-premium { padding: 18px 14px; }
+            .card-header-premium h4 { font-size: 1.1rem; }
+            .section-content ul li { font-size: 0.85rem; }
+            .btn-back { width: 100%; justify-content: center; }
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="card">
-            <div class="card-header text-center">
-                <h4 class="mb-0"><i class="fas fa-file-contract me-2"></i>Términos y Condiciones</h4>
-                <p class="mb-0 mt-2 opacity-75">OmniVentas - Sistema de Gestión Integral</p>
+
+    <div class="container-custom">
+
+        <!-- ============================================
+        CARD PRINCIPAL
+        ============================================ -->
+        <div class="card-premium animate-on-load">
+
+            <!-- HEADER -->
+            <div class="card-header-premium">
+                <div class="header-icon">
+                    <i class="fas fa-file-contract"></i>
+                </div>
+                <h4>Términos y Condiciones</h4>
+                <p>OmniVentas - Sistema de Gestión Integral</p>
             </div>
-            <div class="card-body p-4 p-md-5">
-                <div class="mb-4">
+
+            <!-- BODY -->
+            <div class="card-body-premium">
+
+                <!-- Top Bar -->
+                <div class="top-bar">
                     <a href="/signup" class="back-link">
-                        <i class="fas fa-arrow-left me-2"></i>Volver al registro
+                        <i class="fas fa-arrow-left"></i>
+                        Volver al registro
                     </a>
-                    <span class="last-updated ms-3">Última actualización: Enero 2024</span>
+                    <span class="last-updated">
+                        <i class="fas fa-clock"></i>
+                        Última actualización: Enero 2024
+                    </span>
                 </div>
 
-                <h5 class="section-title"><i class="fas fa-info-circle"></i>1. Introducción</h5>
-                <p>Bienvenido a OmniVentas. Al utilizar nuestros servicios, aceptas cumplir con los siguientes términos y condiciones. Por favor, léelos cuidadosamente.</p>
-
-                <h5 class="section-title"><i class="fas fa-user-check"></i>2. Registro y Cuenta</h5>
-                <ul>
-                    <li>Debes proporcionar información veraz y completa durante el registro.</li>
-                    <li>Eres responsable de mantener la confidencialidad de tu contraseña.</li>
-                    <li>Notificarás inmediatamente cualquier uso no autorizado de tu cuenta.</li>
-                    <li>OmniVentas se reserva el derecho de suspender cuentas que violen estos términos.</li>
-                </ul>
-
-                <h5 class="section-title"><i class="fas fa-robot"></i>3. Uso del Bot de Telegram</h5>
-                <ul>
-                    <li>El bot de Telegram es una herramienta de gestión y no debe ser utilizado para actividades ilegales.</li>
-                    <li>Los datos compartidos con el bot son almacenados de forma segura.</li>
-                    <li>El bot puede ser desactivado en cualquier momento desde el panel de administración.</li>
-                </ul>
-
-                <h5 class="section-title"><i class="fas fa-shield-alt"></i>4. Privacidad y Datos</h5>
-                <ul>
-                    <li>Recopilamos información necesaria para operar el servicio.</li>
-                    <li>No compartimos tus datos con terceros sin tu consentimiento explícito.</li>
-                    <li>Puedes solicitar la eliminación de tus datos en cualquier momento.</li>
-                    <li>Utilizamos medidas de seguridad estándar para proteger tu información.</li>
-                </ul>
-
-                <h5 class="section-title"><i class="fas fa-hand-holding-usd"></i>5. Pagos y Suscripciones</h5>
-                <ul>
-                    <li>OmniVentas ofrece un período de prueba gratuito para nuevos usuarios.</li>
-                    <li>Los precios y planes de suscripción están sujetos a cambios con previo aviso.</li>
-                    <li>Los pagos son procesados a través de plataformas seguras de terceros.</li>
-                </ul>
-
-                <h5 class="section-title"><i class="fas fa-gavel"></i>6. Responsabilidades</h5>
-                <ul>
-                    <li>OmniVentas no se hace responsable por pérdidas indirectas o daños emergentes.</li>
-                    <li>El servicio se proporciona "tal cual" sin garantías implícitas.</li>
-                    <li>El usuario es responsable del contenido y datos ingresados en el sistema.</li>
-                </ul>
-
-                <h5 class="section-title"><i class="fas fa-times-circle"></i>7. Terminación</h5>
-                <ul>
-                    <li>Puedes cancelar tu cuenta en cualquier momento desde el panel de administración.</li>
-                    <li>OmniVentas puede terminar el servicio por violación de estos términos.</li>
-                    <li>Los datos serán eliminados después de un período de gracia de 30 días.</li>
-                </ul>
-
-                <h5 class="section-title"><i class="fas fa-balance-scale"></i>8. Ley Aplicable</h5>
-                <p>Estos términos se rigen por las leyes de la República Argentina. Cualquier disputa será resuelta en los tribunales de la Ciudad de Buenos Aires.</p>
-
-                <h5 class="section-title"><i class="fas fa-envelope"></i>9. Contacto</h5>
-                <p>Para consultas sobre estos términos, contáctanos en: <a href="mailto:soporte@omniventas.com">soporte@omniventas.com</a></p>
-
-                <hr class="my-4">
-
-                <div class="text-center">
-                    <p class="text-muted small">Al registrarte en OmniVentas, aceptas estos términos y condiciones.</p>
-                    <a href="/signup" class="btn btn-primary">
-                        <i class="fas fa-arrow-left me-2"></i>Volver al Registro
-                    </a>
+                <!-- Introducción -->
+                <div class="section-title">
+                    <i class="fas fa-info-circle"></i>
+                    1. Introducción
                 </div>
+                <div class="section-content">
+                    <p>Bienvenido a <strong>OmniVentas</strong>. Al utilizar nuestros servicios, aceptas cumplir con los siguientes términos y condiciones. Por favor, léelos cuidadosamente antes de registrarte.</p>
+                </div>
+
+                <!-- Registro y Cuenta -->
+                <div class="section-title">
+                    <i class="fas fa-user-check"></i>
+                    2. Registro y Cuenta
+                </div>
+                <div class="section-content">
+                    <ul>
+                        <li>Debes proporcionar información <strong>veraz y completa</strong> durante el registro.</li>
+                        <li>Eres responsable de mantener la <strong>confidencialidad</strong> de tu contraseña.</li>
+                        <li>Notificarás inmediatamente cualquier <strong>uso no autorizado</strong> de tu cuenta.</li>
+                        <li>OmniVentas se reserva el derecho de <strong>suspender</strong> cuentas que violen estos términos.</li>
+                    </ul>
+                </div>
+
+                <!-- Uso del Bot de Telegram -->
+                <div class="section-title">
+                    <i class="fas fa-robot"></i>
+                    3. Uso del Bot de Telegram
+                </div>
+                <div class="section-content">
+                    <ul>
+                        <li>El bot de Telegram es una herramienta de gestión y <strong>no debe ser utilizado</strong> para actividades ilegales.</li>
+                        <li>Los datos compartidos con el bot son <strong>almacenados de forma segura</strong>.</li>
+                        <li>El bot puede ser <strong>desactivado</strong> en cualquier momento desde el panel de administración.</li>
+                    </ul>
+                </div>
+
+                <!-- Privacidad y Datos -->
+                <div class="section-title">
+                    <i class="fas fa-shield-alt"></i>
+                    4. Privacidad y Datos
+                </div>
+                <div class="section-content">
+                    <ul>
+                        <li>Recopilamos información <strong>necesaria</strong> para operar el servicio.</li>
+                        <li>No compartimos tus datos con terceros sin tu <strong>consentimiento explícito</strong>.</li>
+                        <li>Puedes solicitar la <strong>eliminación</strong> de tus datos en cualquier momento.</li>
+                        <li>Utilizamos medidas de seguridad <strong>estándar</strong> para proteger tu información.</li>
+                    </ul>
+
+                    <div class="highlight-box">
+                        <i class="fas fa-info-circle"></i>
+                        <div>
+                            <strong>Importante:</strong> Tus datos están protegidos con encriptación de última generación. Nunca vendemos ni compartimos tu información personal con terceros sin tu consentimiento.
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Pagos y Suscripciones -->
+                <div class="section-title">
+                    <i class="fas fa-hand-holding-usd"></i>
+                    5. Pagos y Suscripciones
+                </div>
+                <div class="section-content">
+                    <ul>
+                        <li>OmniVentas ofrece un <strong>período de prueba gratuito</strong> para nuevos usuarios.</li>
+                        <li>Los precios y planes de suscripción están sujetos a cambios con <strong>previo aviso</strong>.</li>
+                        <li>Los pagos son procesados a través de <strong>plataformas seguras</strong> de terceros.</li>
+                    </ul>
+                </div>
+
+                <!-- Responsabilidades -->
+                <div class="section-title">
+                    <i class="fas fa-gavel"></i>
+                    6. Responsabilidades
+                </div>
+                <div class="section-content">
+                    <ul>
+                        <li>OmniVentas <strong>no se hace responsable</strong> por pérdidas indirectas o daños emergentes.</li>
+                        <li>El servicio se proporciona <strong>"tal cual"</strong> sin garantías implícitas.</li>
+                        <li>El usuario es <strong>responsable</strong> del contenido y datos ingresados en el sistema.</li>
+                    </ul>
+                </div>
+
+                <!-- Terminación -->
+                <div class="section-title">
+                    <i class="fas fa-times-circle"></i>
+                    7. Terminación
+                </div>
+                <div class="section-content">
+                    <ul>
+                        <li>Puedes <strong>cancelar</strong> tu cuenta en cualquier momento desde el panel de administración.</li>
+                        <li>OmniVentas puede <strong>terminar</strong> el servicio por violación de estos términos.</li>
+                        <li>Los datos serán <strong>eliminados</strong> después de un período de gracia de 30 días.</li>
+                    </ul>
+                </div>
+
+                <!-- Ley Aplicable -->
+                <div class="section-title">
+                    <i class="fas fa-balance-scale"></i>
+                    8. Ley Aplicable
+                </div>
+                <div class="section-content">
+                    <p>Estos términos se rigen por las leyes de la <strong>República Argentina</strong>. Cualquier disputa será resuelta en los tribunales de la <strong>Ciudad de Buenos Aires</strong>.</p>
+                </div>
+
+                <!-- Contacto -->
+                <div class="section-title">
+                    <i class="fas fa-envelope"></i>
+                    9. Contacto
+                </div>
+                <div class="section-content">
+                    <p>Para consultas sobre estos términos, contáctanos en: <a href="mailto:soporte@omniventas.com">soporte@omniventas.com</a></p>
+                </div>
+
             </div>
+
+            <!-- FOOTER -->
+            <div class="card-footer-premium">
+                <p>
+                    <i class="fas fa-check-circle me-1" style="color: var(--success);"></i>
+                    Al registrarte en OmniVentas, aceptas estos términos y condiciones.
+                </p>
+                <a href="/signup" class="btn-back">
+                    <i class="fas fa-arrow-left"></i>
+                    Volver al Registro
+                </a>
+            </div>
+
         </div>
+
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+
 </body>
 </html>
