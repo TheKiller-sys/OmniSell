@@ -653,7 +653,7 @@ def create_app():
                 request_info=request_info
             )
         
-             return jsonify({
+            return jsonify({
                 'success': True, 
                 'message': 'Configuración completada exitosamente',
                 'redirect': url_for('login', message='✅ Configuración completada. Ahora puedes iniciar sesión.')
