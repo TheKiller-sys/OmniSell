@@ -157,13 +157,42 @@ def create_app():
             return result[0][0]
         return None
 
-    # ==================== RUTAS DE PÁGINAS ====================
-
-    @app.route('/')
-    def index():
-        if current_user.is_authenticated:
+# ==================== RUTA DE LANDING PAGE ====================
+@app.route('/')
+def index():
+    """
+    Landing page de OmniVentas.
+    Si el usuario ya está autenticado, redirige al dashboard.
+    """
+    try:
+        # Verificar si el usuario ya está logueado
+        if current_user and current_user.is_authenticated:
+            log_to_telegram(
+                level='INFO',
+                message=f"Usuario autenticado redirigido al dashboard desde landing",
+                data={'username': current_user.username},
+                user=current_user,
+                business_id=current_user.business_id
+            )
             return redirect(url_for('dashboard'))
-        return redirect(url_for('login'))
+        
+        # Si hay una sesión activa de configuración
+        if session and session.get('business_id'):
+            return redirect(url_for('dashboard'))
+        
+        # Renderizar la landing page
+        return render_template('index.html')
+        
+    except Exception as e:
+        logger.error(f"Error en landing page: {e}")
+        log_to_telegram(
+            level='ERROR',
+            message=f"Error en landing page: {str(e)}",
+            data={'error': str(e), 'traceback': traceback.format_exc()}
+        )
+        # En caso de error, mostrar la landing sin funcionalidades extras
+        return render_template('index.html')
+
 
     # ==================== SIGNUP CORREGIDO ====================
     @app.route('/signup', methods=['GET', 'POST'])
