@@ -1,394 +1,727 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="es" data-bs-theme="light">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>OmniVentas - Vendedores</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <title>Vendedores - OmniVentas</title>
+    
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    
     <style>
+        /* ============================================
+           VARIABLES Y BASE
+           ============================================ */
         :root {
-            --primary: #4361ee;
-            --primary-dark: #3a56d4;
-            --secondary: #3f37c9;
-            --success: #4CC9F0;
-            --warning: #FFD166;
-            --danger: #EF476F;
-            --dark: #212529;
-            --light: #f8f9fc;
-            --gray: #6c757d;
-            --sidebar-width: 250px;
-            --header-height: 70px;
+            --primary: #4361EE;
+            --primary-dark: #3651D4;
+            --primary-light: #EEF2FF;
+            --primary-gradient: linear-gradient(135deg, #4361EE 0%, #3A0CA3 100%);
+            --secondary: #FF6B35;
+            --success: #10B981;
+            --warning: #F59E0B;
+            --danger: #EF4444;
+            --dark: #0F172A;
+            --dark-secondary: #1E293B;
+            --gray: #64748B;
+            --gray-light: #F1F5F9;
+            --white: #FFFFFF;
+            --shadow-sm: 0 1px 3px rgba(0,0,0,0.06);
+            --shadow-md: 0 4px 20px rgba(0,0,0,0.08);
+            --shadow-lg: 0 20px 60px rgba(0,0,0,0.10);
+            --radius-sm: 10px;
+            --radius-md: 16px;
+            --radius-lg: 24px;
+            --transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            --sidebar-width: 260px;
+            --header-height: 72px;
         }
-        
-        * { margin: 0; padding: 0; box-sizing: border-box; transition: all 0.3s ease; }
-        
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
         body {
-            background-color: #f5f7fb;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            height: 100vh;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #F8FAFC;
+            color: var(--dark);
             overflow-x: hidden;
+            -webkit-font-smoothing: antialiased;
         }
-        
+
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: var(--gray-light); }
+        ::-webkit-scrollbar-thumb { background: var(--primary); border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--primary-dark); }
+
+        /* ============================================
+           ANIMACIONES
+           ============================================ */
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(30px) scale(0.98); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+
+        .animate-on-load {
+            opacity: 0;
+            animation: fadeInUp 0.6s ease-out forwards;
+        }
+        .delay-1 { animation-delay: 0.05s; }
+        .delay-2 { animation-delay: 0.10s; }
+        .delay-3 { animation-delay: 0.15s; }
+
+        /* ============================================
+           HEADER
+           ============================================ */
         .header {
             position: fixed;
             top: 0;
             left: 0;
             width: 100%;
             height: var(--header-height);
-            background: white;
-            box-shadow: 0 2px 20px rgba(0,0,0,0.08);
-            z-index: 1000;
+            background: rgba(255,255,255,0.85);
+            backdrop-filter: blur(20px) saturate(180%);
+            border-bottom: 1px solid rgba(255,255,255,0.2);
+            z-index: 1050;
             display: flex;
             align-items: center;
-            padding: 0 25px;
+            padding: 0 28px;
+            transition: var(--transition);
         }
-        
-        .header-title {
-            font-weight: 700;
-            color: var(--dark);
-            margin-bottom: 0;
-            font-size: 1.8rem;
-            background: linear-gradient(45deg, var(--primary), var(--secondary));
+        .header.scrolled { box-shadow: var(--shadow-md); }
+
+        .header .toggle-sidebar {
+            width: 42px; height: 42px;
+            display: flex; align-items: center; justify-content: center;
+            background: var(--primary-gradient);
+            color: white;
+            border-radius: var(--radius-sm);
+            margin-right: 16px;
+            cursor: pointer;
+            border: none;
+            box-shadow: 0 4px 15px rgba(67,97,238,0.3);
+            transition: var(--transition);
+            font-size: 1.1rem;
+        }
+        .header .toggle-sidebar:hover { transform: rotate(90deg) scale(1.05); }
+
+        .header .header-title {
+            font-weight: 800;
+            font-size: 1.5rem;
+            background: var(--primary-gradient);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
+            background-clip: text;
             letter-spacing: -0.5px;
+            margin-bottom: 0;
         }
-        
-        .header-actions {
-            display: flex;
-            align-items: center;
-            gap: 15px;
-            margin-left: auto;
+        .header .header-title i { -webkit-text-fill-color: var(--primary); margin-right: 8px; }
+
+        .header .header-actions {
+            display: flex; align-items: center; gap: 16px; margin-left: auto;
         }
-        
-        .business-name { font-weight: 600; color: var(--dark); font-size: 0.95rem; }
-        
+        .header .header-actions .business-name {
+            font-weight: 600; color: var(--dark-secondary);
+            font-size: 0.9rem; padding: 6px 14px;
+            background: var(--gray-light); border-radius: 50px;
+        }
+        .header .header-actions .btn-logout {
+            background: transparent; border: 2px solid #FEE2E2;
+            color: var(--danger); padding: 8px 18px;
+            border-radius: var(--radius-sm);
+            font-weight: 600; font-size: 0.85rem;
+            transition: var(--transition);
+        }
+        .header .header-actions .btn-logout:hover {
+            background: var(--danger); color: white;
+            border-color: var(--danger);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(239,68,68,0.3);
+        }
+
+        /* ============================================
+           SIDEBAR
+           ============================================ */
         .sidebar {
             position: fixed;
             top: var(--header-height);
             left: 0;
             height: calc(100vh - var(--header-height));
             width: var(--sidebar-width);
-            background: linear-gradient(180deg, var(--dark) 0%, #1a1e21 100%);
+            background: linear-gradient(180deg, #0F172A 0%, #1E293B 50%, #0F172A 100%);
             color: white;
             overflow-y: auto;
             transform: translateX(-100%);
-            z-index: 999;
+            z-index: 1040;
             opacity: 0;
             visibility: hidden;
-            border-top-right-radius: 20px;
-            box-shadow: 5px 0 25px rgba(0,0,0,0.1);
+            border-top-right-radius: var(--radius-lg);
+            box-shadow: 5px 0 30px rgba(0,0,0,0.2);
+            transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
         }
-        
-        .sidebar-open .sidebar { transform: translateX(0); opacity: 1; visibility: visible; }
-        
+        .sidebar-open .sidebar {
+            transform: translateX(0);
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .sidebar .sidebar-logo {
+            padding: 24px 20px 20px;
+            border-bottom: 1px solid rgba(255,255,255,0.06);
+            display: flex; align-items: center; gap: 12px;
+            font-size: 1.3rem; font-weight: 700;
+        }
+        .sidebar .sidebar-logo i { color: var(--primary); font-size: 1.6rem; }
+        .sidebar .sidebar-logo span {
+            background: var(--primary-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .sidebar .nav { padding: 12px 0; }
         .sidebar .nav-link {
-            color: rgba(255,255,255,0.8);
-            padding: 0.9rem 1.5rem;
-            border-radius: 0;
-            margin: 0.1rem 0;
+            color: rgba(255,255,255,0.6);
+            padding: 12px 24px;
+            margin: 2px 12px;
+            border-radius: var(--radius-sm);
             font-weight: 500;
+            font-size: 0.9rem;
             display: flex;
             align-items: center;
+            gap: 14px;
+            transition: var(--transition);
             text-decoration: none;
-            transition: all 0.3s;
         }
-        
-        .sidebar .nav-link:hover, .sidebar .nav-link.active {
+        .sidebar .nav-link i { width: 22px; text-align: center; font-size: 1.05rem; flex-shrink: 0; }
+        .sidebar .nav-link:hover { color: white; background: rgba(255,255,255,0.06); }
+        .sidebar .nav-link.active {
             color: white;
-            border-left: 4px solid var(--primary);
-            background: rgba(255,255,255,0.05);
+            background: rgba(67,97,238,0.2);
+            box-shadow: inset 3px 0 0 var(--primary);
         }
-        
-        .sidebar .nav-link i { width: 28px; text-align: center; margin-right: 15px; font-size: 1.2rem; }
-        
-        .sidebar-logo {
-            padding: 25px 20px;
-            border-bottom: 1px solid rgba(255,255,255,0.1);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.4rem;
-            font-weight: 700;
+
+        .sidebar .sidebar-footer {
+            padding: 20px 24px;
+            border-top: 1px solid rgba(255,255,255,0.06);
+            margin-top: 12px;
         }
-        
-        .sidebar-logo i { margin-right: 10px; color: var(--primary); }
-        
-        .sidebar-footer {
-            padding: 20px;
-            border-top: 1px solid rgba(255,255,255,0.1);
-            margin-top: 20px;
+        .sidebar .sidebar-footer .btn-sidebar-logout {
+            width: 100%;
+            background: rgba(239,68,68,0.15);
+            color: #FCA5A5;
+            border: none;
+            padding: 10px;
+            border-radius: var(--radius-sm);
+            font-weight: 600;
+            transition: var(--transition);
         }
-        
-        .sidebar-footer .btn { width: 100%; border-radius: 10px; padding: 10px; font-weight: 500; }
-        
+        .sidebar .sidebar-footer .btn-sidebar-logout:hover {
+            background: rgba(239,68,68,0.25);
+            color: white;
+        }
+
+        .sidebar-overlay {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: rgba(0,0,0,0.4);
+            z-index: 1030;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+        }
+        .sidebar-open .sidebar-overlay { opacity: 1; visibility: visible; }
+
+        @media (min-width: 992px) {
+            .sidebar-overlay { display: none; }
+            .sidebar {
+                transform: translateX(0) !important;
+                opacity: 1 !important;
+                visibility: visible !important;
+                border-radius: 0;
+            }
+            .main-content { margin-left: var(--sidebar-width); }
+            .header .toggle-sidebar { display: none; }
+        }
+
+        /* ============================================
+           MAIN CONTENT
+           ============================================ */
         .main-content {
             margin-top: var(--header-height);
-            padding: 30px;
+            padding: 28px 32px 40px;
             min-height: calc(100vh - var(--header-height));
+            transition: var(--transition);
         }
-        
-        .section-title {
-            font-weight: 700;
+
+        /* ============================================
+           SECTION HEADER
+           ============================================ */
+        .section-header-wrapper {
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-bottom: 28px;
+            padding-bottom: 16px;
+            border-bottom: 2px solid var(--gray-light);
+        }
+        .section-header-wrapper .section-title {
+            font-weight: 800;
+            font-size: 1.6rem;
             color: var(--dark);
-            margin-bottom: 1.8rem;
-            position: relative;
-            padding-bottom: 0.8rem;
-            font-size: 1.8rem;
+            margin-bottom: 0;
+            display: flex;
+            align-items: center;
+            gap: 12px;
         }
-        
-        .section-title::after {
-            content: '';
-            position: absolute;
-            bottom: 0;
-            left: 0;
-            width: 60px;
-            height: 4px;
-            background: var(--primary);
-            border-radius: 3px;
-            box-shadow: 0 2px 8px rgba(67, 97, 238, 0.3);
+        .section-header-wrapper .section-title i { color: var(--primary); font-size: 1.4rem; }
+        .section-header-wrapper .back-link {
+            color: var(--gray);
+            text-decoration: none;
+            font-weight: 500;
+            font-size: 0.9rem;
+            transition: var(--transition);
+            margin-left: auto;
         }
-        
-        .card {
+        .section-header-wrapper .back-link:hover { color: var(--primary); }
+
+        /* ============================================
+           CARDS PREMIUM
+           ============================================ */
+        .card-premium {
             border: none;
-            border-radius: 16px;
-            box-shadow: 0 8px 25px rgba(0,0,0,0.05);
-            margin-bottom: 30px;
+            border-radius: var(--radius-md);
+            background: var(--white);
+            box-shadow: var(--shadow-sm);
             overflow: hidden;
-            transition: transform 0.4s, box-shadow 0.4s;
+            transition: var(--transition);
+            margin-bottom: 28px;
         }
-        
-        .card:hover { transform: translateY(-5px); box-shadow: 0 12px 30px rgba(0,0,0,0.1); }
-        
-        .card-header {
-            background: white;
-            border-bottom: 1px solid #e3e6f0;
-            font-weight: 600;
-            padding: 1.5rem;
+        .card-premium:hover { box-shadow: var(--shadow-lg); transform: translateY(-4px); }
+
+        .card-premium .card-header-custom {
+            padding: 18px 24px;
+            background: var(--white);
+            border-bottom: 1px solid var(--gray-light);
             display: flex;
             justify-content: space-between;
             align-items: center;
-            font-size: 1.1rem;
+            flex-wrap: wrap;
+            gap: 10px;
         }
-        
-        .table-container {
-            border-radius: 16px;
+        .card-premium .card-header-custom h6 {
+            font-weight: 700;
+            font-size: 0.95rem;
+            color: var(--dark-secondary);
+            margin: 0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .card-premium .card-header-custom h6 i { color: var(--primary); }
+        .card-premium .card-body-custom { padding: 20px 24px 24px; }
+
+        /* ============================================
+           STATS CARDS
+           ============================================ */
+        .stat-card {
+            border: none;
+            border-radius: var(--radius-md);
+            background: var(--white);
+            padding: 20px 24px;
+            box-shadow: var(--shadow-sm);
+            transition: var(--transition);
+            height: 100%;
+            position: relative;
             overflow: hidden;
-            box-shadow: 0 8px 25px rgba(0,0,0,0.05);
         }
-        
-        .table thead {
-            background: linear-gradient(90deg, var(--primary), var(--secondary));
-            color: white;
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 4px;
+            background: var(--primary-gradient);
+            opacity: 0.6;
         }
-        
-        .table th { padding: 1rem 1.5rem; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.5px; }
-        .table td { padding: 0.9rem 1.5rem; vertical-align: middle; }
-        .table-hover tbody tr:hover { background-color: rgba(67, 97, 238, 0.05); transform: translateX(5px); }
-        
-        .status-badge {
-            padding: 0.3rem 1rem;
-            border-radius: 20px;
-            font-weight: 600;
-            display: inline-block;
+        .stat-card:hover { transform: translateY(-6px); box-shadow: var(--shadow-lg); }
+
+        .stat-card .stat-value {
+            font-weight: 800;
+            font-size: 1.8rem;
+            color: var(--dark);
+            line-height: 1.2;
+            margin-top: 4px;
+        }
+        .stat-card .stat-label {
             font-size: 0.8rem;
+            font-weight: 600;
+            color: var(--gray);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
         }
-        .status-active { background: rgba(40, 167, 69, 0.15); color: #28a745; }
-        .status-inactive { background: rgba(220, 53, 69, 0.15); color: #dc3545; }
-        
-        .empty-state { text-align: center; padding: 40px 20px; color: #6c757d; }
-        .empty-state i { font-size: 3rem; margin-bottom: 15px; opacity: 0.5; }
-        .empty-state h5 { font-weight: 600; color: #2c3e50; }
-        
-        .toggle-sidebar {
-            width: 40px;
-            height: 40px;
+
+        .stat-card .stat-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: var(--radius-sm);
             display: flex;
             align-items: center;
             justify-content: center;
-            background: var(--primary);
-            color: white;
-            border-radius: 10px;
-            margin-right: 15px;
-            cursor: pointer;
-            border: none;
-            box-shadow: 0 4px 10px rgba(67, 97, 238, 0.3);
-        }
-        
-        .toggle-sidebar:hover { background: var(--primary-dark); transform: rotate(90deg); }
-        
-        .btn-action { border-radius: 12px; padding: 10px 25px; font-weight: 600; transition: all 0.3s; }
-        .btn-action:hover { transform: translateY(-2px); }
-        
-        .back-link { color: var(--primary); text-decoration: none; font-weight: 500; }
-        .back-link:hover { text-decoration: underline; }
-        
-        .modal-content { border-radius: 16px; }
-        .modal-header { border-radius: 16px 16px 0 0; }
-        
-        .vendor-id-display {
-            font-family: monospace;
             font-size: 1.2rem;
+            flex-shrink: 0;
+        }
+        .stat-card .stat-icon.blue { background: var(--primary-light); color: var(--primary); }
+        .stat-card .stat-icon.green { background: #D1FAE5; color: var(--success); }
+        .stat-card .stat-icon.red { background: #FEE2E2; color: var(--danger); }
+        .stat-card .stat-icon.purple { background: #EDE9FE; color: #7C3AED; }
+
+        /* ============================================
+           TABLA PREMIUM
+           ============================================ */
+        .table-premium {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0 4px;
+        }
+        .table-premium thead th {
+            background: var(--gray-light);
+            color: var(--dark-secondary);
+            font-weight: 600;
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            padding: 10px 16px;
+            border: none;
+        }
+        .table-premium tbody tr {
+            background: var(--white);
+            border-radius: var(--radius-sm);
+            transition: var(--transition);
+        }
+        .table-premium tbody tr:hover {
+            transform: translateX(4px);
+            box-shadow: var(--shadow-sm);
+        }
+        .table-premium tbody td {
+            padding: 12px 16px;
+            vertical-align: middle;
+            border: none;
+            font-size: 0.9rem;
+        }
+        .table-premium tbody td:first-child { border-radius: var(--radius-sm) 0 0 var(--radius-sm); }
+        .table-premium tbody td:last-child { border-radius: 0 var(--radius-sm) var(--radius-sm) 0; }
+
+        .status-badge {
+            padding: 4px 14px;
+            border-radius: 50px;
+            font-weight: 600;
+            font-size: 0.7rem;
+            display: inline-block;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
+        .status-badge.active { background: #D1FAE5; color: var(--success); }
+        .status-badge.inactive { background: #FEE2E2; color: var(--danger); }
+
+        .vendor-id-display {
+            font-family: 'Inter', monospace;
             font-weight: 700;
+            font-size: 0.85rem;
             color: var(--primary);
-            background: #f0f2ff;
-            padding: 4px 12px;
-            border-radius: 8px;
+            background: var(--primary-light);
+            padding: 2px 12px;
+            border-radius: var(--radius-sm);
+            display: inline-block;
+            letter-spacing: 0.5px;
         }
-        
+
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: var(--gray);
+        }
+        .empty-state i { font-size: 2.5rem; opacity: 0.3; margin-bottom: 12px; display: block; }
+        .empty-state h6 { font-weight: 600; color: var(--dark-secondary); }
+
+        /* ============================================
+           BOTONES
+           ============================================ */
+        .btn-premium {
+            border-radius: var(--radius-sm);
+            padding: 8px 18px;
+            font-weight: 600;
+            font-size: 0.85rem;
+            transition: var(--transition);
+            border: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .btn-premium:hover { transform: translateY(-2px); }
+
+        .btn-premium.primary { background: var(--primary-gradient); color: white; box-shadow: 0 4px 15px rgba(67,97,238,0.3); }
+        .btn-premium.primary:hover { box-shadow: 0 8px 30px rgba(67,97,238,0.4); }
+
+        .btn-premium.secondary { background: var(--gray-light); color: var(--dark-secondary); }
+        .btn-premium.secondary:hover { background: #E2E8F0; }
+
+        .btn-premium.danger { background: var(--danger); color: white; box-shadow: 0 4px 15px rgba(239,68,68,0.3); }
+        .btn-premium.danger:hover { box-shadow: 0 8px 30px rgba(239,68,68,0.4); }
+
+        .btn-premium.success { background: var(--success); color: white; box-shadow: 0 4px 15px rgba(16,185,129,0.3); }
+        .btn-premium.success:hover { box-shadow: 0 8px 30px rgba(16,185,129,0.4); }
+
+        /* ============================================
+           MODAL PREMIUM
+           ============================================ */
+        .modal-content-premium {
+            border-radius: var(--radius-lg);
+            border: none;
+            box-shadow: var(--shadow-lg);
+            overflow: hidden;
+        }
+        .modal-header-premium {
+            background: var(--primary-gradient);
+            color: white;
+            padding: 20px 24px;
+            border: none;
+        }
+        .modal-header-premium .btn-close { filter: brightness(0) invert(1); }
+        .modal-body-premium { padding: 24px; }
+        .modal-footer-premium {
+            padding: 16px 24px;
+            border-top: 1px solid var(--gray-light);
+            background: #FAFBFC;
+        }
+
+        .form-control-premium {
+            border: 2px solid var(--gray-light);
+            border-radius: var(--radius-sm);
+            padding: 10px 16px;
+            font-size: 0.95rem;
+            transition: var(--transition);
+            background: var(--white);
+            width: 100%;
+        }
+        .form-control-premium:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 4px rgba(67,97,238,0.1);
+            outline: none;
+        }
+        .form-label-premium {
+            font-weight: 600;
+            font-size: 0.85rem;
+            color: var(--dark-secondary);
+            margin-bottom: 4px;
+        }
+        .form-text-premium {
+            font-size: 0.8rem;
+            color: var(--gray);
+            margin-top: 4px;
+        }
+
+        /* ============================================
+           RESPONSIVE
+           ============================================ */
         @media (max-width: 992px) {
-            .header-title { font-size: 1.3rem; }
-            .sidebar { width: 280px; }
+            .main-content { padding: 20px; }
+            .stat-card .stat-value { font-size: 1.4rem; }
+            .section-header-wrapper .section-title { font-size: 1.3rem; }
         }
-        
         @media (max-width: 768px) {
-            .main-content { padding: 15px; }
-            .header { padding: 0 15px; }
-            .business-name { display: none; }
-            .card-header { flex-direction: column; align-items: flex-start; gap: 10px; }
+            .header { padding: 0 16px; }
+            .header .business-name { display: none; }
+            .main-content { padding: 16px; }
+            .stat-card { padding: 16px 18px; }
+            .stat-card .stat-value { font-size: 1.2rem; }
+            .card-premium .card-header-custom { flex-direction: column; align-items: flex-start; }
+            .table-premium { font-size: 0.8rem; }
+            .table-premium thead th,
+            .table-premium tbody td { padding: 8px 10px; }
+        }
+        @media (max-width: 576px) {
+            .stat-card .stat-value { font-size: 1rem; }
+            .stat-card .stat-icon { width: 36px; height: 36px; font-size: 0.9rem; }
+            .card-premium .card-body-custom { padding: 16px; }
         }
     </style>
 </head>
 <body>
-    <!-- HEADER -->
-    <header class="header">
-        <button class="toggle-sidebar" onclick="toggleSidebar()">
+
+    <!-- ============================================
+    SIDEBAR OVERLAY
+    ============================================ -->
+    <div class="sidebar-overlay" onclick="toggleSidebar()"></div>
+
+    <!-- ============================================
+    HEADER
+    ============================================ -->
+    <header class="header" id="header">
+        <button class="toggle-sidebar" onclick="toggleSidebar()" aria-label="Alternar menú">
             <i class="fas fa-bars"></i>
         </button>
-        <h1 class="header-title">OmniVentas</h1>
+        <h1 class="header-title"><i class="fas fa-user-tie"></i>OmniVentas</h1>
         <div class="header-actions">
-            <span class="business-name"><i class="fas fa-store me-1"></i>{{ business_name }}</span>
-            <a href="/logout" class="btn btn-outline-danger btn-sm">
+            <span class="business-name">{{ business_name }}</span>
+            <a href="/logout" class="btn btn-logout">
                 <i class="fas fa-sign-out-alt me-1"></i>Salir
             </a>
         </div>
     </header>
-    
-    <!-- SIDEBAR -->
+
+    <!-- ============================================
+    SIDEBAR
+    ============================================ -->
     <nav class="sidebar" id="sidebar">
         <div class="sidebar-logo">
             <i class="fas fa-chart-line"></i>
             <span>Panel Admin</span>
         </div>
-        <ul class="nav flex-column mt-3">
-            <li class="nav-item"><a class="nav-link" href="/dashboard"><i class="fas fa-tachometer-alt"></i><span>Dashboard</span></a></li>
+        <ul class="nav flex-column">
+            <li class="nav-item"><a class="nav-link" href="/dashboard"><i class="fas fa-th-large"></i><span>Dashboard</span></a></li>
             <li class="nav-item"><a class="nav-link" href="/ventas"><i class="fas fa-shopping-cart"></i><span>Ventas</span></a></li>
             <li class="nav-item"><a class="nav-link" href="/inventario"><i class="fas fa-boxes"></i><span>Inventario</span></a></li>
             <li class="nav-item"><a class="nav-link" href="/finanzas"><i class="fas fa-chart-pie"></i><span>Finanzas</span></a></li>
-            <li class="nav-item"><a class="nav-link" href="/analisis"><i class="fas fa-chart-line"></i><span>Análisis</span></a></li>
+            <li class="nav-item"><a class="nav-link" href="/analisis"><i class="fas fa-brain"></i><span>Análisis</span></a></li>
             <li class="nav-item"><a class="nav-link" href="/clientes"><i class="fas fa-users"></i><span>Clientes</span></a></li>
             <li class="nav-item"><a class="nav-link active" href="/vendedores"><i class="fas fa-user-tie"></i><span>Vendedores</span></a></li>
-            <li class="nav-item mt-4 pt-2 border-top border-white-10">
+            <li class="nav-item mt-3 pt-3 border-top border-secondary border-opacity-10">
                 <a class="nav-link" href="/configuracion"><i class="fas fa-cog"></i><span>Configuración</span></a>
             </li>
         </ul>
         <div class="sidebar-footer">
-            <a href="/logout" class="btn btn-outline-danger mt-2"><i class="fas fa-sign-out-alt me-2"></i>Cerrar Sesión</a>
+            <button class="btn-sidebar-logout" onclick="window.location.href='/logout'">
+                <i class="fas fa-sign-out-alt me-2"></i>Cerrar Sesión
+            </button>
         </div>
     </nav>
-    
-    <!-- MAIN CONTENT -->
+
+    <!-- ============================================
+    MAIN CONTENT
+    ============================================ -->
     <main class="main-content">
-        <div class="d-flex justify-content-between align-items-center mb-3">
-            <h2 class="section-title"><i class="fas fa-user-tie me-2"></i>Gestión de Vendedores</h2>
-            <a href="/dashboard" class="back-link"><i class="fas fa-arrow-left me-1"></i>Volver al Dashboard</a>
+
+        <!-- Section Header -->
+        <div class="section-header-wrapper">
+            <h2 class="section-title">
+                <i class="fas fa-user-tie"></i>
+                Gestión de Vendedores
+            </h2>
+            <a href="/dashboard" class="back-link">
+                <i class="fas fa-arrow-left me-1"></i>Volver al Dashboard
+            </a>
         </div>
 
         <!-- Stats -->
-        <div class="row mb-4">
+        <div class="row g-3 mb-4">
             <div class="col-md-3">
-                <div class="card stat-card h-100">
-                    <div class="card-body">
-                        <div class="stat-label">Total Vendedores</div>
-                        <div class="stat-value text-primary" id="total-vendedores">0</div>
+                <div class="stat-card animate-on-load">
+                    <div class="d-flex align-items-center justify-content-between">
+                        <div>
+                            <div class="stat-label">Total Vendedores</div>
+                            <div class="stat-value text-primary" id="total-vendedores">0</div>
+                        </div>
+                        <div class="stat-icon blue"><i class="fas fa-users"></i></div>
                     </div>
                 </div>
             </div>
             <div class="col-md-3">
-                <div class="card stat-card h-100">
-                    <div class="card-body">
-                        <div class="stat-label">Activos</div>
-                        <div class="stat-value text-success" id="vendedores-activos">0</div>
+                <div class="stat-card animate-on-load delay-1">
+                    <div class="d-flex align-items-center justify-content-between">
+                        <div>
+                            <div class="stat-label">Activos</div>
+                            <div class="stat-value text-success" id="vendedores-activos">0</div>
+                        </div>
+                        <div class="stat-icon green"><i class="fas fa-check-circle"></i></div>
                     </div>
                 </div>
             </div>
             <div class="col-md-3">
-                <div class="card stat-card h-100">
-                    <div class="card-body">
-                        <div class="stat-label">Inactivos</div>
-                        <div class="stat-value text-danger" id="vendedores-inactivos">0</div>
+                <div class="stat-card animate-on-load delay-2">
+                    <div class="d-flex align-items-center justify-content-between">
+                        <div>
+                            <div class="stat-label">Inactivos</div>
+                            <div class="stat-value text-danger" id="vendedores-inactivos">0</div>
+                        </div>
+                        <div class="stat-icon red"><i class="fas fa-times-circle"></i></div>
                     </div>
                 </div>
             </div>
             <div class="col-md-3">
-                <div class="card stat-card h-100">
-                    <div class="card-body">
-                        <div class="stat-label">Último creado</div>
-                        <div class="stat-value text-info" id="ultimo-vendedor" style="font-size: 1.2rem;">-</div>
+                <div class="stat-card animate-on-load delay-3">
+                    <div class="d-flex align-items-center justify-content-between">
+                        <div>
+                            <div class="stat-label">Último Creado</div>
+                            <div class="stat-value text-purple" id="ultimo-vendedor" style="font-size: 1.2rem; font-weight: 700;">-</div>
+                        </div>
+                        <div class="stat-icon purple"><i class="fas fa-clock"></i></div>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- Tabla de vendedores -->
-        <div class="card">
-            <div class="card-header">
-                <h6 class="m-0"><i class="fas fa-list me-2"></i>Lista de Vendedores</h6>
-                <div>
-                    <button class="btn btn-sm btn-primary" id="btn-agregar-vendedor">
-                        <i class="fas fa-plus me-1"></i>Agregar Vendedor
+        <!-- Tabla -->
+        <div class="card-premium animate-on-load delay-2">
+            <div class="card-header-custom">
+                <h6><i class="fas fa-list"></i>Lista de Vendedores</h6>
+                <div class="d-flex gap-2">
+                    <button class="btn-premium primary" id="btn-agregar-vendedor">
+                        <i class="fas fa-plus"></i> Agregar Vendedor
                     </button>
-                    <button class="btn btn-sm btn-secondary" id="btn-actualizar">
-                        <i class="fas fa-sync me-1"></i>Actualizar
+                    <button class="btn-premium secondary" id="btn-actualizar">
+                        <i class="fas fa-sync"></i> Actualizar
                     </button>
                 </div>
             </div>
-            <div class="card-body">
-                <div class="table-container">
-                    <table class="table table-hover">
+            <div class="card-body-custom">
+                <div class="table-responsive">
+                    <table class="table-premium">
                         <thead>
                             <tr>
                                 <th>ID</th>
                                 <th>Nombre</th>
                                 <th>Rol</th>
-                                <th>Estado</th>
+                                <th class="text-center">Estado</th>
                                 <th>Fecha Registro</th>
-                                <th>Acciones</th>
+                                <th class="text-center">Acciones</th>
                             </tr>
                         </thead>
                         <tbody id="vendedores-body"></tbody>
                     </table>
                     <div id="vendedores-empty" class="empty-state" style="display: none;">
                         <i class="fas fa-user-slash"></i>
-                        <h5>No hay vendedores registrados</h5>
-                        <p class="text-muted">Agrega tu primer vendedor para empezar</p>
+                        <h6>No hay vendedores registrados</h6>
+                        <p class="text-muted small">Agrega tu primer vendedor para empezar</p>
                     </div>
                 </div>
             </div>
         </div>
+
     </main>
 
-    <!-- MODAL AGREGAR VENDEDOR -->
+    <!-- ============================================
+    MODAL AGREGAR VENDEDOR
+    ============================================ -->
     <div class="modal fade" id="modalVendedor" tabindex="-1">
         <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header bg-primary text-white">
+            <div class="modal-content modal-content-premium">
+                <div class="modal-header modal-header-premium">
                     <h5 class="modal-title"><i class="fas fa-user-plus me-2"></i>Agregar Vendedor</h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
-                <div class="modal-body">
+                <div class="modal-body modal-body-premium">
                     <form id="form-vendedor">
                         <div class="mb-3">
-                            <label class="form-label fw-semibold">Nombre del Vendedor *</label>
-                            <input type="text" class="form-control" id="vendedor-nombre" placeholder="Ej: Juan Pérez" required>
-                            <div class="form-text">El ID se generará automáticamente (8 caracteres alfanuméricos)</div>
+                            <label class="form-label-premium">Nombre del Vendedor *</label>
+                            <input type="text" class="form-control-premium" id="vendedor-nombre" placeholder="Ej: Juan Pérez" required>
+                            <div class="form-text-premium">El ID se generará automáticamente (8 caracteres alfanuméricos)</div>
                         </div>
                     </form>
                 </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                    <button type="button" class="btn btn-primary" id="btn-guardar-vendedor">
+                <div class="modal-footer modal-footer-premium">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" style="border-radius: var(--radius-sm); font-weight: 600;">Cancelar</button>
+                    <button type="button" class="btn btn-primary" id="btn-guardar-vendedor" style="border-radius: var(--radius-sm); font-weight: 600;">
                         <i class="fas fa-save me-2"></i>Crear Vendedor
                     </button>
                 </div>
@@ -396,33 +729,35 @@
         </div>
     </div>
 
-    <!-- MODAL EDITAR VENDEDOR -->
+    <!-- ============================================
+    MODAL EDITAR VENDEDOR
+    ============================================ -->
     <div class="modal fade" id="modalEditarVendedor" tabindex="-1">
         <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header bg-warning text-dark">
+            <div class="modal-content modal-content-premium">
+                <div class="modal-header" style="background: var(--warning); color: var(--dark); padding: 20px 24px; border: none;">
                     <h5 class="modal-title"><i class="fas fa-edit me-2"></i>Editar Vendedor</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
-                <div class="modal-body">
+                <div class="modal-body modal-body-premium">
                     <form id="form-editar-vendedor">
                         <input type="hidden" id="edit-vendor-id">
                         <div class="mb-3">
-                            <label class="form-label fw-semibold">Nombre</label>
-                            <input type="text" class="form-control" id="edit-vendor-nombre" required>
+                            <label class="form-label-premium">Nombre</label>
+                            <input type="text" class="form-control-premium" id="edit-vendor-nombre" required>
                         </div>
                         <div class="mb-3">
-                            <label class="form-label fw-semibold">Estado</label>
-                            <select class="form-select" id="edit-vendor-estado">
+                            <label class="form-label-premium">Estado</label>
+                            <select class="form-control-premium" id="edit-vendor-estado">
                                 <option value="true">Activo</option>
                                 <option value="false">Inactivo</option>
                             </select>
                         </div>
                     </form>
                 </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                    <button type="button" class="btn btn-warning" id="btn-actualizar-vendedor">
+                <div class="modal-footer modal-footer-premium">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" style="border-radius: var(--radius-sm); font-weight: 600;">Cancelar</button>
+                    <button type="button" class="btn btn-warning" id="btn-actualizar-vendedor" style="border-radius: var(--radius-sm); font-weight: 600;">
                         <i class="fas fa-save me-2"></i>Actualizar Vendedor
                     </button>
                 </div>
@@ -430,17 +765,44 @@
         </div>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- ============================================
+    SCRIPTS
+    ============================================ -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     <script>
+        // ============================================================
+        // TOGGLE SIDEBAR
+        // ============================================================
         function toggleSidebar() {
             document.body.classList.toggle('sidebar-open');
         }
 
+        document.querySelectorAll('.sidebar .nav-link').forEach(link => {
+            link.addEventListener('click', function() {
+                if (window.innerWidth < 992) {
+                    document.body.classList.remove('sidebar-open');
+                }
+            });
+        });
+
+        window.addEventListener('scroll', function() {
+            const header = document.getElementById('header');
+            if (window.scrollY > 20) {
+                header.classList.add('scrolled');
+            } else {
+                header.classList.remove('scrolled');
+            }
+        });
+
+        // ============================================================
+        // VARIABLES
+        // ============================================================
         const modalVendedor = new bootstrap.Modal(document.getElementById('modalVendedor'));
         const modalEditarVendedor = new bootstrap.Modal(document.getElementById('modalEditarVendedor'));
-        let vendedorEditandoId = null;
 
-        // ============== CARGAR VENDEDORES ==============
+        // ============================================================
+        // CARGAR VENDEDORES
+        // ============================================================
         function cargarVendedores() {
             fetch('/api/vendedores')
                 .then(response => response.json())
@@ -455,7 +817,6 @@
         }
 
         function actualizarVendedores(data) {
-            // Actualizar stats
             document.getElementById('total-vendedores').textContent = data.total || 0;
             
             const vendedores = data.vendedores || [];
@@ -469,7 +830,6 @@
                 document.getElementById('ultimo-vendedor').textContent = vendedores[0].name;
             }
 
-            // Actualizar tabla
             const body = document.getElementById('vendedores-body');
             const empty = document.getElementById('vendedores-empty');
             body.innerHTML = '';
@@ -477,25 +837,21 @@
             if (vendedores.length > 0) {
                 empty.style.display = 'none';
                 vendedores.forEach(v => {
-                    const statusClass = v.active ? 'status-active' : 'status-inactive';
+                    const statusClass = v.active ? 'active' : 'inactive';
                     const statusText = v.active ? 'Activo' : 'Inactivo';
                     const row = document.createElement('tr');
                     row.innerHTML = `
                         <td><span class="vendor-id-display">${v.id}</span></td>
                         <td><strong>${v.name}</strong></td>
                         <td>${v.role || 'vendedor'}</td>
-                        <td><span class="status-badge ${statusClass}">${statusText}</span></td>
+                        <td class="text-center"><span class="status-badge ${statusClass}">${statusText}</span></td>
                         <td>${v.created_at ? new Date(v.created_at).toLocaleDateString() : '-'}</td>
-                        <td>
-                            <button class="btn btn-sm btn-outline-primary" onclick="editarVendedor('${v.id}')">
-                                <i class="fas fa-edit"></i>
-                            </button>
-                            <button class="btn btn-sm btn-outline-danger" onclick="toggleVendedor('${v.id}', ${!v.active})">
+                        <td class="text-center">
+                            <button class="btn btn-sm btn-outline-primary" onclick="editarVendedor('${v.id}')" style="border-radius: var(--radius-sm);"><i class="fas fa-edit"></i></button>
+                            <button class="btn btn-sm btn-outline-warning" onclick="toggleVendedor('${v.id}', ${!v.active})" style="border-radius: var(--radius-sm);">
                                 <i class="fas ${v.active ? 'fa-pause' : 'fa-play'}"></i>
                             </button>
-                            <button class="btn btn-sm btn-outline-danger" onclick="eliminarVendedor('${v.id}')">
-                                <i class="fas fa-trash"></i>
-                            </button>
+                            <button class="btn btn-sm btn-outline-danger" onclick="eliminarVendedor('${v.id}')" style="border-radius: var(--radius-sm);"><i class="fas fa-trash"></i></button>
                         </td>
                     `;
                     body.appendChild(row);
@@ -505,7 +861,9 @@
             }
         }
 
-        // ============== AGREGAR VENDEDOR ==============
+        // ============================================================
+        // AGREGAR VENDEDOR
+        // ============================================================
         document.getElementById('btn-agregar-vendedor').addEventListener('click', function() {
             document.getElementById('form-vendedor').reset();
             modalVendedor.show();
@@ -546,7 +904,9 @@
             });
         });
 
-        // ============== EDITAR VENDEDOR ==============
+        // ============================================================
+        // EDITAR VENDEDOR
+        // ============================================================
         function editarVendedor(id) {
             fetch('/api/vendedores')
                 .then(response => response.json())
@@ -601,7 +961,9 @@
             });
         });
 
-        // ============== TOGGLE VENDEDOR (Activar/Desactivar) ==============
+        // ============================================================
+        // TOGGLE VENDEDOR
+        // ============================================================
         function toggleVendedor(id, nuevoEstado) {
             const estadoTexto = nuevoEstado ? 'activar' : 'desactivar';
             if (!confirm(`¿Estás seguro de ${estadoTexto} este vendedor?`)) {
@@ -627,7 +989,9 @@
             });
         }
 
-        // ============== ELIMINAR VENDEDOR ==============
+        // ============================================================
+        // ELIMINAR VENDEDOR
+        // ============================================================
         function eliminarVendedor(id) {
             if (!confirm('⚠️ ¿Estás seguro de eliminar este vendedor? Esta acción no se puede deshacer.')) {
                 return;
@@ -650,13 +1014,16 @@
             });
         }
 
-        // ============== ACTUALIZAR ==============
+        // ============================================================
+        // ACTUALIZAR
+        // ============================================================
         document.getElementById('btn-actualizar').addEventListener('click', cargarVendedores);
 
-        // ============== INICIALIZACIÓN ==============
-        document.addEventListener('DOMContentLoaded', function() {
-            cargarVendedores();
-        });
+        // ============================================================
+        // INICIALIZACIÓN
+        // ============================================================
+        document.addEventListener('DOMContentLoaded', cargarVendedores);
     </script>
+
 </body>
 </html>
