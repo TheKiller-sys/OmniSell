@@ -432,6 +432,40 @@
             color: #2c3e50;
         }
         
+        .loading-spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(67, 97, 238, 0.1);
+            border-radius: 50%;
+            border-top-color: var(--primary);
+            animation: spin 1s ease-in-out infinite;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        .refresh-btn {
+            background: none;
+            border: none;
+            color: var(--gray);
+            cursor: pointer;
+            transition: all 0.3s;
+            padding: 8px;
+            border-radius: 50%;
+        }
+        
+        .refresh-btn:hover {
+            background: var(--light);
+            color: var(--primary);
+            transform: rotate(45deg);
+        }
+        
+        .refresh-btn.spinning {
+            animation: spin 0.8s ease-in-out;
+        }
+        
         @media (max-width: 992px) {
             .header-title {
                 font-size: 1.3rem;
@@ -571,7 +605,15 @@
     <!-- Main Content -->
     <main class="main-content">
         <section id="dashboard-section">
-            <h2 class="section-title">Resumen General</h2>
+            <h2 class="section-title">
+                <i class="fas fa-chart-line me-2"></i>Resumen General
+                <button class="refresh-btn ms-3" id="manual-refresh" title="Actualizar datos">
+                    <i class="fas fa-sync-alt"></i>
+                </button>
+                <span id="last-update" class="text-muted" style="font-size: 0.8rem; font-weight: 400; margin-left: 15px;">
+                    Última actualización: <span id="update-time">--</span>
+                </span>
+            </h2>
             
             <!-- Stats Row -->
             <div class="row stats-row mb-4">
@@ -681,7 +723,7 @@
                                 <div id="today-sales-empty" class="empty-state" style="display: none;">
                                     <i class="fas fa-shopping-cart"></i>
                                     <h6>No hay ventas hoy</h6>
-                                    <p class="text-muted small">Comienza a registrar ventas desde el bot de Telegram</p>
+                                    <p class="text-muted small">Comienza a registrar ventas desde la app o el bot de Telegram</p>
                                 </div>
                             </div>
                         </div>
@@ -728,96 +770,169 @@
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
+        // ============================================================
+        // CONFIGURACIÓN GLOBAL
+        // ============================================================
         let currentPeriod = 'monthly';
         let salesChart = null;
         let refreshInterval = null;
+        let isUpdating = false;
+        let socket = null;
+        let reconnectAttempts = 0;
+        const MAX_RECONNECT_ATTEMPTS = 5;
 
+        // ============================================================
+        // FUNCIONES DE UTILIDAD
+        // ============================================================
         function toggleSidebar() {
             document.body.classList.toggle('sidebar-open');
         }
 
-        document.addEventListener('DOMContentLoaded', function() {
-            const today = new Date();
-            document.getElementById('today-date').textContent = today.toLocaleDateString('es-ES');
+        function updateTimestamp() {
+            const now = new Date();
+            const timeStr = now.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+            document.getElementById('update-time').textContent = timeStr;
+        }
 
-            document.querySelectorAll('.nav-link').forEach(link => {
-                link.addEventListener('click', function(e) {
-                    document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
-                    this.classList.add('active');
-                    if (window.innerWidth < 768) {
-                        document.body.classList.remove('sidebar-open');
+        function mostrarError(mensaje) {
+            const stats = document.querySelectorAll('.stat-card');
+            if (stats.length > 0) {
+                // Eliminar errores anteriores
+                const oldErrors = stats[0].querySelectorAll('.alert-danger');
+                oldErrors.forEach(el => el.remove());
+                
+                const errorDiv = document.createElement('div');
+                errorDiv.className = 'alert alert-danger mt-2 alert-dismissible fade show';
+                errorDiv.innerHTML = `
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    ${mensaje}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                `;
+                stats[0].appendChild(errorDiv);
+                
+                setTimeout(() => {
+                    if (errorDiv.parentNode) {
+                        errorDiv.remove();
                     }
-                });
-            });
+                }, 8000);
+            }
+        }
 
-            document.querySelectorAll('[data-period]').forEach(btn => {
-                btn.addEventListener('click', function() {
-                    const period = this.getAttribute('data-period');
-                    currentPeriod = period;
-                    loadSalesData(period);
-                    document.querySelectorAll('[data-period]').forEach(b => b.classList.remove('active'));
-                    this.classList.add('active');
-                });
-            });
-
-            loadDashboardData();
-
-            const socket = io();
-            socket.on('update', function(data) {
-                console.log('Actualización recibida:', data.type);
-                loadDashboardData();
-                if (data.type === 'venta' || data.type === 'all') {
-                    loadSalesData(currentPeriod);
+        // ============================================================
+        // CARGA DE DATOS DEL DASHBOARD (SIN CACHÉ)
+        // ============================================================
+        function loadDashboardData() {
+            if (isUpdating) {
+                console.log('⏳ Ya hay una actualización en curso...');
+                return;
+            }
+            
+            isUpdating = true;
+            const timestamp = new Date().getTime();
+            const url = `/api/dashboard?t=${timestamp}`;
+            
+            // Mostrar indicador de carga
+            const refreshBtn = document.getElementById('manual-refresh');
+            if (refreshBtn) {
+                refreshBtn.classList.add('spinning');
+            }
+            
+            fetch(url, {
+                method: 'GET',
+                headers: {
+                    'Cache-Control': 'no-cache, no-store, must-revalidate',
+                    'Pragma': 'no-cache',
+                    'Expires': '0'
+                }
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.error) {
+                    console.error('❌ Error en datos:', data.error);
+                    mostrarError('Error al cargar datos: ' + data.error);
+                    return;
+                }
+                
+                // Actualizar timestamp
+                updateTimestamp();
+                
+                // Actualizar dashboard
+                updateDashboard(data);
+                
+                // Inicializar gráfico si no existe
+                if (!salesChart) {
+                    initCharts(data);
+                }
+                
+                console.log('✅ Dashboard actualizado correctamente');
+            })
+            .catch(error => {
+                console.error('❌ Error cargando datos del dashboard:', error);
+                mostrarError('Error de conexión al servidor. Reintentando...');
+            })
+            .finally(() => {
+                isUpdating = false;
+                const refreshBtn = document.getElementById('manual-refresh');
+                if (refreshBtn) {
+                    refreshBtn.classList.remove('spinning');
                 }
             });
-
-            refreshInterval = setInterval(() => {
-                loadDashboardData();
-            }, 60000);
-        });
-
-        function loadDashboardData() {
-            fetch('/api/dashboard')
-                .then(response => response.json())
-                .then(data => {
-                    if (data.error) {
-                        console.error('Error en datos:', data.error);
-                        return;
-                    }
-                    updateDashboard(data);
-                    if (!salesChart) {
-                        initCharts(data);
-                    }
-                })
-                .catch(error => console.error('Error cargando datos:', error));
         }
 
+        // ============================================================
+        // CARGA DE DATOS DE VENTAS PARA GRÁFICO
+        // ============================================================
         function loadSalesData(period) {
-            fetch(`/api/sales?period=${period}`)
-                .then(response => response.json())
-                .then(data => {
-                    if (salesChart) {
-                        salesChart.data.labels = data.meses || [];
-                        salesChart.data.datasets[0].data = data.ventas || [];
-                        salesChart.update();
-                    }
-                })
-                .catch(error => console.error('Error cargando datos de ventas:', error));
+            const timestamp = new Date().getTime();
+            fetch(`/api/sales?period=${period}&t=${timestamp}`, {
+                headers: {
+                    'Cache-Control': 'no-cache, no-store, must-revalidate',
+                    'Pragma': 'no-cache',
+                    'Expires': '0'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (salesChart) {
+                    salesChart.data.labels = data.meses || [];
+                    salesChart.data.datasets[0].data = data.ventas || [];
+                    salesChart.update();
+                }
+            })
+            .catch(error => console.error('❌ Error cargando datos de ventas:', error));
         }
 
+        // ============================================================
+        // ACTUALIZAR DASHBOARD CON DATOS
+        // ============================================================
         function updateDashboard(data) {
-            document.getElementById('total-ingresos').textContent = `$${data.ingresos.toLocaleString('es-ES', {minimumFractionDigits: 2})}`;
-            document.getElementById('total-ganancia').textContent = `$${data.ganancia.toLocaleString('es-ES', {minimumFractionDigits: 2})}`;
-            document.getElementById('margen-promedio').textContent = `${data.margen}%`;
-            document.getElementById('total-ventas').textContent = data.ventas;
+            // Validar datos
+            const ingresos = data.ingresos || 0;
+            const ganancia = data.ganancia || 0;
+            const margen = data.margen || 0;
+            const ventas = data.ventas || 0;
+            
+            // Actualizar estadísticas principales
+            document.getElementById('total-ingresos').textContent = `$${ingresos.toLocaleString('es-ES', {minimumFractionDigits: 2})}`;
+            document.getElementById('total-ganancia').textContent = `$${ganancia.toLocaleString('es-ES', {minimumFractionDigits: 2})}`;
+            document.getElementById('margen-promedio').textContent = `${margen}%`;
+            document.getElementById('total-ventas').textContent = ventas;
 
+            // Tendencias
             if (data.tendencias) {
-                document.getElementById('ingresos-trend').textContent = `${data.tendencias.ingresos}%`;
-                document.getElementById('ganancia-trend').textContent = `${data.tendencias.ganancia}%`;
-                document.getElementById('margen-trend').textContent = `${data.tendencias.margen}%`;
-                document.getElementById('ventas-trend').textContent = `${data.tendencias.ventas}%`;
+                const tendencias = data.tendencias;
+                document.getElementById('ingresos-trend').textContent = `${tendencias.ingresos || 0}%`;
+                document.getElementById('ganancia-trend').textContent = `${tendencias.ganancia || 0}%`;
+                document.getElementById('margen-trend').textContent = `${tendencias.margen || 0}%`;
+                document.getElementById('ventas-trend').textContent = `${tendencias.ventas || 0}%`;
             }
 
+            // Ventas de hoy
             const salesTable = document.getElementById('today-sales');
             const salesEmpty = document.getElementById('today-sales-empty');
             salesTable.innerHTML = '';
@@ -827,9 +942,9 @@
                 data.ventas_hoy.forEach(sale => {
                     const row = document.createElement('tr');
                     row.innerHTML = `
-                        <td>${sale.producto}</td>
-                        <td>${sale.cantidad}</td>
-                        <td>$${sale.total.toFixed(2)}</td>
+                        <td><strong>${sale.producto || 'Producto'}</strong></td>
+                        <td>${sale.cantidad || 0}</td>
+                        <td>$${(sale.total || 0).toFixed(2)}</td>
                     `;
                     salesTable.appendChild(row);
                 });
@@ -837,6 +952,7 @@
                 salesEmpty.style.display = 'block';
             }
 
+            // Inventario
             const inventoryBody = document.getElementById('inventory-body');
             const inventoryEmpty = document.getElementById('inventory-empty');
             const inventoryCount = document.getElementById('inventory-count');
@@ -849,10 +965,11 @@
                     const row = document.createElement('tr');
                     let status = '';
                     let statusClass = '';
-                    if (item.stock > 20) {
+                    const stock = item.stock || 0;
+                    if (stock > 20) {
                         status = 'Óptimo';
                         statusClass = 'status-optimal';
-                    } else if (item.stock > 5) {
+                    } else if (stock > 5) {
                         status = 'Atención';
                         statusClass = 'status-warning';
                     } else {
@@ -860,12 +977,12 @@
                         statusClass = 'status-critical';
                     }
                     row.innerHTML = `
-                        <td><strong>${item.nombre}</strong></td>
-                        <td>${item.seccion}</td>
-                        <td><span class="fw-bold">${item.stock}</span></td>
-                        <td>$${item.precio_venta.toFixed(2)}</td>
-                        <td>$${item.precio_compra.toFixed(2)}</td>
-                        <td>${item.margen}%</td>
+                        <td><strong>${item.nombre || 'Sin nombre'}</strong></td>
+                        <td>${item.seccion || 'Sin sección'}</td>
+                        <td><span class="fw-bold ${stock <= 3 ? 'text-danger' : ''}">${stock}</span></td>
+                        <td>$${(item.precio_venta || 0).toFixed(2)}</td>
+                        <td>$${(item.precio_compra || 0).toFixed(2)}</td>
+                        <td>${item.margen || 0}%</td>
                         <td><span class="status-badge ${statusClass}">${status}</span></td>
                     `;
                     inventoryBody.appendChild(row);
@@ -876,6 +993,9 @@
             }
         }
 
+        // ============================================================
+        // INICIALIZAR GRÁFICO
+        // ============================================================
         function initCharts(data) {
             const ctx = document.getElementById('salesChart').getContext('2d');
             const meses = data.ventas_mensuales?.meses || ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun'];
@@ -921,6 +1041,126 @@
                 }
             });
         }
+
+        // ============================================================
+        // INICIALIZACIÓN
+        // ============================================================
+        document.addEventListener('DOMContentLoaded', function() {
+            // Fecha actual
+            const today = new Date();
+            document.getElementById('today-date').textContent = today.toLocaleDateString('es-ES');
+            
+            // Actualizar timestamp inicial
+            updateTimestamp();
+
+            // Navegación del sidebar
+            document.querySelectorAll('.nav-link').forEach(link => {
+                link.addEventListener('click', function(e) {
+                    document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
+                    this.classList.add('active');
+                    if (window.innerWidth < 768) {
+                        document.body.classList.remove('sidebar-open');
+                    }
+                });
+            });
+
+            // Botones de período del gráfico
+            document.querySelectorAll('[data-period]').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const period = this.getAttribute('data-period');
+                    currentPeriod = period;
+                    loadSalesData(period);
+                    document.querySelectorAll('[data-period]').forEach(b => b.classList.remove('active'));
+                    this.classList.add('active');
+                });
+            });
+
+            // Botón de actualización manual
+            document.getElementById('manual-refresh').addEventListener('click', function() {
+                loadDashboardData();
+                loadSalesData(currentPeriod);
+            });
+
+            // ============================================================
+            // WEBSOCKET CON RECONEXIÓN
+            // ============================================================
+            try {
+                socket = io({
+                    reconnection: true,
+                    reconnectionAttempts: MAX_RECONNECT_ATTEMPTS,
+                    reconnectionDelay: 1000,
+                    reconnectionDelayMax: 5000,
+                    timeout: 20000
+                });
+                
+                socket.on('connect', function() {
+                    console.log('✅ WebSocket conectado');
+                    reconnectAttempts = 0;
+                    // Cargar datos al reconectar
+                    loadDashboardData();
+                });
+                
+                socket.on('update', function(data) {
+                    console.log('🔄 Actualización recibida:', data.type);
+                    loadDashboardData();
+                    if (data.type === 'venta' || data.type === 'all') {
+                        loadSalesData(currentPeriod);
+                    }
+                });
+                
+                socket.on('disconnect', function(reason) {
+                    console.warn('⚠️ WebSocket desconectado:', reason);
+                    if (reason === 'io server disconnect') {
+                        // El servidor desconectó, reconectar manualmente
+                        socket.connect();
+                    }
+                });
+                
+                socket.on('connect_error', function(error) {
+                    console.warn('⚠️ Error de conexión WebSocket:', error);
+                    reconnectAttempts++;
+                    if (reconnectAttempts >= MAX_RECONNECT_ATTEMPTS) {
+                        console.warn('⚠️ Máximo de intentos de reconexión alcanzado');
+                    }
+                });
+                
+                socket.on('reconnect', function(attemptNumber) {
+                    console.log(`🔄 WebSocket reconectado (intento ${attemptNumber})`);
+                });
+                
+            } catch (error) {
+                console.warn('⚠️ WebSocket no disponible:', error);
+                // Continuar con polling normal
+            }
+
+            // ============================================================
+            // INTERVALO DE ACTUALIZACIÓN (15 SEGUNDOS)
+            // ============================================================
+            refreshInterval = setInterval(() => {
+                console.log('🔄 Actualización automática del dashboard...');
+                loadDashboardData();
+                loadSalesData(currentPeriod);
+            }, 15000); // 15 segundos para pruebas
+
+            // ============================================================
+            // CARGA INICIAL
+            // ============================================================
+            console.log('🚀 Cargando datos iniciales del dashboard...');
+            loadDashboardData();
+            loadSalesData(currentPeriod);
+        });
+
+        // ============================================================
+        // LIMPIEZA AL CERRAR
+        // ============================================================
+        window.addEventListener('beforeunload', function() {
+            if (refreshInterval) {
+                clearInterval(refreshInterval);
+            }
+            if (socket) {
+                socket.disconnect();
+            }
+        });
     </script>
 </body>
 </html>
