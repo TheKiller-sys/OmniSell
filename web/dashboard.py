@@ -345,6 +345,22 @@ def create_app():
         
         return render_template('signup.html')
 
+    @app.route('/pricing')
+    def pricing():
+        return render_template('pricing.html')
+
+    @app.route('/contacto')
+    def contacto():
+        return render_template('contacto.html')
+
+    @app.route('/ayuda')
+    def ayuda():
+        return render_template('ayuda.html')
+
+    @app.route('/blog')
+    def blog():
+        return render_template('blog.html')
+    
     # ==================== LOGIN ====================
     @app.route('/login', methods=['GET', 'POST'])
     def login():
