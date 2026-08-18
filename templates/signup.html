@@ -1,17 +1,16 @@
 <!DOCTYPE html>
-<html lang="es" data-bs-theme="light">
+<html lang="es">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Crear Cuenta - OmniVentas</title>
     
     <!-- Meta Tags -->
-    <meta name="description" content="Registra tu negocio en OmniVentas y comienza a gestionar ventas, inventario y finanzas.">
+    <meta name="description" content="Registra tu negocio en OmniVentas y comienza a gestionar.">
     <meta name="robots" content="noindex, nofollow">
     
     <!-- Favicon -->
     <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='favicon.svg') }}">
-    <link rel="shortcut icon" href="{{ url_for('static', filename='favicon.svg') }}">
     
     <!-- Bootstrap 5 y Font Awesome -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -21,7 +20,6 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
     
     <!-- Estilos -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/landing.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/auth.css') }}">
 </head>
 <body class="auth-body">
@@ -40,14 +38,14 @@
 
         <!-- Alerts -->
         {% if error %}
-        <div class="auth-alert auth-alert-danger mb-3">
+        <div class="auth-alert auth-alert-danger">
             <i class="fas fa-exclamation-circle"></i>
             <span>{{ error }}</span>
         </div>
         {% endif %}
 
         {% if message %}
-        <div class="auth-alert auth-alert-success mb-3">
+        <div class="auth-alert auth-alert-success">
             <i class="fas fa-check-circle"></i>
             <span>{{ message }}</span>
         </div>
@@ -99,7 +97,7 @@
                        required
                        pattern="[a-zA-Z0-9_]{4,30}">
                 <div class="form-text">Mínimo 4 caracteres, solo letras, números y guión bajo</div>
-                <div class="invalid-feedback">Usuario inválido (mínimo 4 caracteres, solo letras y números)</div>
+                <div class="invalid-feedback">Usuario inválido (mínimo 4 caracteres)</div>
             </div>
 
             <div class="form-group">
@@ -116,16 +114,16 @@
                            required
                            minlength="8">
                     <button type="button" 
-                            class="toggle-password position-absolute top-50 end-0 translate-middle-y border-0 bg-transparent"
+                            class="toggle-password position-absolute top-50 translate-middle-y"
                             data-target="#password"
-                            style="right: 12px; color: #94A3B8; padding: 4px 8px; font-size: 1rem;">
+                            aria-label="Mostrar contraseña">
                         <i class="fas fa-eye"></i>
                     </button>
                 </div>
                 <div class="form-text">Mínimo 8 caracteres, incluye números y mayúsculas</div>
                 <div class="password-strength">
                     <div class="strength-bar">
-                        <div class="strength-fill" id="strength-bar" style="width: 0%;"></div>
+                        <div class="strength-fill" id="strength-bar"></div>
                     </div>
                     <div class="strength-text" id="strength-text"></div>
                 </div>
@@ -145,13 +143,13 @@
                            placeholder="••••••••"
                            required>
                     <button type="button" 
-                            class="toggle-password position-absolute top-50 end-0 translate-middle-y border-0 bg-transparent"
+                            class="toggle-password position-absolute top-50 translate-middle-y"
                             data-target="#confirm-password"
-                            style="right: 12px; color: #94A3B8; padding: 4px 8px; font-size: 1rem;">
+                            aria-label="Mostrar contraseña">
                         <i class="fas fa-eye"></i>
                     </button>
                 </div>
-                <div class="invalid-feedback">Las contraseñas no coinciden</div>
+                <div class="invalid-feedback" id="confirm-feedback">Las contraseñas no coinciden</div>
             </div>
 
             <div class="form-group">
@@ -176,15 +174,20 @@
             </button>
         </form>
 
-        <div class="auth-divider">
-            <span>o</span>
-        </div>
-
         <!-- Social Signup -->
-        <button class="btn-social mb-3" onclick="alert('Próximamente...')">
-            <i class="fab fa-google" style="color: #EA4335;"></i>
-            Registrarse con Google
-        </button>
+        <div class="auth-social">
+            <button class="btn-social" onclick="alert('Próximamente disponible')">
+                <span class="social-icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48">
+                        <path fill="#FFC107" d="M43.611,20.083H42V20H24v8h11.303c-1.649,4.657-6.08,8-11.303,8c-6.627,0-12-5.373-12-12c0-6.627,5.373-12,12-12c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657C34.046,6.053,29.268,4,24,4C12.955,4,4,12.955,4,24c0,11.045,8.955,20,20,20c11.045,0,20-8.955,20-20C44,22.659,43.862,21.35,43.611,20.083z" />
+                        <path fill="#FF3D00" d="M6.306,14.691l6.571,4.819C14.655,15.108,18.961,12,24,12c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657C34.046,6.053,29.268,4,24,4C16.318,4,9.656,8.337,6.306,14.691z" />
+                        <path fill="#4CAF50" d="M24,44c5.166,0,9.86-1.977,13.409-5.192l-6.19-5.238C29.211,35.091,26.715,36,24,36c-5.202,0-9.619-3.317-11.283-7.946l-6.522,5.025C9.505,39.556,16.227,44,24,44z" />
+                        <path fill="#1976D2" d="M43.611,20.083H42V20H24v8h11.303c-0.792,2.237-2.231,4.166-4.087,5.571c0.001-0.001,0.002-0.001,0.003-0.002l6.19,5.238C36.971,39.205,44,34,44,24C44,22.659,43.862,21.35,43.611,20.083z" />
+                    </svg>
+                </span>
+                <span class="social-text">Registrarse con Google</span>
+            </button>
+        </div>
 
         <!-- Links -->
         <div class="auth-links">
@@ -204,7 +207,6 @@
     <script src="{{ url_for('static', filename='js/auth.js') }}"></script>
     
     <script>
-        // Validación adicional antes de enviar
         document.getElementById('signup-form').addEventListener('submit', function(e) {
             const password = document.getElementById('password').value;
             const confirm = document.getElementById('confirm-password').value;
@@ -213,6 +215,7 @@
             if (password !== confirm) {
                 e.preventDefault();
                 document.getElementById('confirm-password').classList.add('is-invalid');
+                document.getElementById('confirm-feedback').style.display = 'block';
                 return false;
             }
 
@@ -223,6 +226,14 @@
             }
 
             return true;
+        });
+
+        // Ocultar feedback de confirmación cuando se escribe
+        document.getElementById('confirm-password').addEventListener('input', function() {
+            if (this.value === document.getElementById('password').value) {
+                this.classList.remove('is-invalid');
+                document.getElementById('confirm-feedback').style.display = 'none';
+            }
         });
     </script>
 </body>
