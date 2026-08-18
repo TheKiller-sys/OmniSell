@@ -1,373 +1,228 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="es" data-bs-theme="light">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Registro - OmniVentas</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
-    <style>
-        body {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 20px;
-        }
-        .signup-container {
-            width: 100%;
-            max-width: 520px;
-        }
-        .card {
-            border: none;
-            border-radius: 20px;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-            overflow: hidden;
-        }
-        .card-header {
-            border-radius: 0 !important;
-            background: linear-gradient(135deg, #4361ee, #3a0ca3);
-            padding: 25px 20px;
-            border: none;
-        }
-        .card-header h4 {
-            font-weight: 700;
-            letter-spacing: 0.5px;
-        }
-        .form-control {
-            border-radius: 12px;
-            padding: 12px 16px;
-            border: 2px solid #e9ecef;
-            transition: all 0.3s;
-        }
-        .form-control:focus {
-            border-color: #4361ee;
-            box-shadow: 0 0 0 0.25rem rgba(67, 97, 238, 0.25);
-        }
-        .form-label {
-            font-weight: 600;
-            color: #2c3e50;
-        }
-        .form-text {
-            font-size: 0.8rem;
-            color: #6c757d;
-        }
-        .btn-primary {
-            background: linear-gradient(135deg, #4361ee, #3a0ca3);
-            border: none;
-            border-radius: 12px;
-            padding: 14px;
-            font-weight: 600;
-            font-size: 1.05rem;
-            transition: all 0.3s;
-        }
-        .btn-primary:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 25px rgba(67, 97, 238, 0.4);
-        }
-        .password-strength-bar {
-            height: 4px;
-            border-radius: 2px;
-            margin-top: 8px;
-            transition: all 0.3s;
-        }
-        .password-strength-text {
-            font-size: 0.8rem;
-            margin-top: 4px;
-        }
-        .feature-badge {
-            display: inline-block;
-            padding: 4px 12px;
-            border-radius: 20px;
-            font-size: 0.7rem;
-            font-weight: 600;
-            margin: 2px;
-        }
-        .feature-badge-success {
-            background: #d4edda;
-            color: #155724;
-        }
-        .feature-badge-info {
-            background: #d1ecf1;
-            color: #0c5460;
-        }
-        .feature-badge-warning {
-            background: #fff3cd;
-            color: #856404;
-        }
-        .download-app-banner {
-            background: linear-gradient(135deg, #f8f9fa, #e9ecef);
-            border-radius: 12px;
-            padding: 16px;
-            text-align: center;
-            margin-bottom: 20px;
-            border: 2px dashed #4361ee;
-        }
-        .download-app-banner .btn-android {
-            background: #3DDC84;
-            color: white;
-            border-radius: 12px;
-            padding: 10px 24px;
-            font-weight: 600;
-            transition: all 0.3s;
-            border: none;
-        }
-        .download-app-banner .btn-android:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 25px rgba(61, 220, 132, 0.4);
-        }
-    </style>
+    <title>Crear Cuenta - OmniVentas</title>
+    
+    <!-- Meta Tags -->
+    <meta name="description" content="Registra tu negocio en OmniVentas y comienza a gestionar ventas, inventario y finanzas.">
+    <meta name="robots" content="noindex, nofollow">
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='favicon.svg') }}">
+    <link rel="shortcut icon" href="{{ url_for('static', filename='favicon.svg') }}">
+    
+    <!-- Bootstrap 5 y Font Awesome -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet">
+    
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    
+    <!-- Estilos -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/landing.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/auth.css') }}">
 </head>
-<body>
-    <div class="signup-container">
-        <div class="card">
-            <div class="card-header text-white text-center">
-                <h4 class="mb-0"><i class="fas fa-store me-2"></i>Crear Cuenta de Negocio</h4>
-                <p class="mb-0 mt-2 opacity-75">Comienza a gestionar tu negocio desde la app</p>
+<body class="auth-body">
+
+    <div class="auth-card">
+        <!-- Logo -->
+        <div class="auth-logo">
+            <div class="logo-icon">
+                <i class="fas fa-rocket"></i>
             </div>
-            <div class="card-body p-4 p-md-5">
-                <!-- Banner de descarga de la app -->
-                <div class="download-app-banner">
-                    <i class="fas fa-mobile-alt fa-2x text-primary mb-2"></i>
-                    <h6 class="mb-1">📱 Descarga la App</h6>
-                    <p class="text-muted small mb-2">Gestiona tu negocio desde cualquier lugar</p>
-                    <a href="#download-apk" class="btn btn-android">
-                        <i class="fab fa-android me-2"></i>Descargar APK
-                    </a>
-                </div>
+            <h2>
+                <span class="brand-gradient">OmniVentas</span>
+            </h2>
+            <p>Crea tu cuenta y comienza a vender 🚀</p>
+        </div>
 
-                <div id="alert-container"></div>
-                
-                <form id="signup-form" action="/signup" method="post" novalidate>
-                    <div class="mb-3">
-                        <label class="form-label">Nombre del Negocio <span class="text-danger">*</span></label>
-                        <input type="text" name="business_name" class="form-control" 
-                               placeholder="Ej: Mi Tienda Online" required
-                               oninput="validateField(this)">
-                        <div class="form-text">Este nombre aparecerá en tu panel y en la app</div>
-                    </div>
+        <!-- Alerts -->
+        {% if error %}
+        <div class="auth-alert auth-alert-danger mb-3">
+            <i class="fas fa-exclamation-circle"></i>
+            <span>{{ error }}</span>
+        </div>
+        {% endif %}
 
-                    <div class="mb-3">
-                        <label class="form-label">Correo Electrónico <span class="text-danger">*</span></label>
-                        <input type="email" name="email" class="form-control" 
-                               placeholder="ejemplo@mitienda.com" required
-                               oninput="validateField(this)">
-                        <div class="form-text">Usaremos este email para notificaciones importantes</div>
-                    </div>
+        {% if message %}
+        <div class="auth-alert auth-alert-success mb-3">
+            <i class="fas fa-check-circle"></i>
+            <span>{{ message }}</span>
+        </div>
+        {% endif %}
 
-                    <div class="mb-3">
-                        <label class="form-label">Usuario Administrador <span class="text-danger">*</span></label>
-                        <input type="text" name="username" class="form-control" 
-                               placeholder="minombreusuario" required
-                               oninput="validateField(this)">
-                        <div class="form-text">Mínimo 4 caracteres, solo letras y números</div>
-                    </div>
+        <!-- Form -->
+        <form class="auth-form" id="signup-form" action="/signup" method="post" data-loading>
+            <div class="form-group">
+                <label class="form-label" for="business_name">
+                    <i class="fas fa-store label-icon"></i>
+                    Nombre del Negocio
+                </label>
+                <input type="text" 
+                       id="business_name" 
+                       name="business_name" 
+                       class="form-control" 
+                       placeholder="Ej: Mi Tienda Online"
+                       required 
+                       autofocus>
+                <div class="form-text">Este nombre aparecerá en tu panel y en la app</div>
+                <div class="invalid-feedback">El nombre del negocio es obligatorio</div>
+            </div>
 
-                    <div class="mb-3">
-                        <label class="form-label">Contraseña <span class="text-danger">*</span></label>
-                        <input type="password" name="password" id="password" class="form-control" 
-                               placeholder="••••••••" required
-                               oninput="validatePassword(this)">
-                        <div class="form-text">Mínimo 8 caracteres, incluir números y mayúsculas</div>
-                        <div class="password-strength-bar" id="password-strength-bar"></div>
-                        <div class="password-strength-text" id="password-strength-text"></div>
-                    </div>
+            <div class="form-group">
+                <label class="form-label" for="email">
+                    <i class="fas fa-envelope label-icon"></i>
+                    Correo Electrónico
+                </label>
+                <input type="email" 
+                       id="email" 
+                       name="email" 
+                       class="form-control" 
+                       placeholder="ejemplo@mitienda.com"
+                       required>
+                <div class="form-text">Usaremos este email para notificaciones importantes</div>
+                <div class="invalid-feedback">Ingresa un correo electrónico válido</div>
+            </div>
 
-                    <div class="mb-3">
-                        <label class="form-label">Confirmar Contraseña <span class="text-danger">*</span></label>
-                        <input type="password" name="confirm_password" class="form-control" 
-                               placeholder="••••••••" required
-                               oninput="validateConfirmPassword(this)">
-                    </div>
+            <div class="form-group">
+                <label class="form-label" for="username">
+                    <i class="fas fa-user label-icon"></i>
+                    Usuario Administrador
+                </label>
+                <input type="text" 
+                       id="username" 
+                       name="username" 
+                       class="form-control" 
+                       placeholder="minombreusuario"
+                       required
+                       pattern="[a-zA-Z0-9_]{4,30}">
+                <div class="form-text">Mínimo 4 caracteres, solo letras, números y guión bajo</div>
+                <div class="invalid-feedback">Usuario inválido (mínimo 4 caracteres, solo letras y números)</div>
+            </div>
 
-                    <div class="form-check mb-3">
-                        <input class="form-check-input" type="checkbox" id="terms" required>
-                        <label class="form-check-label" for="terms">
-                            Acepto los <a href="/terms" target="_blank">términos y condiciones</a> y 
-                            <a href="/privacy" target="_blank">política de privacidad</a>
-                        </label>
-                    </div>
-
-                    <button type="submit" class="btn btn-primary w-100 py-3" id="submit-btn">
-                        <span id="submit-text">Crear Cuenta</span>
-                        <div id="loading-spinner" class="spinner-border spinner-border-sm ms-2" style="display: none;"></div>
+            <div class="form-group">
+                <label class="form-label" for="password">
+                    <i class="fas fa-lock label-icon"></i>
+                    Contraseña
+                </label>
+                <div class="position-relative">
+                    <input type="password" 
+                           id="password" 
+                           name="password" 
+                           class="form-control" 
+                           placeholder="••••••••"
+                           required
+                           minlength="8">
+                    <button type="button" 
+                            class="toggle-password position-absolute top-50 end-0 translate-middle-y border-0 bg-transparent"
+                            data-target="#password"
+                            style="right: 12px; color: #94A3B8; padding: 4px 8px; font-size: 1rem;">
+                        <i class="fas fa-eye"></i>
                     </button>
-                </form>
-
-                <div class="mt-4 text-center">
-                    <p class="mb-2">¿Ya tienes cuenta?</p>
-                    <a href="/login" class="text-decoration-none fw-bold" style="color: #4361ee;">
-                        <i class="fas fa-sign-in-alt me-1"></i>Inicia sesión aquí
-                    </a>
                 </div>
+                <div class="form-text">Mínimo 8 caracteres, incluye números y mayúsculas</div>
+                <div class="password-strength">
+                    <div class="strength-bar">
+                        <div class="strength-fill" id="strength-bar" style="width: 0%;"></div>
+                    </div>
+                    <div class="strength-text" id="strength-text"></div>
+                </div>
+                <div class="invalid-feedback">La contraseña debe tener al menos 8 caracteres</div>
+            </div>
 
-                <hr class="my-4">
+            <div class="form-group">
+                <label class="form-label" for="confirm-password">
+                    <i class="fas fa-check-circle label-icon"></i>
+                    Confirmar Contraseña
+                </label>
+                <div class="position-relative">
+                    <input type="password" 
+                           id="confirm-password" 
+                           name="confirm_password" 
+                           class="form-control" 
+                           placeholder="••••••••"
+                           required>
+                    <button type="button" 
+                            class="toggle-password position-absolute top-50 end-0 translate-middle-y border-0 bg-transparent"
+                            data-target="#confirm-password"
+                            style="right: 12px; color: #94A3B8; padding: 4px 8px; font-size: 1rem;">
+                        <i class="fas fa-eye"></i>
+                    </button>
+                </div>
+                <div class="invalid-feedback">Las contraseñas no coinciden</div>
+            </div>
 
-                <div class="text-center">
-                    <span class="feature-badge feature-badge-success"><i class="fas fa-mobile-alt me-1"></i>App Móvil</span>
-                    <span class="feature-badge feature-badge-info"><i class="fas fa-chart-line me-1"></i>Análisis</span>
-                    <span class="feature-badge feature-badge-warning"><i class="fas fa-shield-alt me-1"></i>Seguro</span>
+            <div class="form-group">
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" id="terms" required>
+                    <label class="form-check-label" for="terms">
+                        Acepto los <a href="/terms" target="_blank">términos y condiciones</a> y 
+                        la <a href="/privacy" target="_blank">política de privacidad</a>
+                    </label>
+                </div>
+                <div class="invalid-feedback" style="display: block; margin-top: 4px;">
+                    Debes aceptar los términos para continuar
                 </div>
             </div>
+
+            <button type="submit" class="btn-primary">
+                <span class="btn-text">
+                    <i class="fas fa-user-plus"></i>
+                    Crear Cuenta
+                </span>
+                <span class="spinner"></span>
+            </button>
+        </form>
+
+        <div class="auth-divider">
+            <span>o</span>
+        </div>
+
+        <!-- Social Signup -->
+        <button class="btn-social mb-3" onclick="alert('Próximamente...')">
+            <i class="fab fa-google" style="color: #EA4335;"></i>
+            Registrarse con Google
+        </button>
+
+        <!-- Links -->
+        <div class="auth-links">
+            <p class="text-muted">
+                ¿Ya tienes cuenta? 
+                <a href="{{ url_for('login') }}">Iniciar Sesión</a>
+            </p>
+            <p class="mt-3" style="font-size: 0.75rem; color: #94A3B8;">
+                <i class="fas fa-shield-alt me-1"></i>
+                Tus datos están seguros y encriptados
+            </p>
         </div>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="{{ url_for('static', filename='js/auth.js') }}"></script>
+    
     <script>
-        // Validación en tiempo real
-        function validateField(input) {
-            if (input.value.trim()) {
-                input.classList.remove('is-invalid');
-                input.classList.add('is-valid');
-            } else {
-                input.classList.remove('is-valid');
-                input.classList.add('is-invalid');
-            }
-        }
-
-        function validatePassword(input) {
-            const password = input.value;
-            const bar = document.getElementById('password-strength-bar');
-            const text = document.getElementById('password-strength-text');
-            
-            let strength = 0;
-            let message = '';
-            
-            if (password.length >= 8) strength++;
-            if (password.match(/[a-z]/)) strength++;
-            if (password.match(/[A-Z]/)) strength++;
-            if (password.match(/[0-9]/)) strength++;
-            if (password.match(/[^a-zA-Z0-9]/)) strength++;
-            
-            if (password.length === 0) {
-                bar.style.width = '0%';
-                bar.style.background = '#e9ecef';
-                text.textContent = '';
-                return;
-            }
-            
-            switch(strength) {
-                case 0:
-                case 1:
-                    bar.style.width = '20%';
-                    bar.style.background = '#dc3545';
-                    message = 'Débil';
-                    break;
-                case 2:
-                    bar.style.width = '40%';
-                    bar.style.background = '#ffc107';
-                    message = 'Regular';
-                    break;
-                case 3:
-                    bar.style.width = '60%';
-                    bar.style.background = '#17a2b8';
-                    message = 'Buena';
-                    break;
-                case 4:
-                    bar.style.width = '80%';
-                    bar.style.background = '#28a745';
-                    message = 'Fuerte';
-                    break;
-                case 5:
-                    bar.style.width = '100%';
-                    bar.style.background = '#20c997';
-                    message = 'Muy Fuerte';
-                    break;
-            }
-            
-            text.textContent = `Fortaleza: ${message}`;
-            text.style.color = bar.style.background;
-            
-            if (password.length > 0 && password.length < 8) {
-                input.classList.add('is-invalid');
-                input.classList.remove('is-valid');
-            } else {
-                input.classList.remove('is-invalid');
-                input.classList.add('is-valid');
-            }
-        }
-
-        function validateConfirmPassword(input) {
-            const password = document.getElementById('password').value;
-            const confirm = input.value;
-            
-            if (confirm.length === 0) {
-                input.classList.remove('is-valid', 'is-invalid');
-                return;
-            }
-            
-            if (password === confirm) {
-                input.classList.remove('is-invalid');
-                input.classList.add('is-valid');
-            } else {
-                input.classList.remove('is-valid');
-                input.classList.add('is-invalid');
-            }
-        }
-
-        // Validación antes de enviar
+        // Validación adicional antes de enviar
         document.getElementById('signup-form').addEventListener('submit', function(e) {
             const password = document.getElementById('password').value;
-            const confirmPassword = document.querySelector('input[name="confirm_password"]').value;
-            
-            if (password !== confirmPassword) {
-                e.preventDefault();
-                showAlert('❌ Las contraseñas no coinciden', 'danger');
-                return false;
-            }
-            
-            if (password.length < 8) {
-                e.preventDefault();
-                showAlert('❌ La contraseña debe tener al menos 8 caracteres', 'danger');
-                return false;
-            }
-            
-            if (!document.getElementById('terms').checked) {
-                e.preventDefault();
-                showAlert('❌ Debes aceptar los términos y condiciones', 'danger');
-                return false;
-            }
-            
-            // Mostrar loading
-            const submitText = document.getElementById('submit-text');
-            const spinner = document.getElementById('loading-spinner');
-            const submitBtn = document.getElementById('submit-btn');
-            
-            submitText.textContent = 'Creando cuenta...';
-            spinner.style.display = 'inline-block';
-            submitBtn.disabled = true;
-        });
+            const confirm = document.getElementById('confirm-password').value;
+            const terms = document.getElementById('terms');
 
-        function showAlert(message, type) {
-            const container = document.getElementById('alert-container');
-            const alert = document.createElement('div');
-            alert.className = `alert alert-${type} alert-dismissible fade show`;
-            alert.role = 'alert';
-            alert.innerHTML = `
-                ${message}
-                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-            `;
-            container.appendChild(alert);
-            
-            setTimeout(() => {
-                if (alert.parentNode) {
-                    alert.remove();
-                }
-            }, 5000);
-        }
+            if (password !== confirm) {
+                e.preventDefault();
+                document.getElementById('confirm-password').classList.add('is-invalid');
+                return false;
+            }
 
-        // Validar campos al perder foco
-        document.querySelectorAll('input[required]').forEach(input => {
-            input.addEventListener('blur', function() {
-                if (this.value.trim()) {
-                    this.classList.remove('is-invalid');
-                    this.classList.add('is-valid');
-                } else {
-                    this.classList.remove('is-valid');
-                    this.classList.add('is-invalid');
-                }
-            });
+            if (!terms.checked) {
+                e.preventDefault();
+                terms.classList.add('is-invalid');
+                return false;
+            }
+
+            return true;
         });
     </script>
 </body>
