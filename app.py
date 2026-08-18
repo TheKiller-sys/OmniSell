@@ -548,7 +548,6 @@ def login_vendedor():
         # PASO 1: BUSCAR EN LA BASE DE DATOS DEL NEGOCIO
         # ============================================================
         try:
-            from database.db_manager import DatabaseManager
             db = DatabaseManager(vendor_id)
             
             if is_postgres:
