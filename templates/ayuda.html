@@ -1,0 +1,535 @@
+<!DOCTYPE html>
+<html lang="es" data-bs-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ayuda - OmniVentas</title>
+    
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    
+    <style>
+        /* ============================================
+           VARIABLES Y BASE (heredan de pricing)
+           ============================================ */
+        :root {
+            --primary: #4361EE;
+            --primary-dark: #3651D4;
+            --primary-light: #EEF2FF;
+            --primary-gradient: linear-gradient(135deg, #4361EE 0%, #3A0CA3 100%);
+            --secondary: #FF6B35;
+            --success: #10B981;
+            --warning: #F59E0B;
+            --danger: #EF4444;
+            --dark: #0F172A;
+            --dark-secondary: #1E293B;
+            --gray: #64748B;
+            --gray-light: #F1F5F9;
+            --white: #FFFFFF;
+            --shadow-sm: 0 1px 3px rgba(0,0,0,0.06);
+            --shadow-md: 0 4px 20px rgba(0,0,0,0.08);
+            --shadow-lg: 0 20px 60px rgba(0,0,0,0.10);
+            --radius-sm: 10px;
+            --radius-md: 16px;
+            --radius-lg: 24px;
+            --transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            --header-height: 72px;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #F8FAFC;
+            color: var(--dark);
+            overflow-x: hidden;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: var(--gray-light); }
+        ::-webkit-scrollbar-thumb { background: var(--primary); border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--primary-dark); }
+
+        /* ============================================
+           ANIMACIONES
+           ============================================ */
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(30px) scale(0.98); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+
+        .animate-on-load {
+            opacity: 0;
+            animation: fadeInUp 0.6s ease-out forwards;
+        }
+        .delay-1 { animation-delay: 0.05s; }
+        .delay-2 { animation-delay: 0.10s; }
+        .delay-3 { animation-delay: 0.15s; }
+
+        /* ============================================
+           HEADER (idéntico a contacto)
+           ============================================ */
+        .header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: var(--header-height);
+            background: rgba(255,255,255,0.85);
+            backdrop-filter: blur(20px) saturate(180%);
+            border-bottom: 1px solid rgba(255,255,255,0.2);
+            z-index: 1050;
+            display: flex;
+            align-items: center;
+            padding: 0 28px;
+            transition: var(--transition);
+        }
+        .header.scrolled { box-shadow: var(--shadow-md); }
+
+        .header .header-title {
+            font-weight: 800;
+            font-size: 1.5rem;
+            background: var(--primary-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            letter-spacing: -0.5px;
+            margin-bottom: 0;
+        }
+        .header .header-title i { -webkit-text-fill-color: var(--primary); margin-right: 8px; }
+
+        .header .header-actions {
+            display: flex; align-items: center; gap: 16px; margin-left: auto;
+        }
+        .header .header-actions .btn-back {
+            background: var(--primary-gradient);
+            color: white;
+            border: none;
+            padding: 8px 18px;
+            border-radius: var(--radius-sm);
+            font-weight: 600;
+            font-size: 0.85rem;
+            transition: var(--transition);
+        }
+        .header .header-actions .btn-back:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(67,97,238,0.3);
+        }
+
+        /* ============================================
+           MAIN CONTENT
+           ============================================ */
+        .main-content {
+            margin-top: var(--header-height);
+            padding: 40px 32px 60px;
+            min-height: calc(100vh - var(--header-height));
+        }
+
+        /* ============================================
+           SECTION HEADER
+           ============================================ */
+        .section-header-wrapper {
+            text-align: center;
+            max-width: 700px;
+            margin: 0 auto 48px;
+        }
+
+        .section-header-wrapper .tag {
+            display: inline-block;
+            background: var(--primary-light);
+            color: var(--primary);
+            padding: 6px 18px;
+            border-radius: 50px;
+            font-weight: 600;
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 16px;
+        }
+
+        .section-header-wrapper h1 {
+            font-weight: 900;
+            font-size: clamp(2.2rem, 4vw, 3.2rem);
+            letter-spacing: -0.02em;
+            margin-bottom: 12px;
+        }
+
+        .section-header-wrapper h1 .highlight {
+            background: var(--primary-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .section-header-wrapper p {
+            color: var(--gray);
+            font-size: 1.1rem;
+            line-height: 1.7;
+        }
+
+        /* ============================================
+           HELP GRID
+           ============================================ */
+        .help-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 24px;
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+
+        .help-card {
+            background: var(--white);
+            border-radius: var(--radius-md);
+            padding: 28px 24px;
+            box-shadow: var(--shadow-sm);
+            border: 1px solid var(--gray-light);
+            transition: var(--transition);
+            text-align: center;
+        }
+
+        .help-card:hover {
+            transform: translateY(-6px);
+            box-shadow: var(--shadow-md);
+            border-color: var(--primary-light);
+        }
+
+        .help-card .icon-wrapper {
+            width: 64px;
+            height: 64px;
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.6rem;
+            margin-bottom: 16px;
+        }
+
+        .help-card .icon-wrapper.blue { background: var(--primary-light); color: var(--primary); }
+        .help-card .icon-wrapper.green { background: #D1FAE5; color: var(--success); }
+        .help-card .icon-wrapper.orange { background: #FEF3C7; color: var(--warning); }
+        .help-card .icon-wrapper.purple { background: #EDE9FE; color: #7C3AED; }
+
+        .help-card h5 {
+            font-weight: 700;
+            font-size: 1.05rem;
+            color: var(--dark);
+            margin-bottom: 8px;
+        }
+
+        .help-card p {
+            font-size: 0.9rem;
+            color: var(--gray);
+            margin-bottom: 16px;
+            line-height: 1.6;
+        }
+
+        .help-card .btn-help {
+            background: var(--gray-light);
+            color: var(--dark-secondary);
+            border: none;
+            padding: 8px 24px;
+            border-radius: var(--radius-sm);
+            font-weight: 600;
+            font-size: 0.85rem;
+            transition: var(--transition);
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .help-card .btn-help:hover {
+            background: var(--primary);
+            color: white;
+            transform: translateY(-2px);
+        }
+
+        /* ============================================
+           FAQ SECTION
+           ============================================ */
+        .faq-section {
+            max-width: 800px;
+            margin: 48px auto 0;
+            padding-top: 40px;
+            border-top: 2px solid var(--gray-light);
+        }
+
+        .faq-section h3 {
+            font-weight: 800;
+            font-size: 1.5rem;
+            text-align: center;
+            margin-bottom: 24px;
+        }
+
+        .faq-item {
+            background: var(--white);
+            border-radius: var(--radius-sm);
+            padding: 18px 24px;
+            margin-bottom: 12px;
+            border: 1px solid var(--gray-light);
+            transition: var(--transition);
+            cursor: pointer;
+        }
+
+        .faq-item:hover {
+            border-color: var(--primary-light);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .faq-item .faq-question {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-weight: 600;
+            font-size: 0.95rem;
+            color: var(--dark);
+        }
+
+        .faq-item .faq-question i {
+            color: var(--primary);
+            transition: var(--transition);
+        }
+
+        .faq-item .faq-answer {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.4s ease;
+            color: var(--gray);
+            font-size: 0.9rem;
+            line-height: 1.7;
+        }
+
+        .faq-item.open .faq-answer {
+            max-height: 200px;
+            padding-top: 12px;
+        }
+
+        .faq-item.open .faq-question i {
+            transform: rotate(180deg);
+        }
+
+        /* ============================================
+           FOOTER
+           ============================================ */
+        .footer {
+            background: var(--dark-secondary);
+            color: rgba(255,255,255,0.6);
+            padding: 48px 0 32px;
+            border-top: 1px solid rgba(255,255,255,0.05);
+        }
+
+        .footer a {
+            color: rgba(255,255,255,0.6);
+            text-decoration: none;
+            transition: var(--transition);
+            font-size: 0.9rem;
+        }
+
+        .footer a:hover {
+            color: var(--color-white);
+        }
+
+        .footer .logo-footer {
+            font-weight: 800;
+            font-size: 1.4rem;
+            color: var(--color-white);
+        }
+
+        .footer .logo-footer i {
+            color: var(--primary);
+            margin-right: 8px;
+        }
+
+        /* ============================================
+           RESPONSIVE
+           ============================================ */
+        @media (max-width: 992px) {
+            .main-content { padding: 32px 20px 40px; }
+        }
+
+        @media (max-width: 768px) {
+            .header { padding: 0 16px; }
+            .main-content { padding: 24px 16px 32px; }
+            .help-grid { grid-template-columns: 1fr; max-width: 400px; }
+            .section-header-wrapper h1 { font-size: 1.8rem; }
+            .faq-item { padding: 14px 18px; }
+        }
+
+        @media (max-width: 576px) {
+            .help-card { padding: 20px 16px; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- ============================================
+    HEADER
+    ============================================ -->
+    <header class="header" id="header">
+        <h1 class="header-title"><i class="fas fa-life-ring"></i>OmniVentas</h1>
+        <div class="header-actions">
+            <a href="/" class="btn btn-back">
+                <i class="fas fa-arrow-left me-1"></i>Volver
+            </a>
+        </div>
+    </header>
+
+    <!-- ============================================
+    MAIN CONTENT
+    ============================================ -->
+    <main class="main-content">
+
+        <!-- Section Header -->
+        <div class="section-header-wrapper animate-on-load">
+            <span class="tag">Centro de Ayuda</span>
+            <h1>¿Cómo podemos <span class="highlight">ayudarte</span>?</h1>
+            <p>Encuentra respuestas rápidas a tus preguntas o contacta con nuestro equipo de soporte.</p>
+        </div>
+
+        <!-- Help Grid -->
+        <div class="help-grid">
+
+            <div class="help-card animate-on-load delay-1">
+                <div class="icon-wrapper blue">
+                    <i class="fas fa-book"></i>
+                </div>
+                <h5>Guía de Usuario</h5>
+                <p>Aprende paso a paso cómo usar todas las funciones de OmniVentas.</p>
+                <a href="#" class="btn-help">Ver Guía</a>
+            </div>
+
+            <div class="help-card animate-on-load delay-2">
+                <div class="icon-wrapper green">
+                    <i class="fas fa-video"></i>
+                </div>
+                <h5>Video Tutoriales</h5>
+                <p>Mira nuestros tutoriales en video para resolver tus dudas rápidamente.</p>
+                <a href="#" class="btn-help">Ver Videos</a>
+            </div>
+
+            <div class="help-card animate-on-load delay-3">
+                <div class="icon-wrapper orange">
+                    <i class="fas fa-comments"></i>
+                </div>
+                <h5>Foro de Ayuda</h5>
+                <p>Conecta con otros usuarios y comparte tus experiencias y soluciones.</p>
+                <a href="#" class="btn-help">Ir al Foro</a>
+            </div>
+
+            <div class="help-card animate-on-load delay-1" style="grid-column: span 1;">
+                <div class="icon-wrapper purple">
+                    <i class="fas fa-headset"></i>
+                </div>
+                <h5>Soporte 24/7</h5>
+                <p>¿Necesitas ayuda urgente? Nuestro equipo está disponible para ti.</p>
+                <a href="/contacto" class="btn-help">Contactar</a>
+            </div>
+
+        </div>
+
+        <!-- FAQ Section -->
+        <div class="faq-section animate-on-load delay-2">
+            <h3>Preguntas Frecuentes</h3>
+
+            <div class="faq-item" onclick="toggleFaq(this)">
+                <div class="faq-question">
+                    <span>¿Cómo empiezo a usar OmniVentas?</span>
+                    <i class="fas fa-chevron-down"></i>
+                </div>
+                <div class="faq-answer">
+                    Solo necesitas crear una cuenta, agregar tus productos y comenzar a registrar ventas. La configuración inicial toma menos de 5 minutos.
+                </div>
+            </div>
+
+            <div class="faq-item" onclick="toggleFaq(this)">
+                <div class="faq-question">
+                    <span>¿Necesito una tarjeta de crédito para la prueba gratuita?</span>
+                    <i class="fas fa-chevron-down"></i>
+                </div>
+                <div class="faq-answer">
+                    No, la prueba gratuita no requiere tarjeta de crédito. Puedes disfrutar de todas las funciones durante 14 días sin compromiso.
+                </div>
+            </div>
+
+            <div class="faq-item" onclick="toggleFaq(this)">
+                <div class="faq-question">
+                    <span>¿Puedo usar OmniVentas sin conexión a internet?</span>
+                    <i class="fas fa-chevron-down"></i>
+                </div>
+                <div class="faq-answer">
+                    La app móvil permite registrar ventas sin conexión. Los datos se sincronizan automáticamente cuando recuperes la conexión.
+                </div>
+            </div>
+
+            <div class="faq-item" onclick="toggleFaq(this)">
+                <div class="faq-question">
+                    <span>¿Cómo puedo agregar más vendedores?</span>
+                    <i class="fas fa-chevron-down"></i>
+                </div>
+                <div class="faq-answer">
+                    Ve al panel de administración, selecciona "Vendedores" y haz clic en "Agregar Vendedor". Cada vendedor recibirá su propio ID de acceso.
+                </div>
+            </div>
+
+            <div class="faq-item" onclick="toggleFaq(this)">
+                <div class="faq-question">
+                    <span>¿Qué pasa si supero el límite de productos?</span>
+                    <i class="fas fa-chevron-down"></i>
+                </div>
+                <div class="faq-answer">
+                    Puedes actualizar tu plan en cualquier momento para aumentar el límite de productos y acceder a más funcionalidades.
+                </div>
+            </div>
+
+        </div>
+
+    </main>
+
+    <!-- ============================================
+    FOOTER
+    ============================================ -->
+    <footer class="footer">
+        <div class="container">
+            <div class="row g-4">
+                <div class="col-md-6">
+                    <div class="logo-footer">
+                        <i class="fas fa-chart-line"></i>OmniVentas
+                    </div>
+                    <p style="margin-top: 12px; font-size: 0.9rem;">
+                        La plataforma de gestión inteligente para tu negocio.
+                    </p>
+                </div>
+                <div class="col-md-6 text-md-end">
+                    <a href="/" style="color: rgba(255,255,255,0.6); margin-right: 16px;">Inicio</a>
+                    <a href="/contacto" style="color: rgba(255,255,255,0.6); margin-right: 16px;">Contacto</a>
+                    <a href="/terms" style="color: rgba(255,255,255,0.6);">Términos</a>
+                </div>
+            </div>
+            <hr style="border-color: rgba(255,255,255,0.08); margin: 24px 0 16px;">
+            <div class="text-center">
+                <small>&copy; 2024 OmniVentas. Todos los derechos reservados.</small>
+            </div>
+        </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Header scroll effect
+        window.addEventListener('scroll', function() {
+            const header = document.getElementById('header');
+            if (window.scrollY > 20) {
+                header.classList.add('scrolled');
+            } else {
+                header.classList.remove('scrolled');
+            }
+        });
+
+        // Toggle FAQ
+        function toggleFaq(element) {
+            element.classList.toggle('open');
+        }
+    </script>
+
+</body>
+</html>
