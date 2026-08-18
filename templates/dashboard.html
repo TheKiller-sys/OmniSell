@@ -239,6 +239,59 @@
             box-shadow: 0 2px 8px rgba(67, 97, 238, 0.3);
         }
         
+        /* 🔥 NUEVO: Estilos para botón de refresh y timestamp */
+        .section-title-wrapper {
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 1.8rem;
+            padding-bottom: 0.8rem;
+            border-bottom: 1px solid #e9ecef;
+        }
+        
+        .section-title-wrapper .section-title {
+            margin-bottom: 0;
+            padding-bottom: 0;
+            border-bottom: none;
+        }
+        
+        .section-title-wrapper .section-title::after {
+            display: none;
+        }
+        
+        .refresh-btn {
+            background: none;
+            border: none;
+            color: var(--gray);
+            cursor: pointer;
+            transition: all 0.3s;
+            padding: 8px 12px;
+            border-radius: 50%;
+            font-size: 1.1rem;
+        }
+        
+        .refresh-btn:hover {
+            background: var(--light);
+            color: var(--primary);
+            transform: rotate(45deg);
+        }
+        
+        .refresh-btn.spinning {
+            animation: spin 0.8s ease-in-out;
+        }
+        
+        .last-update {
+            font-size: 0.8rem;
+            color: var(--gray);
+            font-weight: 400;
+            margin-left: auto;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
         .card {
             border: none;
             border-radius: 16px;
@@ -432,40 +485,6 @@
             color: #2c3e50;
         }
         
-        .loading-spinner {
-            display: inline-block;
-            width: 20px;
-            height: 20px;
-            border: 3px solid rgba(67, 97, 238, 0.1);
-            border-radius: 50%;
-            border-top-color: var(--primary);
-            animation: spin 1s ease-in-out infinite;
-        }
-        
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
-        
-        .refresh-btn {
-            background: none;
-            border: none;
-            color: var(--gray);
-            cursor: pointer;
-            transition: all 0.3s;
-            padding: 8px;
-            border-radius: 50%;
-        }
-        
-        .refresh-btn:hover {
-            background: var(--light);
-            color: var(--primary);
-            transform: rotate(45deg);
-        }
-        
-        .refresh-btn.spinning {
-            animation: spin 0.8s ease-in-out;
-        }
-        
         @media (max-width: 992px) {
             .header-title {
                 font-size: 1.3rem;
@@ -495,6 +514,10 @@
                 flex-direction: column;
                 align-items: flex-start;
                 gap: 10px;
+            }
+            .last-update {
+                margin-left: 0;
+                width: 100%;
             }
         }
         
@@ -605,15 +628,18 @@
     <!-- Main Content -->
     <main class="main-content">
         <section id="dashboard-section">
-            <h2 class="section-title">
-                <i class="fas fa-chart-line me-2"></i>Resumen General
-                <button class="refresh-btn ms-3" id="manual-refresh" title="Actualizar datos">
+            <!-- 🔥 NUEVO: Título con botón de refresh y timestamp -->
+            <div class="section-title-wrapper">
+                <h2 class="section-title">
+                    <i class="fas fa-chart-line me-2"></i>Resumen General
+                </h2>
+                <button class="refresh-btn" id="manual-refresh" title="Actualizar datos">
                     <i class="fas fa-sync-alt"></i>
                 </button>
-                <span id="last-update" class="text-muted" style="font-size: 0.8rem; font-weight: 400; margin-left: 15px;">
-                    Última actualización: <span id="update-time">--</span>
+                <span class="last-update">
+                    Última actualización: <span id="update-time">--:--:--</span>
                 </span>
-            </h2>
+            </div>
             
             <!-- Stats Row -->
             <div class="row stats-row mb-4">
@@ -723,7 +749,7 @@
                                 <div id="today-sales-empty" class="empty-state" style="display: none;">
                                     <i class="fas fa-shopping-cart"></i>
                                     <h6>No hay ventas hoy</h6>
-                                    <p class="text-muted small">Comienza a registrar ventas desde la app o el bot de Telegram</p>
+                                    <p class="text-muted small">Comienza a registrar ventas desde el bot de Telegram</p>
                                 </div>
                             </div>
                         </div>
@@ -794,30 +820,6 @@
             document.getElementById('update-time').textContent = timeStr;
         }
 
-        function mostrarError(mensaje) {
-            const stats = document.querySelectorAll('.stat-card');
-            if (stats.length > 0) {
-                // Eliminar errores anteriores
-                const oldErrors = stats[0].querySelectorAll('.alert-danger');
-                oldErrors.forEach(el => el.remove());
-                
-                const errorDiv = document.createElement('div');
-                errorDiv.className = 'alert alert-danger mt-2 alert-dismissible fade show';
-                errorDiv.innerHTML = `
-                    <i class="fas fa-exclamation-triangle me-2"></i>
-                    ${mensaje}
-                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                `;
-                stats[0].appendChild(errorDiv);
-                
-                setTimeout(() => {
-                    if (errorDiv.parentNode) {
-                        errorDiv.remove();
-                    }
-                }, 8000);
-            }
-        }
-
         // ============================================================
         // CARGA DE DATOS DEL DASHBOARD (SIN CACHÉ)
         // ============================================================
@@ -831,7 +833,7 @@
             const timestamp = new Date().getTime();
             const url = `/api/dashboard?t=${timestamp}`;
             
-            // Mostrar indicador de carga
+            // Mostrar spinner en el botón
             const refreshBtn = document.getElementById('manual-refresh');
             if (refreshBtn) {
                 refreshBtn.classList.add('spinning');
@@ -908,31 +910,48 @@
         }
 
         // ============================================================
+        // FUNCIÓN PARA MOSTRAR ERRORES
+        // ============================================================
+        function mostrarError(mensaje) {
+            const stats = document.querySelectorAll('.stat-card');
+            if (stats.length > 0) {
+                // Eliminar errores anteriores
+                const oldErrors = stats[0].querySelectorAll('.alert-danger');
+                oldErrors.forEach(el => el.remove());
+                
+                const errorDiv = document.createElement('div');
+                errorDiv.className = 'alert alert-danger mt-2 alert-dismissible fade show';
+                errorDiv.innerHTML = `
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    ${mensaje}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                `;
+                stats[0].appendChild(errorDiv);
+                
+                setTimeout(() => {
+                    if (errorDiv.parentNode) {
+                        errorDiv.remove();
+                    }
+                }, 8000);
+            }
+        }
+
+        // ============================================================
         // ACTUALIZAR DASHBOARD CON DATOS
         // ============================================================
         function updateDashboard(data) {
-            // Validar datos
-            const ingresos = data.ingresos || 0;
-            const ganancia = data.ganancia || 0;
-            const margen = data.margen || 0;
-            const ventas = data.ventas || 0;
-            
-            // Actualizar estadísticas principales
-            document.getElementById('total-ingresos').textContent = `$${ingresos.toLocaleString('es-ES', {minimumFractionDigits: 2})}`;
-            document.getElementById('total-ganancia').textContent = `$${ganancia.toLocaleString('es-ES', {minimumFractionDigits: 2})}`;
-            document.getElementById('margen-promedio').textContent = `${margen}%`;
-            document.getElementById('total-ventas').textContent = ventas;
+            document.getElementById('total-ingresos').textContent = `$${data.ingresos.toLocaleString('es-ES', {minimumFractionDigits: 2})}`;
+            document.getElementById('total-ganancia').textContent = `$${data.ganancia.toLocaleString('es-ES', {minimumFractionDigits: 2})}`;
+            document.getElementById('margen-promedio').textContent = `${data.margen}%`;
+            document.getElementById('total-ventas').textContent = data.ventas;
 
-            // Tendencias
             if (data.tendencias) {
-                const tendencias = data.tendencias;
-                document.getElementById('ingresos-trend').textContent = `${tendencias.ingresos || 0}%`;
-                document.getElementById('ganancia-trend').textContent = `${tendencias.ganancia || 0}%`;
-                document.getElementById('margen-trend').textContent = `${tendencias.margen || 0}%`;
-                document.getElementById('ventas-trend').textContent = `${tendencias.ventas || 0}%`;
+                document.getElementById('ingresos-trend').textContent = `${data.tendencias.ingresos}%`;
+                document.getElementById('ganancia-trend').textContent = `${data.tendencias.ganancia}%`;
+                document.getElementById('margen-trend').textContent = `${data.tendencias.margen}%`;
+                document.getElementById('ventas-trend').textContent = `${data.tendencias.ventas}%`;
             }
 
-            // Ventas de hoy
             const salesTable = document.getElementById('today-sales');
             const salesEmpty = document.getElementById('today-sales-empty');
             salesTable.innerHTML = '';
@@ -952,7 +971,6 @@
                 salesEmpty.style.display = 'block';
             }
 
-            // Inventario
             const inventoryBody = document.getElementById('inventory-body');
             const inventoryEmpty = document.getElementById('inventory-empty');
             const inventoryCount = document.getElementById('inventory-count');
@@ -1046,7 +1064,6 @@
         // INICIALIZACIÓN
         // ============================================================
         document.addEventListener('DOMContentLoaded', function() {
-            // Fecha actual
             const today = new Date();
             document.getElementById('today-date').textContent = today.toLocaleDateString('es-ES');
             
@@ -1075,7 +1092,7 @@
                 });
             });
 
-            // Botón de actualización manual
+            // 🔥 Botón de actualización manual
             document.getElementById('manual-refresh').addEventListener('click', function() {
                 loadDashboardData();
                 loadSalesData(currentPeriod);
@@ -1140,7 +1157,7 @@
                 console.log('🔄 Actualización automática del dashboard...');
                 loadDashboardData();
                 loadSalesData(currentPeriod);
-            }, 15000); // 15 segundos para pruebas
+            }, 15000); // 15 segundos
 
             // ============================================================
             // CARGA INICIAL
