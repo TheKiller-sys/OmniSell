@@ -1,4 +1,4 @@
-# web/dashboard.py - Panel de administración web con LOGS A TELEGRAM
+# web/dashboard.py - Panel de administración web con LOGS A TELEGRAM (CORREGIDO)
 from flask import Flask, render_template, request, redirect, url_for, jsonify, g, session, flash, send_from_directory
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
 from flask_socketio import SocketIO
@@ -101,6 +101,7 @@ def create_app():
                     message=f"Usuario no encontrado: ID {user_id}",
                     data={'user_id': user_id}
                 )
+                return None
         except Exception as e:
             logger.error(f"Error loading user: {e}")
             log_to_telegram(
@@ -215,7 +216,7 @@ def create_app():
         except:
             return '', 404
 
-    # ==================== SIGNUP CORREGIDO (SIN telegram_id) ====================
+    # ==================== SIGNUP CORREGIDO (CON TRANSACCIÓN) ====================
     @app.route('/signup', methods=['GET', 'POST'])
     def signup():
         if request.method == 'POST':
@@ -256,6 +257,7 @@ def create_app():
                 c = conn.cursor()
                 is_postgres = 'RENDER' in os.environ and os.environ.get('DATABASE_URL')
                 
+                # Verificar si el usuario ya existe
                 if is_postgres:
                     c.execute("SELECT id FROM users WHERE username = %s", (username,))
                 else:
@@ -270,6 +272,7 @@ def create_app():
                     )
                     return render_template('signup.html', error="El usuario ya existe")
             
+                # Verificar si el email ya está registrado
                 try:
                     if is_postgres:
                         c.execute("SELECT id FROM businesses WHERE email = %s", (email,))
@@ -284,34 +287,49 @@ def create_app():
                 # Hash de la contraseña
                 hashed_password = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
             
-                # INSERT en businesses SIN telegram_id
-                if is_postgres:
-                    c.execute('''
-                        INSERT INTO businesses (id, name, admin_id, web_user, web_pass, email)
-                        VALUES (%s, %s, %s, %s, %s, %s)
-                    ''', (business_id, business_name, '123456789', username, hashed_password, email))
-                else:
-                    c.execute('''
-                        INSERT INTO businesses (id, name, admin_id, web_user, web_pass, email)
-                        VALUES (?, ?, ?, ?, ?, ?)
-                    ''', (business_id, business_name, '123456789', username, hashed_password, email))
-            
-                # INSERT en users SIN telegram_id
-                if is_postgres:
-                    c.execute('''
-                        INSERT INTO users (business_id, username, password, role)
-                        VALUES (%s, %s, %s, 'admin')
-                    ''', (business_id, username, hashed_password))
-                else:
-                    c.execute('''
-                        INSERT INTO users (business_id, username, password, role)
-                        VALUES (?, ?, ?, 'admin')
-                    ''', (business_id, username, hashed_password))
-            
-                conn.commit()
-                
+                # ============================================================
+                # TRANSACCIÓN EXPLÍCITA: INSERT EN BUSINESSES Y LUEGO EN USERS
+                # ============================================================
                 try:
-                    # Crear la base de datos del negocio
+                    # INSERT en businesses
+                    if is_postgres:
+                        c.execute('''
+                            INSERT INTO businesses (id, name, admin_id, web_user, web_pass, email)
+                            VALUES (%s, %s, %s, %s, %s, %s)
+                        ''', (business_id, business_name, '123456789', username, hashed_password, email))
+                    else:
+                        c.execute('''
+                            INSERT INTO businesses (id, name, admin_id, web_user, web_pass, email)
+                            VALUES (?, ?, ?, ?, ?, ?)
+                        ''', (business_id, business_name, '123456789', username, hashed_password, email))
+            
+                    # INSERT en users
+                    if is_postgres:
+                        c.execute('''
+                            INSERT INTO users (business_id, username, password, role)
+                            VALUES (%s, %s, %s, 'admin')
+                        ''', (business_id, username, hashed_password))
+                    else:
+                        c.execute('''
+                            INSERT INTO users (business_id, username, password, role)
+                            VALUES (?, ?, ?, 'admin')
+                        ''', (business_id, username, hashed_password))
+            
+                    conn.commit()  # <--- COMMIT solo si ambas inserciones funcionan
+                    
+                except Exception as e:
+                    logger.error(f"Error en transacción de signup: {e}")
+                    conn.rollback()  # <--- ROLLBACK si algo falla
+                    log_to_telegram(
+                        level='ERROR',
+                        message=f"Error en transacción de signup: {str(e)}",
+                        data={'error': str(e), 'traceback': traceback.format_exc()},
+                        request_info=request_info
+                    )
+                    return render_template('signup.html', error=f"Error interno del sistema: {str(e)}")
+                
+                # Crear la base de datos del negocio (esto no afecta a la transacción global)
+                try:
                     db = DatabaseManager(business_id)
                     db._create_tables()
                 except Exception as e:
@@ -700,47 +718,53 @@ def create_app():
             is_postgres = 'RENDER' in os.environ and os.environ.get('DATABASE_URL')
             
             productos_guardados = 0
+            
+            # Intentar guardar cada producto individualmente
             for product in products:
-                seccion_nombre = product.get('category', 'General').strip()
-                
-                if not seccion_nombre:
-                    seccion_nombre = 'General'
-                
-                if is_postgres:
-                    seccion = db.execute_query(
-                        "SELECT id FROM secciones WHERE nombre = %s", (seccion_nombre,)
-                    )
-                else:
-                    seccion = db.execute_query(
-                        "SELECT id FROM secciones WHERE nombre = ?", (seccion_nombre,)
-                    )
-                
-                if seccion and seccion[0]:
-                    seccion_id = seccion[0][0]
-                else:
+                try:
+                    seccion_nombre = product.get('category', 'General').strip()
+                    
+                    if not seccion_nombre:
+                        seccion_nombre = 'General'
+                    
+                    if is_postgres:
+                        seccion = db.execute_query(
+                            "SELECT id FROM secciones WHERE nombre = %s", (seccion_nombre,)
+                        )
+                    else:
+                        seccion = db.execute_query(
+                            "SELECT id FROM secciones WHERE nombre = ?", (seccion_nombre,)
+                        )
+                    
+                    if seccion and seccion[0]:
+                        seccion_id = seccion[0][0]
+                    else:
+                        if is_postgres:
+                            db.execute_query(
+                                "INSERT INTO secciones (nombre) VALUES (%s)", (seccion_nombre,)
+                            )
+                        else:
+                            db.execute_query(
+                                "INSERT INTO secciones (nombre) VALUES (?)", (seccion_nombre,)
+                            )
+                        seccion_id = get_last_insert_id(db, business_id)
+                    
                     if is_postgres:
                         db.execute_query(
-                            "INSERT INTO secciones (nombre) VALUES (%s)", (seccion_nombre,)
+                            "INSERT INTO productos (nombre, precio_venta, precio_compra, stock, seccion_id) "
+                            "VALUES (%s, %s, %s, %s, %s)",
+                            (product['name'], product['price'], product['cost'], product['stock'], seccion_id)
                         )
                     else:
                         db.execute_query(
-                            "INSERT INTO secciones (nombre) VALUES (?)", (seccion_nombre,)
+                            "INSERT INTO productos (nombre, precio_venta, precio_compra, stock, seccion_id) "
+                            "VALUES (?, ?, ?, ?, ?)",
+                            (product['name'], product['price'], product['cost'], product['stock'], seccion_id)
                         )
-                    seccion_id = get_last_insert_id(db, business_id)
-                
-                if is_postgres:
-                    db.execute_query(
-                        "INSERT INTO productos (nombre, precio_venta, precio_compra, stock, seccion_id) "
-                        "VALUES (%s, %s, %s, %s, %s)",
-                        (product['name'], product['price'], product['cost'], product['stock'], seccion_id)
-                    )
-                else:
-                    db.execute_query(
-                        "INSERT INTO productos (nombre, precio_venta, precio_compra, stock, seccion_id) "
-                        "VALUES (?, ?, ?, ?, ?)",
-                        (product['name'], product['price'], product['cost'], product['stock'], seccion_id)
-                    )
-                productos_guardados += 1
+                    productos_guardados += 1
+                except Exception as e:
+                    logger.error(f"Error guardando producto {product.get('name')}: {e}")
+                    # Continuar con el siguiente producto, no detener todo el proceso
             
             log_to_telegram(
                 level='SUCCESS',
