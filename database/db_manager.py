@@ -330,78 +330,8 @@ class DatabaseManager:
                     ''')
                 logger.info("Tabla vendors creada exitosamente")
             
-            # ==================== CREAR DATOS DE PRUEBA ====================
-            logger.info("Verificando datos de prueba...")
-            
-            # Verificar si ya existe el admin
-            if is_postgres:
-                c.execute("SELECT COUNT(*) FROM users WHERE username = 'admin'")
-            else:
-                c.execute("SELECT COUNT(*) FROM users WHERE username = 'admin'")
-            
-            admin_exists = c.fetchone()[0] > 0
-            
-            if not admin_exists:
-                logger.info("Creando datos de prueba...")
-                
-                business_id = 'test_business_001'
-                
-                if is_postgres:
-                    c.execute("SELECT id FROM businesses WHERE id = %s", (business_id,))
-                else:
-                    c.execute("SELECT id FROM businesses WHERE id = ?", (business_id,))
-                
-                business_exists = c.fetchone() is not None
-                
-                hashed_password = bcrypt.hashpw('admin123'.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
-                
-                if not business_exists:
-                    if is_postgres:
-                        c.execute("""
-                            INSERT INTO businesses (id, name, admin_id, web_user, web_pass, email)
-                            VALUES (%s, %s, %s, %s, %s, %s)
-                        """, (business_id, 'Tienda de Prueba', '123456789', 'admin', hashed_password, 'admin@test.com'))
-                    else:
-                        c.execute("""
-                            INSERT INTO businesses (id, name, admin_id, web_user, web_pass, email)
-                            VALUES (?, ?, ?, ?, ?, ?)
-                        """, (business_id, 'Tienda de Prueba', '123456789', 'admin', hashed_password, 'admin@test.com'))
-                    logger.info(f"✅ Negocio de prueba creado: {business_id}")
-                
-                if is_postgres:
-                    c.execute("""
-                        INSERT INTO users (business_id, username, password, role)
-                        VALUES (%s, %s, %s, %s)
-                    """, (business_id, 'admin', hashed_password, 'admin'))
-                else:
-                    c.execute("""
-                        INSERT INTO users (business_id, username, password, role)
-                        VALUES (?, ?, ?, ?)
-                    """, (business_id, 'admin', hashed_password, 'admin'))
-                logger.info("✅ Usuario admin creado: admin / admin123")
-                
-                # Crear vendedor de prueba en public.vendors
-                vendor_id = 'AAAA0000'
-                if is_postgres:
-                    c.execute("SET search_path TO public")
-                    c.execute("""
-                        INSERT INTO vendors (id, name, business_id, role, active)
-                        VALUES (%s, %s, %s, %s, %s)
-                    """, (vendor_id, 'Vendedor Prueba', business_id, 'vendedor', True))
-                else:
-                    c.execute("""
-                        INSERT INTO vendors (id, name, business_id, role, active)
-                        VALUES (?, ?, ?, ?, ?)
-                    """, (vendor_id, 'Vendedor Prueba', business_id, 'vendedor', 1))
-                logger.info(f"✅ Vendedor de prueba creado en public: {vendor_id}")
-                
-                conn.commit()
-                logger.info("=" * 50)
-                logger.info("📋 DATOS DE PRUEBA CREADOS EXITOSAMENTE:")
-                logger.info(f"   🏪 Negocio: {business_id} (Tienda de Prueba)")
-                logger.info(f"   👤 Admin: usuario='admin' contraseña='admin123'")
-                logger.info(f"   🆔 Vendedor ID: {vendor_id} (Vendedor Prueba)")
-                logger.info("=" * 50)
+            # ==================== NO SE CREAN DATOS DE PRUEBA ====================
+            # El sistema SOLO crea tablas, nunca inserta datos de ejemplo
             
             conn.commit()
             logger.info("Estructura de tablas globales verificada y corregida correctamente")
@@ -421,8 +351,6 @@ class DatabaseManager:
         self.c = None
         self._get_connection()
         self._create_tables()
-        self._ensure_vendor_exists()
-        self._create_test_data()
         logger.info(f"Conexión establecida para negocio: {business_id}")
 
     def _get_connection(self):
@@ -496,7 +424,7 @@ class DatabaseManager:
         return f"{safe_id}.db"
 
     def _ensure_vendor_column(self, is_postgres):
-        """✅ Asegurar que vendor_id existe en la tabla ventas"""
+        """Asegurar que vendor_id existe en la tabla ventas"""
         try:
             schema = self._safe_schema_name(self.business_id)
             
@@ -511,166 +439,31 @@ class DatabaseManager:
                 exists = self.c.fetchone() is not None
                 
                 if not exists:
-                    logger.info(f"⚠️ Agregando columna vendor_id a ventas para negocio {self.business_id} (PostgreSQL)")
+                    logger.info(f"Agregando columna vendor_id a ventas para negocio {self.business_id} (PostgreSQL)")
                     self.c.execute("ALTER TABLE ventas ADD COLUMN vendor_id TEXT")
                     self.c.execute("CREATE INDEX IF NOT EXISTS idx_ventas_vendor_id ON ventas(vendor_id)")
                     self.conn.commit()
-                    logger.info(f"✅ Columna vendor_id agregada a ventas para negocio {self.business_id}")
+                    logger.info(f"Columna vendor_id agregada a ventas para negocio {self.business_id}")
                 else:
-                    logger.info(f"✅ vendor_id ya existe en ventas para negocio {self.business_id}")
+                    logger.info(f"vendor_id ya existe en ventas para negocio {self.business_id}")
             else:
                 self.c.execute("PRAGMA table_info(ventas)")
                 columns = [col[1] for col in self.c.fetchall()]
                 exists = 'vendor_id' in columns
                 
                 if not exists:
-                    logger.info(f"⚠️ Agregando columna vendor_id a ventas para negocio {self.business_id} (SQLite)")
+                    logger.info(f"Agregando columna vendor_id a ventas para negocio {self.business_id} (SQLite)")
                     self.c.execute("ALTER TABLE ventas ADD COLUMN vendor_id TEXT")
                     self.c.execute("CREATE INDEX IF NOT EXISTS idx_ventas_vendor_id ON ventas(vendor_id)")
                     self.conn.commit()
-                    logger.info(f"✅ Columna vendor_id agregada a ventas para negocio {self.business_id}")
+                    logger.info(f"Columna vendor_id agregada a ventas para negocio {self.business_id}")
                 else:
-                    logger.info(f"✅ vendor_id ya existe en ventas para negocio {self.business_id}")
+                    logger.info(f"vendor_id ya existe en ventas para negocio {self.business_id}")
             
             return True
         except Exception as e:
             logger.error(f"Error asegurando vendor_id: {e}")
             return False
-
-    def _ensure_vendor_exists(self):
-        """✅ Asegurar que el vendedor de prueba existe en el esquema PUBLIC (global)"""
-        try:
-            is_postgres = 'RENDER' in os.environ and os.environ.get('DATABASE_URL')
-        
-            if is_postgres:
-                conn = DatabaseManager.get_global_connection()
-                if conn is None:
-                    logger.error("No se pudo obtener conexión global para asegurar vendedor")
-                    return
-            
-                c = conn.cursor()
-                c.execute("SET search_path TO public")
-            
-                c.execute("SELECT id, active FROM vendors WHERE id = %s", ('AAAA0000',))
-                vendor_check = c.fetchone()
-            
-                if not vendor_check:
-                    logger.info("✅ Creando vendedor de prueba en public...")
-                    c.execute("""
-                        INSERT INTO vendors (id, name, business_id, role, active)
-                        VALUES (%s, %s, %s, %s, %s)
-                    """, ('AAAA0000', 'Vendedor Prueba', self.business_id, 'vendedor', True))
-                    conn.commit()
-                    logger.info(f"✅ Vendedor de prueba creado en public: AAAA0000")
-                else:
-                    active = vendor_check[1]
-                    is_active = active == True or active == 't' or active == 'true'
-                
-                    if not is_active:
-                        logger.warning("⚠️ Vendedor AAAA0000 está inactivo en public, activando...")
-                        c.execute("UPDATE vendors SET active = TRUE WHERE id = %s", ('AAAA0000',))
-                        conn.commit()
-                        logger.info("✅ Vendedor activado en public")
-                    else:
-                        logger.info("✅ Vendedor de prueba AAAA0000 ya existe y está activo en public")
-            
-                # También en el esquema del negocio
-                try:
-                    schema_name = self._safe_schema_name(self.business_id)
-                    c.execute(f"SET search_path TO {schema_name}, public")
-                
-                    c.execute("SELECT id, active FROM vendors WHERE id = %s", ('AAAA0000',))
-                    vendor_check_schema = c.fetchone()
-                
-                    if not vendor_check_schema:
-                        logger.info(f"✅ Creando vendedor de prueba en esquema {schema_name}...")
-                        c.execute(f"""
-                            INSERT INTO vendors (id, name, business_id, role, active)
-                            VALUES (%s, %s, %s, %s, %s)
-                        """, ('AAAA0000', 'Vendedor Prueba', self.business_id, 'vendedor', True))
-                        conn.commit()
-                        logger.info(f"✅ Vendedor de prueba creado en esquema {schema_name}")
-                    else:
-                        logger.info(f"✅ Vendedor de prueba ya existe en esquema {schema_name}")
-                except Exception as e:
-                    logger.warning(f"No se pudo asegurar vendedor en esquema del negocio: {e}")
-              
-                c.execute("SET search_path TO public")
-            
-            else:
-                # SQLite
-                self.execute_query("SELECT name FROM sqlite_master WHERE type='table' AND name='vendors'")
-                table_exists = self.c.fetchone() is not None
-            
-                if not table_exists:
-                    self._create_vendor_table()
-            
-                vendor_check = self.execute_query(
-                    "SELECT id, active FROM vendors WHERE id = ?", 
-                    ('AAAA0000',)
-                )
-            
-                if not vendor_check:
-                    logger.info("✅ Creando vendedor de prueba AAAA0000...")
-                    self.execute_query("""
-                        INSERT INTO vendors (id, name, business_id, role, active)
-                        VALUES (?, ?, ?, ?, ?)
-                    """, ('AAAA0000', 'Vendedor Prueba', self.business_id, 'vendedor', 1))
-                    self.conn.commit()
-                    logger.info(f"✅ Vendedor de prueba creado: AAAA0000")
-                else:
-                    active = vendor_check[0][1]
-                    is_active = active == 1 or active == 'True' or active == 't' or active == 'true'
-                
-                    if not is_active:
-                        logger.warning("⚠️ Vendedor AAAA0000 está inactivo, activando...")
-                        self.execute_query(
-                            "UPDATE vendors SET active = 1 WHERE id = ?", 
-                            ('AAAA0000',)
-                        )
-                        self.conn.commit()
-                        logger.info("✅ Vendedor activado")
-                    else:
-                        logger.info("✅ Vendedor de prueba AAAA0000 ya existe y está activo")
-                    
-        except Exception as e:
-            logger.error(f"Error asegurando vendedor: {e}")
-            if self.conn:
-                try:
-                    self.conn.rollback()
-                except:
-                    pass
-
-    def _create_vendor_table(self):
-        """Crear la tabla vendors si no existe"""
-        try:
-            is_postgres = 'RENDER' in os.environ and os.environ.get('DATABASE_URL')
-            
-            if is_postgres:
-                self.execute_query("""
-                    CREATE TABLE IF NOT EXISTS vendors (
-                        id TEXT PRIMARY KEY,
-                        name TEXT NOT NULL,
-                        business_id TEXT NOT NULL,
-                        role TEXT DEFAULT 'vendedor',
-                        active BOOLEAN DEFAULT TRUE,
-                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-                    )
-                """)
-            else:
-                self.execute_query("""
-                    CREATE TABLE IF NOT EXISTS vendors (
-                        id TEXT PRIMARY KEY,
-                        name TEXT NOT NULL,
-                        business_id TEXT NOT NULL,
-                        role TEXT DEFAULT 'vendedor',
-                        active INTEGER DEFAULT 1,
-                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-                    )
-                """)
-            logger.info("✅ Tabla vendors creada")
-        except Exception as e:
-            logger.error(f"Error creando tabla vendors: {e}")
 
     def _create_tables(self):
         """Crear tablas si no existen con sintaxis compatible"""
@@ -721,7 +514,7 @@ class DatabaseManager:
                     precio_compra DECIMAL(10,2) NOT NULL,
                     costo_transporte DECIMAL(10,2) DEFAULT 0,
                     seccion_id INTEGER {foreign_key} secciones(id),
-                    stock INTEGER NOT NULL,
+                    stock INTEGER NOT NULL DEFAULT 0,
                     margen_ganancia DECIMAL(5,2),
                     descripcion TEXT
                 )
@@ -763,7 +556,7 @@ class DatabaseManager:
                 )
             ''')
             
-            # Tabla vendedores (NUEVA)
+            # Tabla vendedores
             if is_postgres:
                 self.c.execute(f'''
                     CREATE TABLE IF NOT EXISTS vendors (
@@ -814,53 +607,6 @@ class DatabaseManager:
             logger.error(f"Error al crear tablas para el negocio {self.business_id}: {e}")
             import traceback
             logger.error(traceback.format_exc())
-            if self.conn:
-                self.conn.rollback()
-
-    def _create_test_data(self):
-        """Crear datos de prueba para el negocio"""
-        try:
-            is_postgres = 'RENDER' in os.environ and os.environ.get('DATABASE_URL')
-            
-            logger.info("Verificando datos de prueba del negocio...")
-            
-            if is_postgres:
-                secciones = self.execute_query("SELECT COUNT(*) FROM secciones")
-            else:
-                secciones = self.execute_query("SELECT COUNT(*) FROM secciones")
-            
-            if secciones and secciones[0][0] > 0:
-                logger.info("⚠️ Los datos de prueba del negocio ya existen, omitiendo creación")
-                return
-            
-            logger.info("Creando datos de prueba para el negocio...")
-            
-            if is_postgres:
-                seccion_id = self.execute_query("""
-                    INSERT INTO secciones (nombre) VALUES (%s) RETURNING id
-                """, ('Electrónicos',))
-            else:
-                self.execute_query("""
-                    INSERT INTO secciones (nombre) VALUES (?)
-                """, ('Electrónicos',))
-                seccion_id = self.c.lastrowid
-            
-            if is_postgres:
-                self.execute_query("""
-                    INSERT INTO productos (nombre, precio_venta, precio_compra, stock, seccion_id)
-                    VALUES (%s, %s, %s, %s, %s)
-                """, ('Producto Test', 100.00, 80.00, 10, seccion_id))
-            else:
-                self.execute_query("""
-                    INSERT INTO productos (nombre, precio_venta, precio_compra, stock, seccion_id)
-                    VALUES (?, ?, ?, ?, ?)
-                """, ('Producto Test', 100.00, 80.00, 10, seccion_id))
-            
-            self.conn.commit()
-            logger.info("✅ Producto de prueba creado: Producto Test ($100.00, Stock: 10)")
-            
-        except Exception as e:
-            logger.error(f"Error creando datos de prueba del negocio: {e}")
             if self.conn:
                 self.conn.rollback()
 
