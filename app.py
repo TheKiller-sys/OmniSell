@@ -13,6 +13,8 @@ from functools import wraps
 from flask_cors import CORS
 import traceback
 import sys
+import random
+import string
 
 from flask_login import login_required, current_user
 
@@ -350,6 +352,7 @@ def token_required(f):
             logger.error(f"Error en token_required: {e}")
             return jsonify({'success': False, 'message': f'Error de autenticación: {str(e)}'}), 401
     return decorated
+
 
 # ==================== HEALTH CHECK ====================
 
@@ -1321,9 +1324,9 @@ def get_vendedores_web():
                 vendedores.append({
                     'id': row[0],
                     'name': row[1],
-                    'role': row[2],
+                    'role': row[2] if len(row) > 2 else 'vendedor',
                     'active': bool(row[3]) if row[3] is not None else True,
-                    'created_at': row[4]
+                    'created_at': row[4] if len(row) > 4 else None
                 })
         
         log_to_telegram(
@@ -1378,9 +1381,6 @@ def crear_vendedor_web():
         if not name:
             return jsonify({'success': False, 'message': 'El nombre es requerido'}), 400
         
-        from database.db_manager import DatabaseManager
-        import random
-        import string
         def generate_vendor_id():
             characters = string.ascii_uppercase + string.digits
             return ''.join(random.choices(characters, k=8))
@@ -1388,22 +1388,45 @@ def crear_vendedor_web():
         vendor_id = generate_vendor_id()
         is_postgres = 'RENDER' in os.environ and os.environ.get('DATABASE_URL')
         
-        conn = DatabaseManager.get_global_connection()
-        if conn:
-            c = conn.cursor()
+        # ✅ GUARDAR EN LA BASE DE DATOS DEL NEGOCIO
+        from database.db_manager import DatabaseManager
+        db = DatabaseManager(current_user.business_id)
+        
+        try:
             if is_postgres:
-                c.execute("SET search_path TO public")
-                c.execute("""
+                db.execute_query("""
                     INSERT INTO vendors (id, name, business_id, role, active)
                     VALUES (%s, %s, %s, %s, %s)
                 """, (vendor_id, name, current_user.business_id, 'vendedor', True))
             else:
-                c.execute("""
+                db.execute_query("""
                     INSERT INTO vendors (id, name, business_id, role, active)
                     VALUES (?, ?, ?, ?, ?)
                 """, (vendor_id, name, current_user.business_id, 'vendedor', 1))
-            conn.commit()
-            logger.info(f"✅ Vendedor {vendor_id} creado")
+            logger.info(f"✅ Vendedor {vendor_id} creado en BD del negocio")
+        except Exception as e:
+            logger.error(f"Error guardando vendedor en BD del negocio: {e}")
+            # Fallback: guardar en BD global
+            try:
+                conn = DatabaseManager.get_global_connection()
+                if conn:
+                    c = conn.cursor()
+                    if is_postgres:
+                        c.execute("SET search_path TO public")
+                        c.execute("""
+                            INSERT INTO vendors (id, name, business_id, role, active)
+                            VALUES (%s, %s, %s, %s, %s)
+                        """, (vendor_id, name, current_user.business_id, 'vendedor', True))
+                    else:
+                        c.execute("""
+                            INSERT INTO vendors (id, name, business_id, role, active)
+                            VALUES (?, ?, ?, ?, ?)
+                        """, (vendor_id, name, current_user.business_id, 'vendedor', 1))
+                    conn.commit()
+                    logger.info(f"✅ Vendedor {vendor_id} creado en BD global (fallback)")
+            except Exception as e2:
+                logger.error(f"Error guardando vendedor en BD global: {e2}")
+                return jsonify({'success': False, 'message': 'Error guardando vendedor: ' + str(e)}), 500
         
         log_to_telegram(
             level='SUCCESS',
@@ -1538,6 +1561,7 @@ def eliminar_vendedor_web(vendor_id):
         db = DatabaseManager(current_user.business_id)
         is_postgres = 'RENDER' in os.environ and os.environ.get('DATABASE_URL')
         
+        # Obtener nombre antes de eliminar
         if is_postgres:
             vendor_info = db.execute_query("SELECT name FROM vendors WHERE id = %s AND business_id = %s", (vendor_id, current_user.business_id))
         else:
@@ -1545,10 +1569,25 @@ def eliminar_vendedor_web(vendor_id):
         
         vendor_name = vendor_info[0][0] if vendor_info else 'DESCONOCIDO'
         
+        # Eliminar de la BD del negocio
         if is_postgres:
             db.execute_query("DELETE FROM vendors WHERE id = %s AND business_id = %s", (vendor_id, current_user.business_id))
         else:
             db.execute_query("DELETE FROM vendors WHERE id = ? AND business_id = ?", (vendor_id, current_user.business_id))
+        
+        # También eliminar de la BD global si existe
+        try:
+            conn = DatabaseManager.get_global_connection()
+            if conn:
+                c = conn.cursor()
+                if is_postgres:
+                    c.execute("SET search_path TO public")
+                    c.execute("DELETE FROM vendors WHERE id = %s AND business_id = %s", (vendor_id, current_user.business_id))
+                else:
+                    c.execute("DELETE FROM vendors WHERE id = ? AND business_id = ?", (vendor_id, current_user.business_id))
+                conn.commit()
+        except Exception as e:
+            logger.warning(f"No se pudo eliminar de BD global: {e}")
         
         log_to_telegram(
             level='WARNING',
@@ -1629,9 +1668,9 @@ def get_vendedores_app():
                 vendedores.append({
                     'id': row[0],
                     'name': row[1],
-                    'role': row[2],
+                    'role': row[2] if len(row) > 2 else 'vendedor',
                     'active': bool(row[3]) if row[3] is not None else True,
-                    'created_at': row[4]
+                    'created_at': row[4] if len(row) > 4 else None
                 })
         
         return jsonify({
@@ -1679,9 +1718,6 @@ def crear_vendedor_app():
         if not name:
             return jsonify({'success': False, 'message': 'El nombre es requerido'}), 400
         
-        from database.db_manager import DatabaseManager
-        import random
-        import string
         def generate_vendor_id():
             characters = string.ascii_uppercase + string.digits
             return ''.join(random.choices(characters, k=8))
@@ -1689,22 +1725,45 @@ def crear_vendedor_app():
         vendor_id = generate_vendor_id()
         is_postgres = 'RENDER' in os.environ and os.environ.get('DATABASE_URL')
         
-        conn = DatabaseManager.get_global_connection()
-        if conn:
-            c = conn.cursor()
+        # ✅ GUARDAR EN LA BASE DE DATOS DEL NEGOCIO
+        from database.db_manager import DatabaseManager
+        db = DatabaseManager(g.business_id)
+        
+        try:
             if is_postgres:
-                c.execute("SET search_path TO public")
-                c.execute("""
+                db.execute_query("""
                     INSERT INTO vendors (id, name, business_id, role, active)
                     VALUES (%s, %s, %s, %s, %s)
                 """, (vendor_id, name, g.business_id, 'vendedor', True))
             else:
-                c.execute("""
+                db.execute_query("""
                     INSERT INTO vendors (id, name, business_id, role, active)
                     VALUES (?, ?, ?, ?, ?)
                 """, (vendor_id, name, g.business_id, 'vendedor', 1))
-            conn.commit()
-            logger.info(f"✅ Vendedor {vendor_id} creado")
+            logger.info(f"✅ Vendedor {vendor_id} creado en BD del negocio")
+        except Exception as e:
+            logger.error(f"Error guardando vendedor en BD del negocio: {e}")
+            # Fallback: guardar en BD global
+            try:
+                conn = DatabaseManager.get_global_connection()
+                if conn:
+                    c = conn.cursor()
+                    if is_postgres:
+                        c.execute("SET search_path TO public")
+                        c.execute("""
+                            INSERT INTO vendors (id, name, business_id, role, active)
+                            VALUES (%s, %s, %s, %s, %s)
+                        """, (vendor_id, name, g.business_id, 'vendedor', True))
+                    else:
+                        c.execute("""
+                            INSERT INTO vendors (id, name, business_id, role, active)
+                            VALUES (?, ?, ?, ?, ?)
+                        """, (vendor_id, name, g.business_id, 'vendedor', 1))
+                    conn.commit()
+                    logger.info(f"✅ Vendedor {vendor_id} creado en BD global (fallback)")
+            except Exception as e2:
+                logger.error(f"Error guardando vendedor en BD global: {e2}")
+                return jsonify({'success': False, 'message': 'Error guardando vendedor: ' + str(e)}), 500
         
         log_to_telegram(
             level='SUCCESS',
