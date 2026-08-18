@@ -1,0 +1,513 @@
+<!DOCTYPE html>
+<html lang="es" data-bs-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Blog - OmniVentas</title>
+    
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    
+    <style>
+        /* ============================================
+           VARIABLES Y BASE (heredan de ayuda)
+           ============================================ */
+        :root {
+            --primary: #4361EE;
+            --primary-dark: #3651D4;
+            --primary-light: #EEF2FF;
+            --primary-gradient: linear-gradient(135deg, #4361EE 0%, #3A0CA3 100%);
+            --secondary: #FF6B35;
+            --success: #10B981;
+            --warning: #F59E0B;
+            --danger: #EF4444;
+            --dark: #0F172A;
+            --dark-secondary: #1E293B;
+            --gray: #64748B;
+            --gray-light: #F1F5F9;
+            --white: #FFFFFF;
+            --shadow-sm: 0 1px 3px rgba(0,0,0,0.06);
+            --shadow-md: 0 4px 20px rgba(0,0,0,0.08);
+            --shadow-lg: 0 20px 60px rgba(0,0,0,0.10);
+            --radius-sm: 10px;
+            --radius-md: 16px;
+            --radius-lg: 24px;
+            --transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            --header-height: 72px;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #F8FAFC;
+            color: var(--dark);
+            overflow-x: hidden;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: var(--gray-light); }
+        ::-webkit-scrollbar-thumb { background: var(--primary); border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--primary-dark); }
+
+        /* ============================================
+           ANIMACIONES
+           ============================================ */
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(30px) scale(0.98); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+
+        .animate-on-load {
+            opacity: 0;
+            animation: fadeInUp 0.6s ease-out forwards;
+        }
+        .delay-1 { animation-delay: 0.05s; }
+        .delay-2 { animation-delay: 0.10s; }
+        .delay-3 { animation-delay: 0.15s; }
+
+        /* ============================================
+           HEADER
+           ============================================ */
+        .header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: var(--header-height);
+            background: rgba(255,255,255,0.85);
+            backdrop-filter: blur(20px) saturate(180%);
+            border-bottom: 1px solid rgba(255,255,255,0.2);
+            z-index: 1050;
+            display: flex;
+            align-items: center;
+            padding: 0 28px;
+            transition: var(--transition);
+        }
+        .header.scrolled { box-shadow: var(--shadow-md); }
+
+        .header .header-title {
+            font-weight: 800;
+            font-size: 1.5rem;
+            background: var(--primary-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            letter-spacing: -0.5px;
+            margin-bottom: 0;
+        }
+        .header .header-title i { -webkit-text-fill-color: var(--primary); margin-right: 8px; }
+
+        .header .header-actions {
+            display: flex; align-items: center; gap: 16px; margin-left: auto;
+        }
+        .header .header-actions .btn-back {
+            background: var(--primary-gradient);
+            color: white;
+            border: none;
+            padding: 8px 18px;
+            border-radius: var(--radius-sm);
+            font-weight: 600;
+            font-size: 0.85rem;
+            transition: var(--transition);
+        }
+        .header .header-actions .btn-back:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(67,97,238,0.3);
+        }
+
+        /* ============================================
+           MAIN CONTENT
+           ============================================ */
+        .main-content {
+            margin-top: var(--header-height);
+            padding: 40px 32px 60px;
+            min-height: calc(100vh - var(--header-height));
+        }
+
+        /* ============================================
+           SECTION HEADER
+           ============================================ */
+        .section-header-wrapper {
+            text-align: center;
+            max-width: 700px;
+            margin: 0 auto 48px;
+        }
+
+        .section-header-wrapper .tag {
+            display: inline-block;
+            background: var(--primary-light);
+            color: var(--primary);
+            padding: 6px 18px;
+            border-radius: 50px;
+            font-weight: 600;
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 16px;
+        }
+
+        .section-header-wrapper h1 {
+            font-weight: 900;
+            font-size: clamp(2.2rem, 4vw, 3.2rem);
+            letter-spacing: -0.02em;
+            margin-bottom: 12px;
+        }
+
+        .section-header-wrapper h1 .highlight {
+            background: var(--primary-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .section-header-wrapper p {
+            color: var(--gray);
+            font-size: 1.1rem;
+            line-height: 1.7;
+        }
+
+        /* ============================================
+           BLOG GRID
+           ============================================ */
+        .blog-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 28px;
+            max-width: 1100px;
+            margin: 0 auto;
+        }
+
+        .blog-card {
+            background: var(--white);
+            border-radius: var(--radius-md);
+            overflow: hidden;
+            box-shadow: var(--shadow-sm);
+            border: 1px solid var(--gray-light);
+            transition: var(--transition);
+        }
+
+        .blog-card:hover {
+            transform: translateY(-6px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .blog-card .blog-image {
+            height: 200px;
+            background: var(--gray-light);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2.5rem;
+            color: var(--gray);
+            position: relative;
+        }
+
+        .blog-card .blog-image .category-tag {
+            position: absolute;
+            top: 16px;
+            left: 16px;
+            background: var(--primary);
+            color: white;
+            font-size: 0.65rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            padding: 4px 14px;
+            border-radius: 50px;
+        }
+
+        .blog-card .blog-body {
+            padding: 24px;
+        }
+
+        .blog-card .blog-body .blog-meta {
+            display: flex;
+            gap: 16px;
+            font-size: 0.8rem;
+            color: var(--gray);
+            margin-bottom: 10px;
+        }
+
+        .blog-card .blog-body .blog-meta i {
+            margin-right: 4px;
+        }
+
+        .blog-card .blog-body h5 {
+            font-weight: 700;
+            font-size: 1.1rem;
+            color: var(--dark);
+            margin-bottom: 8px;
+            line-height: 1.4;
+        }
+
+        .blog-card .blog-body p {
+            font-size: 0.9rem;
+            color: var(--gray);
+            line-height: 1.6;
+            margin-bottom: 16px;
+        }
+
+        .blog-card .blog-body .btn-read {
+            color: var(--primary);
+            font-weight: 600;
+            font-size: 0.85rem;
+            text-decoration: none;
+            transition: var(--transition);
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .blog-card .blog-body .btn-read:hover {
+            color: var(--primary-dark);
+            gap: 12px;
+        }
+
+        /* ============================================
+           FOOTER
+           ============================================ */
+        .footer {
+            background: var(--dark-secondary);
+            color: rgba(255,255,255,0.6);
+            padding: 48px 0 32px;
+            border-top: 1px solid rgba(255,255,255,0.05);
+        }
+
+        .footer a {
+            color: rgba(255,255,255,0.6);
+            text-decoration: none;
+            transition: var(--transition);
+            font-size: 0.9rem;
+        }
+
+        .footer a:hover {
+            color: var(--color-white);
+        }
+
+        .footer .logo-footer {
+            font-weight: 800;
+            font-size: 1.4rem;
+            color: var(--color-white);
+        }
+
+        .footer .logo-footer i {
+            color: var(--primary);
+            margin-right: 8px;
+        }
+
+        /* ============================================
+           RESPONSIVE
+           ============================================ */
+        @media (max-width: 992px) {
+            .main-content { padding: 32px 20px 40px; }
+            .blog-grid { grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); }
+        }
+
+        @media (max-width: 768px) {
+            .header { padding: 0 16px; }
+            .main-content { padding: 24px 16px 32px; }
+            .blog-grid { grid-template-columns: 1fr; max-width: 450px; }
+            .section-header-wrapper h1 { font-size: 1.8rem; }
+        }
+
+        @media (max-width: 576px) {
+            .blog-card .blog-body { padding: 18px; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- ============================================
+    HEADER
+    ============================================ -->
+    <header class="header" id="header">
+        <h1 class="header-title"><i class="fas fa-blog"></i>OmniVentas</h1>
+        <div class="header-actions">
+            <a href="/" class="btn btn-back">
+                <i class="fas fa-arrow-left me-1"></i>Volver
+            </a>
+        </div>
+    </header>
+
+    <!-- ============================================
+    MAIN CONTENT
+    ============================================ -->
+    <main class="main-content">
+
+        <!-- Section Header -->
+        <div class="section-header-wrapper animate-on-load">
+            <span class="tag">Blog</span>
+            <h1>Artículos y <span class="highlight">consejos</span></h1>
+            <p>Descubre contenido para hacer crecer tu negocio y sacar el máximo provecho de OmniVentas.</p>
+        </div>
+
+        <!-- Blog Grid -->
+        <div class="blog-grid">
+
+            <!-- Post 1 -->
+            <div class="blog-card animate-on-load delay-1">
+                <div class="blog-image" style="background: linear-gradient(135deg, #EEF2FF, #DBEAFE);">
+                    <i class="fas fa-rocket" style="font-size: 3rem; color: var(--primary); opacity: 0.5;"></i>
+                    <span class="category-tag">Empezando</span>
+                </div>
+                <div class="blog-body">
+                    <div class="blog-meta">
+                        <span><i class="fas fa-calendar"></i> 15 Ene 2024</span>
+                        <span><i class="fas fa-clock"></i> 5 min lectura</span>
+                    </div>
+                    <h5>Cómo empezar a vender con OmniVentas en 5 minutos</h5>
+                    <p>Aprende a configurar tu negocio, agregar productos y registrar tu primera venta con nuestra guía rápida.</p>
+                    <a href="#" class="btn-read">Leer más <i class="fas fa-arrow-right"></i></a>
+                </div>
+            </div>
+
+            <!-- Post 2 -->
+            <div class="blog-card animate-on-load delay-2">
+                <div class="blog-image" style="background: linear-gradient(135deg, #D1FAE5, #A7F3D0);">
+                    <i class="fas fa-chart-line" style="font-size: 3rem; color: var(--success); opacity: 0.5;"></i>
+                    <span class="category-tag">Análisis</span>
+                </div>
+                <div class="blog-body">
+                    <div class="blog-meta">
+                        <span><i class="fas fa-calendar"></i> 10 Ene 2024</span>
+                        <span><i class="fas fa-clock"></i> 8 min lectura</span>
+                    </div>
+                    <h5>5 indicadores clave que todo negocio debe monitorear</h5>
+                    <p>Descubre las métricas más importantes para tomar decisiones informadas y hacer crecer tu negocio.</p>
+                    <a href="#" class="btn-read">Leer más <i class="fas fa-arrow-right"></i></a>
+                </div>
+            </div>
+
+            <!-- Post 3 -->
+            <div class="blog-card animate-on-load delay-3">
+                <div class="blog-image" style="background: linear-gradient(135deg, #FEF3C7, #FDE68A);">
+                    <i class="fas fa-users" style="font-size: 3rem; color: var(--warning); opacity: 0.5;"></i>
+                    <span class="category-tag">Vendedores</span>
+                </div>
+                <div class="blog-body">
+                    <div class="blog-meta">
+                        <span><i class="fas fa-calendar"></i> 5 Ene 2024</span>
+                        <span><i class="fas fa-clock"></i> 6 min lectura</span>
+                    </div>
+                    <h5>Cómo motivar a tu equipo de ventas con gamificación</h5>
+                    <p>Estrategias efectivas para incentivar a tus vendedores y mejorar el rendimiento de tu equipo.</p>
+                    <a href="#" class="btn-read">Leer más <i class="fas fa-arrow-right"></i></a>
+                </div>
+            </div>
+
+            <!-- Post 4 -->
+            <div class="blog-card animate-on-load delay-1">
+                <div class="blog-image" style="background: linear-gradient(135deg, #EDE9FE, #DDD6FE);">
+                    <i class="fas fa-shield-alt" style="font-size: 3rem; color: #7C3AED; opacity: 0.5;"></i>
+                    <span class="category-tag">Seguridad</span>
+                </div>
+                <div class="blog-body">
+                    <div class="blog-meta">
+                        <span><i class="fas fa-calendar"></i> 28 Dic 2023</span>
+                        <span><i class="fas fa-clock"></i> 4 min lectura</span>
+                    </div>
+                    <h5>Seguridad de datos: cómo protegemos tu información</h5>
+                    <p>Conoce todas las medidas de seguridad que implementamos para mantener tus datos a salvo.</p>
+                    <a href="#" class="btn-read">Leer más <i class="fas fa-arrow-right"></i></a>
+                </div>
+            </div>
+
+            <!-- Post 5 -->
+            <div class="blog-card animate-on-load delay-2">
+                <div class="blog-image" style="background: linear-gradient(135deg, #FCE4EC, #F48FB1);">
+                    <i class="fas fa-mobile-screen" style="font-size: 3rem; color: #E11D48; opacity: 0.5;"></i>
+                    <span class="category-tag">App Móvil</span>
+                </div>
+                <div class="blog-body">
+                    <div class="blog-meta">
+                        <span><i class="fas fa-calendar"></i> 20 Dic 2023</span>
+                        <span><i class="fas fa-clock"></i> 5 min lectura</span>
+                    </div>
+                    <h5>App para vendedores: la revolución de las ventas móviles</h5>
+                    <p>Descubre cómo la app de OmniVentas puede transformar la forma en que tus vendedores trabajan.</p>
+                    <a href="#" class="btn-read">Leer más <i class="fas fa-arrow-right"></i></a>
+                </div>
+            </div>
+
+            <!-- Post 6 -->
+            <div class="blog-card animate-on-load delay-3">
+                <div class="blog-image" style="background: linear-gradient(135deg, #FFE4E0, #FFC8C4);">
+                    <i class="fas fa-hand-holding-usd" style="font-size: 3rem; color: #EA580C; opacity: 0.5;"></i>
+                    <span class="category-tag">Finanzas</span>
+                </div>
+                <div class="blog-body">
+                    <div class="blog-meta">
+                        <span><i class="fas fa-calendar"></i> 15 Dic 2023</span>
+                        <span><i class="fas fa-clock"></i> 7 min lectura</span>
+                    </div>
+                    <h5>Finanzas para emprendedores: cómo gestionar tu flujo de caja</h5>
+                    <p>Consejos prácticos para mantener un flujo de caja saludable y hacer crecer tu negocio.</p>
+                    <a href="#" class="btn-read">Leer más <i class="fas fa-arrow-right"></i></a>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Newsletter -->
+        <div style="max-width: 600px; margin: 48px auto 0; padding: 32px; background: var(--primary-light); border-radius: var(--radius-lg); text-align: center;">
+            <h5 style="font-weight: 700; color: var(--dark); margin-bottom: 8px;">
+                <i class="fas fa-envelope" style="color: var(--primary);"></i>
+                Suscríbete a nuestro newsletter
+            </h5>
+            <p style="color: var(--gray); font-size: 0.9rem; margin-bottom: 16px;">
+                Recibe los mejores artículos directamente en tu correo.
+            </p>
+            <div style="display: flex; gap: 10px; max-width: 400px; margin: 0 auto;">
+                <input type="email" class="form-control" placeholder="tu@email.com" style="border: 2px solid var(--gray-light); border-radius: var(--radius-sm); padding: 10px 16px; flex: 1;">
+                <button class="btn" style="background: var(--primary-gradient); color: white; border: none; border-radius: var(--radius-sm); padding: 10px 20px; font-weight: 600; white-space: nowrap;">
+                    Suscribirme
+                </button>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- ============================================
+    FOOTER
+    ============================================ -->
+    <footer class="footer">
+        <div class="container">
+            <div class="row g-4">
+                <div class="col-md-6">
+                    <div class="logo-footer">
+                        <i class="fas fa-chart-line"></i>OmniVentas
+                    </div>
+                    <p style="margin-top: 12px; font-size: 0.9rem;">
+                        La plataforma de gestión inteligente para tu negocio.
+                    </p>
+                </div>
+                <div class="col-md-6 text-md-end">
+                    <a href="/" style="color: rgba(255,255,255,0.6); margin-right: 16px;">Inicio</a>
+                    <a href="/ayuda" style="color: rgba(255,255,255,0.6); margin-right: 16px;">Ayuda</a>
+                    <a href="/contacto" style="color: rgba(255,255,255,0.6);">Contacto</a>
+                </div>
+            </div>
+            <hr style="border-color: rgba(255,255,255,0.08); margin: 24px 0 16px;">
+            <div class="text-center">
+                <small>&copy; 2024 OmniVentas. Todos los derechos reservados.</small>
+            </div>
+        </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        window.addEventListener('scroll', function() {
+            const header = document.getElementById('header');
+            if (window.scrollY > 20) {
+                header.classList.add('scrolled');
+            } else {
+                header.classList.remove('scrolled');
+            }
+        });
+    </script>
+
+</body>
+</html>
