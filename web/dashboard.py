@@ -87,7 +87,6 @@ def create_app():
             if user_data:
                 user = User(user_data[0], user_data[1], user_data[2], user_data[3] if len(user_data) > 3 else 'admin')
                 
-                # Log de usuario cargado
                 log_to_telegram(
                     level='SUCCESS',
                     message=f"✅ Usuario cargado en sesión: {user.username}",
@@ -514,7 +513,6 @@ def create_app():
     @login_required
     def vendedores_page():
         """Página de gestión de vendedores"""
-        # Verificar que el usuario sea admin
         if current_user.role != 'admin':
             flash('No tienes permisos para acceder a esta página', 'danger')
             log_to_telegram(
@@ -540,7 +538,6 @@ def create_app():
             
             session['business_id'] = business_id
             
-            # Verificar si ya hay productos
             try:
                 db = get_business_db_connection(business_id)
                 productos = db.execute_query("SELECT COUNT(*) FROM productos")
@@ -724,9 +721,13 @@ def create_app():
             )
             return jsonify({'success': False, 'message': str(e)})
 
+    # ============================================================
+    # API: DASHBOARD - CORREGIDO CON MANEJO DE ERRORES
+    # ============================================================
     @app.route('/api/dashboard')
     @login_required
     def dashboard_data():
+        """Obtener datos para el dashboard con mejor manejo de errores"""
         request_info = {
             'method': request.method,
             'path': request.path,
@@ -738,182 +739,235 @@ def create_app():
             mes_actual = datetime.now().strftime("%Y-%m")
             is_postgres = 'RENDER' in os.environ and os.environ.get('DATABASE_URL')
             
-            # Ventas del mes actual
-            if is_postgres:
-                ventas_mes_query = """
-                SELECT COALESCE(SUM(v.cantidad * p.precio_venta), 0) 
-                FROM ventas v 
-                JOIN productos p ON v.producto_id = p.id 
-                WHERE to_char(v.fecha, 'YYYY-MM') = %s
-                """
-            else:
-                ventas_mes_query = """
-                SELECT COALESCE(SUM(v.cantidad * p.precio_venta), 0) 
-                FROM ventas v 
-                JOIN productos p ON v.producto_id = p.id 
-                WHERE strftime('%%Y-%%m', v.fecha) = ?
-                """
+            # ============================================================
+            # 1. VENTAS DEL MES ACTUAL
+            # ============================================================
+            try:
+                if is_postgres:
+                    ventas_mes_query = """
+                    SELECT COALESCE(SUM(v.cantidad * p.precio_venta), 0) 
+                    FROM ventas v 
+                    JOIN productos p ON v.producto_id = p.id 
+                    WHERE to_char(v.fecha, 'YYYY-MM') = %s
+                    """
+                else:
+                    ventas_mes_query = """
+                    SELECT COALESCE(SUM(v.cantidad * p.precio_venta), 0) 
+                    FROM ventas v 
+                    JOIN productos p ON v.producto_id = p.id 
+                    WHERE strftime('%%Y-%%m', v.fecha) = ?
+                    """
+                
+                ventas_mes = g.db.execute_query(ventas_mes_query, (mes_actual,))
+                ventas_mes = float(ventas_mes[0][0]) if ventas_mes and ventas_mes[0][0] else 0.0
+            except Exception as e:
+                logger.error(f"Error calculando ventas del mes: {e}")
+                ventas_mes = 0.0
             
-            ventas_mes = g.db.execute_query(ventas_mes_query, (mes_actual,))
-            ventas_mes = float(ventas_mes[0][0]) if ventas_mes and ventas_mes[0][0] else 0.0
+            # ============================================================
+            # 2. GANANCIA DEL MES
+            # ============================================================
+            try:
+                if is_postgres:
+                    ganancia_query = """
+                    SELECT COALESCE(SUM(v.cantidad * (p.precio_venta - p.precio_compra - COALESCE(p.costo_transporte, 0))), 0)
+                    FROM ventas v
+                    JOIN productos p ON v.producto_id = p.id
+                    WHERE to_char(v.fecha, 'YYYY-MM') = %s
+                    """
+                else:
+                    ganancia_query = """
+                    SELECT COALESCE(SUM(v.cantidad * (p.precio_venta - p.precio_compra - COALESCE(p.costo_transporte, 0))), 0)
+                    FROM ventas v
+                    JOIN productos p ON v.producto_id = p.id
+                    WHERE strftime('%%Y-%%m', v.fecha) = ?
+                    """
+                
+                ganancia = g.db.execute_query(ganancia_query, (mes_actual,))
+                ganancia = float(ganancia[0][0]) if ganancia and ganancia[0][0] else 0.0
+            except Exception as e:
+                logger.error(f"Error calculando ganancia: {e}")
+                ganancia = 0.0
             
-            # Ventas de hoy
-            if is_postgres:
-                ventas_hoy_query = """
-                SELECT p.nombre, SUM(v.cantidad), COALESCE(SUM(v.cantidad * p.precio_venta), 0) 
-                FROM ventas v 
-                JOIN productos p ON v.producto_id = p.id 
-                WHERE DATE(v.fecha) = %s 
-                GROUP BY p.nombre
-                """
-            else:
-                ventas_hoy_query = """
-                SELECT p.nombre, SUM(v.cantidad), COALESCE(SUM(v.cantidad * p.precio_venta), 0) 
-                FROM ventas v 
-                JOIN productos p ON v.producto_id = p.id 
-                WHERE DATE(v.fecha) = ? 
-                GROUP BY p.nombre
-                """
-            
-            ventas_hoy = g.db.execute_query(ventas_hoy_query, (hoy,))
-            ventas_hoy_list = []
-            if ventas_hoy:
-                for row in ventas_hoy:
-                    ventas_hoy_list.append({
-                        'producto': row[0],
-                        'cantidad': row[1] or 0,
-                        'total': float(row[2])
-                    })
-            
-            # Inventario
-            if is_postgres:
-                inventario_query = """
-                SELECT p.nombre, s.nombre, p.stock, p.precio_venta, p.precio_compra, 
-                ROUND((p.precio_venta - p.precio_compra) / NULLIF(p.precio_compra, 0) * 100, 2) as margen
-                FROM productos p 
-                JOIN secciones s ON p.seccion_id = s.id 
-                ORDER BY p.stock ASC
-                """
-            else:
-                inventario_query = """
-                SELECT p.nombre, s.nombre, p.stock, p.precio_venta, p.precio_compra, 
-                ROUND((p.precio_venta - p.precio_compra) / NULLIF(p.precio_compra, 0) * 100, 2) as margen
-                FROM productos p 
-                JOIN secciones s ON p.seccion_id = s.id 
-                ORDER BY p.stock ASC
-                """
-            
-            inventario = g.db.execute_query(inventario_query)
-            inventario_list = []
-            if inventario:
-                for row in inventario:
-                    inventario_list.append({
-                        'nombre': row[0],
-                        'seccion': row[1],
-                        'stock': row[2] or 0,
-                        'precio_venta': float(row[3]) if row[3] else 0,
-                        'precio_compra': float(row[4]) if row[4] else 0,
-                        'margen': float(row[5]) if row[5] else 0.0
-                    })
-            
-            # Ganancia
-            if is_postgres:
-                ganancia_query = """
-                SELECT COALESCE(SUM(v.cantidad * (p.precio_venta - p.precio_compra - COALESCE(p.costo_transporte, 0))), 0)
-                FROM ventas v
-                JOIN productos p ON v.producto_id = p.id
-                WHERE to_char(v.fecha, 'YYYY-MM') = %s
-                """
-            else:
-                ganancia_query = """
-                SELECT COALESCE(SUM(v.cantidad * (p.precio_venta - p.precio_compra - COALESCE(p.costo_transporte, 0))), 0)
-                FROM ventas v
-                JOIN productos p ON v.producto_id = p.id
-                WHERE strftime('%%Y-%%m', v.fecha) = ?
-                """
-            
-            ganancia = g.db.execute_query(ganancia_query, (mes_actual,))
-            ganancia = float(ganancia[0][0]) if ganancia and ganancia[0][0] else 0.0
-            
-            # Margen promedio
+            # ============================================================
+            # 3. MARGEN PROMEDIO
+            # ============================================================
             margen = (ganancia / ventas_mes * 100) if ventas_mes > 0 else 0
             
-            # Total ventas (cantidad)
-            if is_postgres:
-                total_ventas_query = """
-                SELECT COUNT(*) FROM ventas
-                WHERE to_char(fecha, 'YYYY-MM') = %s
-                """
-            else:
-                total_ventas_query = """
-                SELECT COUNT(*) FROM ventas
-                WHERE strftime('%%Y-%%m', fecha) = ?
-                """
+            # ============================================================
+            # 4. TOTAL DE VENTAS (CANTIDAD)
+            # ============================================================
+            try:
+                if is_postgres:
+                    total_ventas_query = """
+                    SELECT COUNT(*) FROM ventas
+                    WHERE to_char(fecha, 'YYYY-MM') = %s
+                    """
+                else:
+                    total_ventas_query = """
+                    SELECT COUNT(*) FROM ventas
+                    WHERE strftime('%%Y-%%m', fecha) = ?
+                    """
+                
+                total_ventas = g.db.execute_query(total_ventas_query, (mes_actual,))
+                total_ventas = int(total_ventas[0][0]) if total_ventas and total_ventas[0][0] else 0
+            except Exception as e:
+                logger.error(f"Error calculando total de ventas: {e}")
+                total_ventas = 0
             
-            total_ventas = g.db.execute_query(total_ventas_query, (mes_actual,))
-            total_ventas = int(total_ventas[0][0]) if total_ventas and total_ventas[0][0] else 0
+            # ============================================================
+            # 5. VENTAS DE HOY
+            # ============================================================
+            try:
+                if is_postgres:
+                    ventas_hoy_query = """
+                    SELECT p.nombre, SUM(v.cantidad), COALESCE(SUM(v.cantidad * p.precio_venta), 0) 
+                    FROM ventas v 
+                    JOIN productos p ON v.producto_id = p.id 
+                    WHERE DATE(v.fecha) = %s 
+                    GROUP BY p.nombre
+                    """
+                else:
+                    ventas_hoy_query = """
+                    SELECT p.nombre, SUM(v.cantidad), COALESCE(SUM(v.cantidad * p.precio_venta), 0) 
+                    FROM ventas v 
+                    JOIN productos p ON v.producto_id = p.id 
+                    WHERE DATE(v.fecha) = ? 
+                    GROUP BY p.nombre
+                    """
+                
+                ventas_hoy = g.db.execute_query(ventas_hoy_query, (hoy,))
+                ventas_hoy_list = []
+                if ventas_hoy:
+                    for row in ventas_hoy:
+                        ventas_hoy_list.append({
+                            'producto': row[0] if row[0] else 'Producto',
+                            'cantidad': int(row[1]) if row[1] else 0,
+                            'total': float(row[2]) if row[2] else 0.0
+                        })
+            except Exception as e:
+                logger.error(f"Error obteniendo ventas de hoy: {e}")
+                ventas_hoy_list = []
             
-            # Datos para gráfico mensual
-            if is_postgres:
-                ventas_mensuales_query = """
-                SELECT to_char(fecha, 'YYYY-MM') as mes, COALESCE(SUM(cantidad * precio_venta), 0) as total
-                FROM ventas v
-                JOIN productos p ON v.producto_id = p.id
-                GROUP BY mes
-                ORDER BY mes DESC
-                LIMIT 6
-                """
-            else:
-                ventas_mensuales_query = """
-                SELECT strftime('%%Y-%%m', fecha) as mes, COALESCE(SUM(cantidad * precio_venta), 0) as total
-                FROM ventas v
-                JOIN productos p ON v.producto_id = p.id
-                GROUP BY mes
-                ORDER BY mes DESC
-                LIMIT 6
-                """
+            # ============================================================
+            # 6. INVENTARIO
+            # ============================================================
+            try:
+                if is_postgres:
+                    inventario_query = """
+                    SELECT p.nombre, s.nombre, p.stock, p.precio_venta, p.precio_compra, 
+                    ROUND((p.precio_venta - p.precio_compra) / NULLIF(p.precio_compra, 0) * 100, 2) as margen
+                    FROM productos p 
+                    JOIN secciones s ON p.seccion_id = s.id 
+                    ORDER BY p.stock ASC
+                    """
+                else:
+                    inventario_query = """
+                    SELECT p.nombre, s.nombre, p.stock, p.precio_venta, p.precio_compra, 
+                    ROUND((p.precio_venta - p.precio_compra) / NULLIF(p.precio_compra, 0) * 100, 2) as margen
+                    FROM productos p 
+                    JOIN secciones s ON p.seccion_id = s.id 
+                    ORDER BY p.stock ASC
+                    """
+                
+                inventario = g.db.execute_query(inventario_query)
+                inventario_list = []
+                if inventario:
+                    for row in inventario:
+                        inventario_list.append({
+                            'nombre': row[0] if row[0] else 'Sin nombre',
+                            'seccion': row[1] if row[1] else 'Sin sección',
+                            'stock': int(row[2]) if row[2] else 0,
+                            'precio_venta': float(row[3]) if row[3] else 0.0,
+                            'precio_compra': float(row[4]) if row[4] else 0.0,
+                            'margen': float(row[5]) if row[5] else 0.0
+                        })
+            except Exception as e:
+                logger.error(f"Error obteniendo inventario: {e}")
+                inventario_list = []
             
-            ventas_mensuales = g.db.execute_query(ventas_mensuales_query)
-            meses = []
-            ventas = []
-            if ventas_mensuales:
-                for row in reversed(ventas_mensuales):
-                    meses.append(row[0])
-                    ventas.append(float(row[1]) if row[1] else 0.0)
+            # ============================================================
+            # 7. DATOS PARA GRÁFICO MENSUAL
+            # ============================================================
+            try:
+                if is_postgres:
+                    ventas_mensuales_query = """
+                    SELECT to_char(fecha, 'YYYY-MM') as mes, COALESCE(SUM(cantidad * precio_venta), 0) as total
+                    FROM ventas v
+                    JOIN productos p ON v.producto_id = p.id
+                    GROUP BY mes
+                    ORDER BY mes DESC
+                    LIMIT 6
+                    """
+                else:
+                    ventas_mensuales_query = """
+                    SELECT strftime('%%Y-%%m', fecha) as mes, COALESCE(SUM(cantidad * precio_venta), 0) as total
+                    FROM ventas v
+                    JOIN productos p ON v.producto_id = p.id
+                    GROUP BY mes
+                    ORDER BY mes DESC
+                    LIMIT 6
+                    """
+                
+                ventas_mensuales = g.db.execute_query(ventas_mensuales_query)
+                meses = []
+                ventas_mensuales_list = []
+                if ventas_mensuales:
+                    for row in reversed(ventas_mensuales):
+                        meses.append(row[0] if row[0] else 'Sin mes')
+                        ventas_mensuales_list.append(float(row[1]) if row[1] else 0.0)
+            except Exception as e:
+                logger.error(f"Error obteniendo datos mensuales: {e}")
+                meses = []
+                ventas_mensuales_list = []
             
-            # Tendencias (calculadas vs mes anterior)
-            if is_postgres:
-                mes_anterior = (datetime.now() - timedelta(days=30)).strftime("%Y-%m")
-                ventas_mes_anterior_query = """
-                SELECT COALESCE(SUM(v.cantidad * p.precio_venta), 0) 
-                FROM ventas v 
-                JOIN productos p ON v.producto_id = p.id 
-                WHERE to_char(v.fecha, 'YYYY-MM') = %s
-                """
-            else:
-                mes_anterior = (datetime.now() - timedelta(days=30)).strftime("%Y-%m")
-                ventas_mes_anterior_query = """
-                SELECT COALESCE(SUM(v.cantidad * p.precio_venta), 0) 
-                FROM ventas v 
-                JOIN productos p ON v.producto_id = p.id 
-                WHERE strftime('%%Y-%%m', v.fecha) = ?
-                """
+            # ============================================================
+            # 8. TENDENCIAS
+            # ============================================================
+            try:
+                if is_postgres:
+                    mes_anterior = (datetime.now() - timedelta(days=30)).strftime("%Y-%m")
+                    ventas_mes_anterior_query = """
+                    SELECT COALESCE(SUM(v.cantidad * p.precio_venta), 0) 
+                    FROM ventas v 
+                    JOIN productos p ON v.producto_id = p.id 
+                    WHERE to_char(v.fecha, 'YYYY-MM') = %s
+                    """
+                else:
+                    mes_anterior = (datetime.now() - timedelta(days=30)).strftime("%Y-%m")
+                    ventas_mes_anterior_query = """
+                    SELECT COALESCE(SUM(v.cantidad * p.precio_venta), 0) 
+                    FROM ventas v 
+                    JOIN productos p ON v.producto_id = p.id 
+                    WHERE strftime('%%Y-%%m', v.fecha) = ?
+                    """
+                
+                ventas_mes_anterior = g.db.execute_query(ventas_mes_anterior_query, (mes_anterior,))
+                ventas_mes_anterior = float(ventas_mes_anterior[0][0]) if ventas_mes_anterior and ventas_mes_anterior[0][0] else 0
+                
+                tendencia_ingresos = ((ventas_mes - ventas_mes_anterior) / ventas_mes_anterior * 100) if ventas_mes_anterior > 0 else 0
+                
+                tendencias = {
+                    'ingresos': round(tendencia_ingresos, 1),
+                    'ganancia': round(tendencia_ingresos * 0.8, 1) if abs(tendencia_ingresos) < 100 else 0,
+                    'margen': round(tendencia_ingresos * 0.5, 1) if abs(tendencia_ingresos) < 100 else 0,
+                    'ventas': round(tendencia_ingresos * 1.2, 1) if abs(tendencia_ingresos) < 100 else 0
+                }
+            except Exception as e:
+                logger.error(f"Error calculando tendencias: {e}")
+                tendencias = {
+                    'ingresos': 0,
+                    'ganancia': 0,
+                    'margen': 0,
+                    'ventas': 0
+                }
             
-            ventas_mes_anterior = g.db.execute_query(ventas_mes_anterior_query, (mes_anterior,))
-            ventas_mes_anterior = float(ventas_mes_anterior[0][0]) if ventas_mes_anterior and ventas_mes_anterior[0][0] else 0
-            
-            tendencia_ingresos = ((ventas_mes - ventas_mes_anterior) / ventas_mes_anterior * 100) if ventas_mes_anterior > 0 else 0
-            
-            tendencias = {
-                'ingresos': round(tendencia_ingresos, 1),
-                'ganancia': round(tendencia_ingresos * 0.8, 1),
-                'margen': round(tendencia_ingresos * 0.5, 1),
-                'ventas': round(tendencia_ingresos * 1.2, 1)
-            }
-            
+            # ============================================================
+            # 9. RESPUESTA
+            # ============================================================
             return jsonify({
-                'ingresos': ventas_mes,
-                'ganancia': ganancia,
+                'ingresos': round(ventas_mes, 2),
+                'ganancia': round(ganancia, 2),
                 'margen': round(margen, 2),
                 'ventas': total_ventas,
                 'tendencias': tendencias,
@@ -921,12 +975,14 @@ def create_app():
                 'inventario': inventario_list,
                 'ventas_mensuales': {
                     'meses': meses,
-                    'ventas': ventas
+                    'ventas': ventas_mensuales_list
                 }
             })
-        
+            
         except Exception as e:
             logger.error(f"Error en dashboard_data: {str(e)}")
+            logger.error(traceback.format_exc())
+            
             log_to_telegram(
                 level='ERROR',
                 message=f"Error en dashboard_data: {str(e)}",
@@ -935,11 +991,31 @@ def create_app():
                 business_id=current_user.business_id if current_user.is_authenticated else None,
                 request_info=request_info
             )
+            
+            # Devolver datos vacíos pero con estructura correcta
             return jsonify({
-                'error': 'Ocurrió un error al obtener los datos del dashboard',
-                'details': str(e)
+                'ingresos': 0.0,
+                'ganancia': 0.0,
+                'margen': 0.0,
+                'ventas': 0,
+                'tendencias': {
+                    'ingresos': 0,
+                    'ganancia': 0,
+                    'margen': 0,
+                    'ventas': 0
+                },
+                'ventas_hoy': [],
+                'inventario': [],
+                'ventas_mensuales': {
+                    'meses': [],
+                    'ventas': []
+                },
+                'error': str(e)
             }), 500
 
+    # ============================================================
+    # API: SALES DATA (GRÁFICO)
+    # ============================================================
     @app.route('/api/sales')
     @login_required
     def sales_data():
@@ -1053,6 +1129,9 @@ def create_app():
                 'details': str(e)
             }), 500
 
+    # ============================================================
+    # API: VENTAS (TABLA HISTÓRICO)
+    # ============================================================
     @app.route('/api/ventas')
     @login_required
     def api_ventas():
@@ -2111,7 +2190,9 @@ def create_app():
     def privacy():
         return render_template('privacy.html')
 
-    # Handlers de WebSocket
+    # ============================================================
+    # HANDLERS DE WEBSOCKET
+    # ============================================================
     @socketio.on('connect')
     def handle_connect():
         try:
