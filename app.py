@@ -1,4 +1,4 @@
-# app.py - Aplicación principal CON endpoint para vendedores y logs por Telegram
+# app.py - Aplicación principal SIN bot de Telegram por negocio
 import os
 from flask import Flask, g, jsonify, request, session, send_file
 import logging
@@ -23,7 +23,7 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# ==================== IMPORTAR DASHBOARD Y FUNCIÓN DE CONEXIÓN ====================
+# ==================== IMPORTAR DASHBOARD ====================
 from web.dashboard import create_app, set_telegram_log_function
 
 # ==================== IMPORTAR DatabaseManager ====================
@@ -42,19 +42,19 @@ CORS(app, resources={
     }
 })
 
-# ==================== CONFIGURACIÓN DEL BOT DE TELEGRAM PARA LOGS ====================
+# ==================== CONFIGURACIÓN DE TELEGRAM SOLO PARA LOGS ====================
 TELEGRAM_BOT_TOKEN = os.environ.get('TELEGRAM_BOT_TOKEN', '')
 TELEGRAM_ADMIN_CHAT_ID = os.environ.get('TELEGRAM_ADMIN_CHAT_ID', '')
 
 if TELEGRAM_BOT_TOKEN and TELEGRAM_ADMIN_CHAT_ID:
-    logger.info("✅ Bot de Telegram configurado correctamente para logs")
+    logger.info("✅ Bot de Telegram configurado para LOGS del programador")
 else:
     logger.warning("⚠️ Bot de Telegram NO configurado. Los logs no se enviarán.")
 
-# ==================== FUNCIÓN DE LOG PARA TELEGRAM (WEB) ====================
+# ==================== FUNCIÓN DE LOG PARA TELEGRAM (SOLO PROGRAMADOR) ====================
 
 def send_telegram_message(message, parse_mode=None):
-    """Función interna para enviar mensajes a Telegram"""
+    """Función interna para enviar mensajes a Telegram (SOLO PROGRAMADOR)"""
     try:
         if not TELEGRAM_BOT_TOKEN or not TELEGRAM_ADMIN_CHAT_ID:
             logger.warning("Telegram no configurado, mensaje no enviado")
@@ -84,8 +84,7 @@ def send_telegram_message(message, parse_mode=None):
 
 def log_to_telegram_web(level, message, data=None, user=None, business_id=None, request_info=None):
     """
-    Función de log que será utilizada por dashboard.py
-    Esta función se pasa a dashboard mediante set_telegram_log_function()
+    Función de log para el programador (SOLO LOGS)
     """
     try:
         if not TELEGRAM_BOT_TOKEN or not TELEGRAM_ADMIN_CHAT_ID:
@@ -103,7 +102,7 @@ def log_to_telegram_web(level, message, data=None, user=None, business_id=None, 
         timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         
         lines = [
-            f"{emoji} [{level}] LOG WEB - OmniVentas",
+            f"{emoji} [{level}] OMNIVENTAS LOG",
             "",
             f"⏰ Timestamp: {timestamp}",
         ]
@@ -154,26 +153,21 @@ def log_to_telegram_web(level, message, data=None, user=None, business_id=None, 
         return False
 
 
-# ==================== ¡CRÍTICO! CONECTAR LOGS CON DASHBOARD ====================
+# ==================== ¡CONECTAR LOGS CON DASHBOARD! ====================
 set_telegram_log_function(log_to_telegram_web)
 
 
-# ==================== FUNCIÓN DE LOG UNIFICADA PARA app.py ====================
+# ==================== FUNCIÓN DE LOG UNIFICADA ====================
 
 def log_to_telegram(level, message, data=None, user=None, business_id=None, request_info=None):
-    """
-    Función unificada para enviar logs detallados a Telegram desde app.py
-    Reutiliza la misma lógica que log_to_telegram_web
-    """
+    """Función unificada para enviar logs a Telegram (SOLO PROGRAMADOR)"""
     return log_to_telegram_web(level, message, data, user, business_id, request_info)
 
 
-# ==================== DECORADOR PARA LOGS AUTOMÁTICOS EN RUTAS ====================
+# ==================== DECORADOR PARA LOGS AUTOMÁTICOS ====================
 
 def log_web_request(level='INFO'):
-    """
-    Decorador para loguear automáticamente peticiones web a Telegram
-    """
+    """Decorador para loguear automáticamente peticiones web a Telegram"""
     def decorator(f):
         @wraps(f)
         def decorated(*args, **kwargs):
@@ -318,13 +312,10 @@ def handle_exception(error):
     return response
 
 
-# ==================== DECORADOR DE AUTENTICACIÓN (CORREGIDO) ====================
+# ==================== DECORADOR DE AUTENTICACIÓN ====================
 
 def token_required(f):
-    """
-    Decorador para verificar token JWT en peticiones de la app Android.
-    ✅ Usa vendor_id y user_id del token.
-    """
+    """Decorador para verificar token JWT en peticiones de la app Android"""
     @wraps(f)
     def decorated(*args, **kwargs):
         auth_header = request.headers.get('Authorization')
@@ -374,20 +365,14 @@ def health_check():
         'telegram_logs': bool(TELEGRAM_BOT_TOKEN and TELEGRAM_ADMIN_CHAT_ID)
     }
     
-    log_to_telegram(
-        level='INFO',
-        message="Health check realizado",
-        data={'status': 'ok'},
-        business_id=None
-    )
-    
     return jsonify(status_data), 200
 
 
-# ==================== ENDPOINT: LOGS POR TELEGRAM (BOT ÚNICO) ====================
+# ==================== ENDPOINT: LOGS POR TELEGRAM (SOLO PROGRAMADOR) ====================
 
 @app.route('/api/send-log', methods=['POST', 'OPTIONS'])
 def send_log_to_telegram():
+    """Endpoint para enviar logs desde la app Android (SOLO PROGRAMADOR)"""
     if request.method == 'OPTIONS':
         response = jsonify({'success': True})
         response.headers.add('Access-Control-Allow-Origin', '*')
@@ -435,7 +420,7 @@ def send_log_to_telegram():
         }.get(log_level, '📱')
         
         message_lines = [
-            f"{emoji} [{log_level}] Log desde App Android",
+            f"{emoji} [{log_level}] LOG desde App Android",
             "",
             f"App: OmniVentas v{app_version}",
             f"Vendedor: {vendor_id} ({vendor_name})",
@@ -479,6 +464,7 @@ def send_log_to_telegram():
 
 @app.route('/api/telegram-status', methods=['GET'])
 def telegram_status():
+    """Verificar estado del bot de Telegram (SOLO PROGRAMADOR)"""
     response = jsonify({
         'bot_configured': bool(TELEGRAM_BOT_TOKEN and TELEGRAM_ADMIN_CHAT_ID),
         'token_present': bool(TELEGRAM_BOT_TOKEN),
@@ -492,6 +478,7 @@ def telegram_status():
 
 @app.route('/api/test-log', methods=['GET'])
 def test_log_endpoint():
+    """Endpoint para probar el envío de logs"""
     try:
         test_data = {
             'level': 'SUCCESS',
@@ -513,13 +500,11 @@ def test_log_endpoint():
         return jsonify({'success': False, 'message': str(e)}), 500
 
 
-# ==================== ENDPOINT: LOGIN DE VENDEDOR (CORREGIDO - FUNCIONA CON SQLITE Y POSTGRESQL) ====================
+# ==================== ENDPOINT: LOGIN DE VENDEDOR ====================
 
 @app.route('/api/login-vendedor', methods=['POST'])
 def login_vendedor():
-    """
-    Login para vendedores - FUNCIONA CON SQLite Y PostgreSQL
-    """
+    """Login para vendedores - FUNCIONA CON SQLite Y PostgreSQL"""
     request_info = {
         'method': request.method,
         'path': request.path,
@@ -554,12 +539,9 @@ def login_vendedor():
         vendor_data = None
         business_id = None
         
-        # ============================================================
-        # 1️⃣ BUSCAR EN VENDORS (SIN search_path PARA SQLITE)
-        # ============================================================
+        # Buscar en VENDORS
         try:
             if is_postgres:
-                # PostgreSQL: usar search_path
                 c.execute("SET search_path TO public")
                 c.execute("""
                     SELECT id, name, business_id, role, active
@@ -567,7 +549,6 @@ def login_vendedor():
                     WHERE id = %s
                 """, (vendor_id,))
             else:
-                # SQLite: consulta directa
                 c.execute("""
                     SELECT id, name, business_id, role, active
                     FROM vendors
@@ -581,9 +562,7 @@ def login_vendedor():
         except Exception as e:
             logger.error(f"Error buscando en vendors: {e}")
         
-        # ============================================================
-        # 2️⃣ SI NO ESTÁ EN VENDORS, BUSCAR EN USERS
-        # ============================================================
+        # Si no está en VENDORS, buscar en USERS
         if not vendor_data:
             logger.info(f"⚠️ Vendor {vendor_id} no encontrado en vendors, buscando en users...")
             try:
@@ -644,9 +623,7 @@ def login_vendedor():
         
         vendor_role = vendor_data[3] if len(vendor_data) > 3 else 'vendedor'
         
-        # ============================================================
-        # 3️⃣ OBTENER NOMBRE DEL NEGOCIO (SIN search_path)
-        # ============================================================
+        # Obtener nombre del negocio
         try:
             if is_postgres:
                 c.execute("SELECT name FROM businesses WHERE id = %s", (business_id,))
@@ -658,9 +635,7 @@ def login_vendedor():
             logger.error(f"Error obteniendo nombre del negocio: {e}")
             business_name = business_id
         
-        # ============================================================
-        # 4️⃣ OBTENER USER_ID (O CREARLO AUTOMÁTICAMENTE)
-        # ============================================================
+        # Obtener USER_ID
         user_id = None
         try:
             if is_postgres:
@@ -725,6 +700,19 @@ def login_vendedor():
             'exp': datetime.datetime.utcnow() + datetime.timedelta(days=7)
         }, os.environ.get('JWT_SECRET', 'secret-key'), algorithm='HS256')
         
+        log_to_telegram(
+            level='SUCCESS',
+            message=f"✅ Login exitoso desde app: {vendor_name}",
+            data={
+                'vendor_id': vendor_id_db,
+                'business_id': business_id,
+                'business_name': business_name,
+                'role': vendor_role
+            },
+            business_id=business_id,
+            request_info=request_info
+        )
+        
         return jsonify({
             'success': True,
             'token': token,
@@ -741,61 +729,15 @@ def login_vendedor():
     except Exception as e:
         logger.error(f"❌ Error en login_vendedor: {e}")
         logger.error(traceback.format_exc())
+        
+        log_to_telegram(
+            level='ERROR',
+            message=f"Error en login_vendedor: {str(e)}",
+            data={'error': str(e), 'traceback': traceback.format_exc()},
+            request_info=request_info
+        )
+        
         return jsonify({'success': False, 'message': f'Error del servidor: {str(e)}'}), 500
-
-
-def buscar_vendedor_en_todos_los_esquemas(vendor_id):
-    """Buscar un vendedor en todos los esquemas de la base de datos"""
-    try:
-        conn = DatabaseManager.get_global_connection()
-        if conn is None:
-            return None
-        
-        c = conn.cursor()
-        is_postgres = 'RENDER' in os.environ and os.environ.get('DATABASE_URL')
-        
-        # SQLite: búsqueda simple
-        if not is_postgres:
-            c.execute("SELECT id, name, business_id, role, active FROM vendors WHERE id = ?", (vendor_id,))
-            return c.fetchone()
-        
-        # PostgreSQL: búsqueda con search_path
-        c.execute("SET search_path TO public")
-        c.execute("SELECT id, name, business_id, role, active FROM vendors WHERE id = %s", (vendor_id,))
-        result = c.fetchone()
-        if result:
-            return result
-        
-        # Buscar en esquemas business_*
-        c.execute("""
-            SELECT 
-                nspname as schema_name,
-                id, name, business_id, role, active
-            FROM (
-                SELECT 
-                    nspname,
-                    (SELECT row_to_json(t) FROM (SELECT id, name, business_id, role, active FROM vendors) t) as vendor_data
-                FROM pg_namespace
-                WHERE nspname LIKE 'business_%'
-            ) s
-            WHERE vendor_data->>'id' = %s
-        """, (vendor_id,))
-        
-        result = c.fetchone()
-        if result:
-            schema_name = result[0]
-            c.execute(f"""
-                SELECT id, name, business_id, role, active
-                FROM {schema_name}.vendors
-                WHERE id = %s
-            """, (vendor_id,))
-            return c.fetchone()
-        
-        return None
-        
-    except Exception as e:
-        logger.error(f"Error buscando vendedor en todos los esquemas: {e}")
-        return None
 
 
 # ==================== API PARA LA APP ANDROID ====================
@@ -873,12 +815,7 @@ def get_productos():
 @app.route('/api/registrar-venta', methods=['POST', 'OPTIONS'])
 @token_required
 def registrar_venta_app():
-    """
-    Registrar venta DESDE LA APP ANDROID.
-    ✅ Usa g.user_id del JWT (numérico) para la columna usuario_id
-    ✅ También guarda vendor_id para trazabilidad
-    ✅ Valida que user_id sea numérico
-    """
+    """Registrar venta DESDE LA APP ANDROID"""
     if request.method == 'OPTIONS':
         response = jsonify({'success': True})
         response.headers.add('Access-Control-Allow-Origin', '*')
@@ -953,24 +890,16 @@ def registrar_venta_app():
                 'stock_disponible': stock_disponible
             }), 400
         
-        # ============================================================
-        # 🔥 CORRECCIÓN: Asegurar que vendor_id existe en ventas
-        # ============================================================
+        # Asegurar columna vendor_id
         if is_postgres:
             db._ensure_vendor_column(is_postgres)
         else:
-            # SQLite: verificar si la columna vendor_id existe
             try:
-                # Ejecutar PRAGMA table_info
                 pragma_result = db.execute_query("PRAGMA table_info(ventas)")
-                
-                # Verificar que pragma_result sea una lista
                 has_vendor_column = False
                 if pragma_result and isinstance(pragma_result, list):
                     has_vendor_column = any(col[1] == 'vendor_id' for col in pragma_result)
                 else:
-                    # Si execute_query devolvió True o None, usar método alternativo
-                    logger.warning("⚠️ PRAGMA table_info no retornó lista, verificando con SELECT...")
                     try:
                         db.execute_query("SELECT vendor_id FROM ventas LIMIT 1")
                         has_vendor_column = True
@@ -982,17 +911,13 @@ def registrar_venta_app():
                     db.execute_query("ALTER TABLE ventas ADD COLUMN vendor_id TEXT")
                     db.execute_query("CREATE INDEX IF NOT EXISTS idx_ventas_vendor_id ON ventas(vendor_id)")
                     logger.info("✅ Columna vendor_id agregada a ventas")
-                else:
-                    logger.info("✅ vendor_id ya existe en ventas")
             except Exception as e:
                 logger.error(f"Error verificando/agregando vendor_id: {e}")
-                # Intentar agregar la columna directamente como fallback
                 try:
                     db.execute_query("ALTER TABLE ventas ADD COLUMN vendor_id TEXT")
                     logger.info("✅ Columna vendor_id agregada a ventas (fallback)")
                 except Exception as e2:
                     logger.error(f"Error agregando vendor_id (fallback): {e2}")
-                    # Si no se puede agregar, continuar sin vendor_id (no debería pasar)
         
         # Registrar venta
         if is_postgres:
@@ -1068,7 +993,7 @@ def registrar_venta_app():
         )
         
         return jsonify({'success': False, 'message': str(e)}), 500
-        
+
 
 @app.route('/api/dashboard-app', methods=['GET'])
 @token_required
@@ -1192,10 +1117,7 @@ def dashboard_app():
 @app.route('/api/ventas-app', methods=['GET'])
 @token_required
 def ventas_app():
-    """
-    Obtener historial de ventas para la app.
-    ✅ FILTRA POR vendor_id para que cada vendedor vea solo sus ventas.
-    """
+    """Obtener historial de ventas para la app"""
     request_info = {
         'method': request.method,
         'path': request.path,
@@ -1434,7 +1356,7 @@ def get_vendedores_web():
 @app.route('/api/vendedor', methods=['POST'])
 @login_required
 def crear_vendedor_web():
-    """Crear un nuevo vendedor (desde panel web) - CORREGIDO: funciona con SQLite y PostgreSQL"""
+    """Crear un nuevo vendedor (desde panel web)"""
     request_info = {
         'method': request.method,
         'path': request.path,
@@ -1467,7 +1389,6 @@ def crear_vendedor_web():
         vendor_id = generate_vendor_id()
         is_postgres = 'RENDER' in os.environ and os.environ.get('DATABASE_URL')
         
-        # Guardar en la tabla vendors (SIN search_path para SQLite)
         conn = DatabaseManager.get_global_connection()
         if conn:
             c = conn.cursor()
@@ -1618,7 +1539,6 @@ def eliminar_vendedor_web(vendor_id):
         db = DatabaseManager(current_user.business_id)
         is_postgres = 'RENDER' in os.environ and os.environ.get('DATABASE_URL')
         
-        # Obtener nombre del vendedor antes de eliminar
         if is_postgres:
             vendor_info = db.execute_query("SELECT name FROM vendors WHERE id = %s AND business_id = %s", (vendor_id, current_user.business_id))
         else:
@@ -1736,7 +1656,7 @@ def get_vendedores_app():
 @app.route('/api/vendedor-app', methods=['POST'])
 @token_required
 def crear_vendedor_app():
-    """Crear un nuevo vendedor (desde app Android) - CORREGIDO: funciona con SQLite y PostgreSQL"""
+    """Crear un nuevo vendedor (desde app Android)"""
     request_info = {
         'method': request.method,
         'path': request.path,
@@ -1770,7 +1690,6 @@ def crear_vendedor_app():
         vendor_id = generate_vendor_id()
         is_postgres = 'RENDER' in os.environ and os.environ.get('DATABASE_URL')
         
-        # Guardar en la tabla vendors (SIN search_path para SQLite)
         conn = DatabaseManager.get_global_connection()
         if conn:
             c = conn.cursor()
@@ -1895,18 +1814,6 @@ def test_endpoint():
     return response
 
 
-@app.route('/api/venta-diagnostico', methods=['GET'])
-def venta_diagnostico():
-    return jsonify({
-        'success': True,
-        'message': 'Endpoint de diagnóstico funcionando',
-        'telegram_configured': bool(TELEGRAM_BOT_TOKEN and TELEGRAM_ADMIN_CHAT_ID),
-        'telegram_token': TELEGRAM_BOT_TOKEN[:10] + '...' if TELEGRAM_BOT_TOKEN else None,
-        'telegram_chat_id': TELEGRAM_ADMIN_CHAT_ID[:10] + '...' if TELEGRAM_ADMIN_CHAT_ID else None,
-        'timestamp': datetime.datetime.now().isoformat()
-    })
-
-
 @app.route('/api/diagnostico', methods=['GET'])
 def diagnostico():
     import platform
@@ -1928,215 +1835,8 @@ def diagnostico():
             '/api/send-log',
             '/api/telegram-status',
             '/api/diagnostico',
-            '/api/test',
-            '/api/venta-diagnostico'
+            '/api/test'
         ]
-    })
-
-
-@app.route('/api/diagnostico-vendedor/<vendor_id>', methods=['GET'])
-def diagnosticar_vendedor(vendor_id):
-    """Endpoint para diagnosticar problemas de login de vendedores"""
-    try:
-        from database.db_manager import DatabaseManager
-        DatabaseManager.verify_and_fix_global_tables()
-        
-        conn = DatabaseManager.get_global_connection()
-        if conn is None:
-            return jsonify({'success': False, 'message': 'Error de conexión'}), 500
-        
-        c = conn.cursor()
-        is_postgres = 'RENDER' in os.environ and os.environ.get('DATABASE_URL')
-        
-        if is_postgres:
-            c.execute("""
-                SELECT id, name, business_id, role, active 
-                FROM vendors 
-                WHERE id = %s
-            """, (vendor_id,))
-        else:
-            c.execute("""
-                SELECT id, name, business_id, role, active 
-                FROM vendors 
-                WHERE id = ?
-            """, (vendor_id,))
-        
-        vendor = c.fetchone()
-        
-        if not vendor:
-            return jsonify({
-                'success': False,
-                'message': f'Vendedor con ID {vendor_id} no encontrado',
-                'diagnostico': {
-                    'vendor_exists': False,
-                    'vendor_id': vendor_id
-                }
-            })
-        
-        business_id = vendor[2]
-        if is_postgres:
-            c.execute("SELECT id, name FROM businesses WHERE id = %s", (business_id,))
-        else:
-            c.execute("SELECT id, name FROM businesses WHERE id = ?", (business_id,))
-        
-        business = c.fetchone()
-        
-        if is_postgres:
-            c.execute("SELECT id, username FROM users WHERE business_id = %s LIMIT 1", (business_id,))
-        else:
-            c.execute("SELECT id, username FROM users WHERE business_id = ? LIMIT 1", (business_id,))
-        
-        user = c.fetchone()
-        
-        return jsonify({
-            'success': True,
-            'diagnostico': {
-                'vendor': {
-                    'id': vendor[0],
-                    'name': vendor[1],
-                    'business_id': vendor[2],
-                    'role': vendor[3],
-                    'active': vendor[4],
-                    'active_boolean': bool(vendor[4]) if vendor[4] is not None else None
-                },
-                'business': {
-                    'id': business[0] if business else None,
-                    'name': business[1] if business else None,
-                    'exists': business is not None
-                },
-                'user': {
-                    'id': user[0] if user else None,
-                    'username': user[1] if user else None,
-                    'exists': user is not None
-                },
-                'problemas': {
-                    'falta_usuario': user is None,
-                    'vendedor_inactivo': not bool(vendor[4]) if vendor[4] is not None else True,
-                    'negocio_no_existe': business is None
-                }
-            }
-        })
-        
-    except Exception as e:
-        logger.error(f"Error en diagnosticar_vendedor: {e}")
-        return jsonify({'success': False, 'message': str(e)}), 500
-
-
-@app.route('/api/diagnostico-vendedor-bd/<vendor_id>', methods=['GET'])
-def diagnosticar_vendedor_bd(vendor_id):
-    """
-    Diagnóstico completo para verificar dónde está el vendedor.
-    """
-    try:
-        from database.db_manager import DatabaseManager
-        DatabaseManager.verify_and_fix_global_tables()
-        
-        conn = DatabaseManager.get_global_connection()
-        if conn is None:
-            return jsonify({'success': False, 'message': 'Error de conexión'}), 500
-        
-        c = conn.cursor()
-        is_postgres = 'RENDER' in os.environ and os.environ.get('DATABASE_URL')
-        
-        vendor_id = vendor_id.strip().upper()
-        resultado = {
-            'vendor_id': vendor_id,
-            'tabla_vendors': None,
-            'tabla_users': None,
-            'business_id': None
-        }
-        
-        if is_postgres:
-            c.execute("""
-                SELECT id, name, business_id, role, active 
-                FROM vendors 
-                WHERE id = %s
-            """, (vendor_id,))
-        else:
-            c.execute("""
-                SELECT id, name, business_id, role, active 
-                FROM vendors 
-                WHERE id = ?
-            """, (vendor_id,))
-        
-        vendor = c.fetchone()
-        if vendor:
-            resultado['tabla_vendors'] = {
-                'id': vendor[0],
-                'name': vendor[1],
-                'business_id': vendor[2],
-                'role': vendor[3],
-                'active': vendor[4]
-            }
-            resultado['business_id'] = vendor[2]
-        
-        if is_postgres:
-            c.execute("""
-                SELECT id, username, business_id, role 
-                FROM users 
-                WHERE username = %s OR id = %s
-            """, (vendor_id, vendor_id))
-        else:
-            c.execute("""
-                SELECT id, username, business_id, role 
-                FROM users 
-                WHERE username = ? OR id = ?
-            """, (vendor_id, vendor_id))
-        
-        user = c.fetchone()
-        if user:
-            resultado['tabla_users'] = {
-                'id': user[0],
-                'username': user[1],
-                'business_id': user[2],
-                'role': user[3]
-            }
-            if not resultado['business_id']:
-                resultado['business_id'] = user[2]
-        
-        if not vendor and not user:
-            return jsonify({
-                'success': False,
-                'message': f'Vendedor {vendor_id} no encontrado en ninguna tabla',
-                'diagnostico': resultado
-            })
-        
-        business_id = resultado.get('business_id')
-        if business_id:
-            if is_postgres:
-                c.execute("SELECT id, name FROM businesses WHERE id = %s", (business_id,))
-            else:
-                c.execute("SELECT id, name FROM businesses WHERE id = ?", (business_id,))
-            business = c.fetchone()
-            if business:
-                resultado['business'] = {
-                    'id': business[0],
-                    'name': business[1]
-                }
-        
-        return jsonify({
-            'success': True,
-            'diagnostico': resultado
-        })
-        
-    except Exception as e:
-        logger.error(f"Error en diagnosticar_vendedor_bd: {e}")
-        return jsonify({'success': False, 'message': str(e)}), 500
-
-
-@app.route('/api/diagnostico-token', methods=['GET'])
-@token_required
-def diagnosticar_token():
-    """Diagnóstico del token JWT - VERIFICA QUE user_id ESTÉ PRESENTE"""
-    return jsonify({
-        'success': True,
-        'token_info': {
-            'vendor_id': g.vendor_id,
-            'user_id': g.user_id,
-            'business_id': g.business_id,
-            'vendor_name': g.vendor_name,
-            'role': g.role
-        }
     })
 
 
