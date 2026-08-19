@@ -1,6 +1,7 @@
 package com.omniventas.app.repository;
 
 import android.content.Context;
+import android.os.AsyncTask;
 import android.util.Log;
 import com.omniventas.app.api.ApiService;
 import com.omniventas.app.api.RetrofitClient;
@@ -16,8 +17,6 @@ import com.omniventas.app.utils.TelegramLogger;
 import com.omniventas.app.sync.SyncManager;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
@@ -28,14 +27,12 @@ public class OmniVentasRepository {
     private final SessionManager sessionManager;
     private final TelegramLogger logger;
     private final Context context;
-    private final ExecutorService executorService;  // ← NUEVO: Para operaciones en segundo plano
 
     public OmniVentasRepository(Context context) {
         this.context = context;
         this.database = AppDatabase.getInstance(context);
         this.sessionManager = new SessionManager(context);
         this.logger = TelegramLogger.getInstance(context);
-        this.executorService = Executors.newSingleThreadExecutor();  // ← NUEVO
     }
 
     // PRODUCTOS
@@ -63,33 +60,7 @@ public class OmniVentasRepository {
             public void onResponse(Call<RespuestaProductos> call, Response<RespuestaProductos> response) {
                 if (response.isSuccessful() && response.body() != null && response.body().isSuccess()) {
                     List<Producto> productos = response.body().getProductos();
-                    
-                    // ← CORREGIDO: Ejecutar en hilo secundario
-                    executorService.execute(() -> {
-                        try {
-                            List<ProductoEntity> entities = new ArrayList<>();
-                            
-                            for (Producto p : productos) {
-                                ProductoEntity entity = new ProductoEntity();
-                                entity.setId(p.getId());
-                                entity.setNombre(p.getNombre());
-                                entity.setSeccion(p.getSeccion());
-                                entity.setPrecio(p.getPrecio());
-                                entity.setStock(p.getStock());
-                                entity.setDescripcion(p.getDescripcion() != null ? p.getDescripcion() : "");
-                                entity.setLastSync(System.currentTimeMillis());
-                                entity.setDeleted(false);
-                                entities.add(entity);
-                            }
-                            
-                            database.productoDao().insertAll(entities);
-                            Log.d(TAG, "✅ Productos sincronizados: " + entities.size());
-                            logger.success("Productos sincronizados desde servidor");
-                        } catch (Exception e) {
-                            Log.e(TAG, "❌ Error guardando productos en DB: " + e.getMessage());
-                            e.printStackTrace();
-                        }
-                    });
+                    new InsertProductosTask().execute(productos);
                 }
             }
 
@@ -100,11 +71,53 @@ public class OmniVentasRepository {
         });
     }
 
+    // ✅ AsyncTask para insertar productos en segundo plano
+    private class InsertProductosTask extends AsyncTask<List<Producto>, Void, Void> {
+        @Override
+        protected Void doInBackground(List<Producto>... params) {
+            try {
+                List<Producto> productos = params[0];
+                List<ProductoEntity> entities = new ArrayList<>();
+                
+                for (Producto p : productos) {
+                    ProductoEntity entity = new ProductoEntity();
+                    entity.setId(p.getId());
+                    entity.setNombre(p.getNombre());
+                    entity.setSeccion(p.getSeccion());
+                    entity.setPrecio(p.getPrecio());
+                    entity.setStock(p.getStock());
+                    entity.setDescripcion(p.getDescripcion() != null ? p.getDescripcion() : "");
+                    entity.setLastSync(System.currentTimeMillis());
+                    entity.setDeleted(false);
+                    entities.add(entity);
+                }
+                
+                database.productoDao().insertAll(entities);
+                Log.d(TAG, "✅ Productos sincronizados: " + entities.size());
+                logger.success("Productos sincronizados desde servidor");
+            } catch (Exception e) {
+                Log.e(TAG, "❌ Error guardando productos en DB: " + e.getMessage());
+                e.printStackTrace();
+            }
+            return null;
+        }
+    }
+
     // VENTAS OFFLINE
     public void registrarVentaOffline(int productoId, String productoNombre, int cantidad, double precioUnitario) {
-        // ← CORREGIDO: Ejecutar en hilo secundario
-        executorService.execute(() -> {
+        new InsertVentaTask().execute(productoId, productoNombre, cantidad, precioUnitario);
+    }
+
+    // ✅ AsyncTask para insertar venta en segundo plano
+    private class InsertVentaTask extends AsyncTask<Object, Void, Void> {
+        @Override
+        protected Void doInBackground(Object... params) {
             try {
+                int productoId = (int) params[0];
+                String productoNombre = (String) params[1];
+                int cantidad = (int) params[2];
+                double precioUnitario = (double) params[3];
+
                 VentaEntity venta = new VentaEntity();
                 venta.setProductoId(productoId);
                 venta.setProductoNombre(productoNombre);
@@ -134,7 +147,8 @@ public class OmniVentasRepository {
                 Log.e(TAG, "❌ Error guardando venta offline: " + e.getMessage());
                 e.printStackTrace();
             }
-        });
+            return null;
+        }
     }
 
     public void trySyncVentas() {
@@ -173,4 +187,4 @@ public class OmniVentasRepository {
         }
         return count;
     }
-}
+            }
