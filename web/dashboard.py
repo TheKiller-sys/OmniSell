@@ -2257,12 +2257,31 @@ def create_app():
                 business_id = session['business_id']
                 socketio.server.enter_room(request.sid, business_id)
                 logger.info(f"Cliente conectado a sala de negocio: {business_id}")
-     
+                
+                # 🔥 ELIMINADO: Log de WebSocket para evitar spam
+                # log_to_telegram(
+                #     level='INFO',
+                #     message=f"WebSocket conectado",
+                #     data={'business_id': business_id, 'sid': request.sid},
+                #     business_id=business_id
+                # )
         except Exception as e:
             logger.error(f"Error en handle_connect: {e}")
+            # 🔥 ELIMINADO: Log de error para evitar spam
+            # log_to_telegram(
+            #     level='ERROR',
+            #     message=f"Error en WebSocket connect: {str(e)}",
+            #     data={'error': str(e), 'traceback': traceback.format_exc()}
+            # )
 
     @socketio.on('disconnect')
     def handle_disconnect():
         logger.info(f"Cliente desconectado: {request.sid}")
-        
+        # 🔥 ELIMINADO: Log de desconexión para evitar spam
+        # log_to_telegram(
+        #     level='INFO',
+        #     message=f"WebSocket desconectado",
+        #     data={'sid': request.sid}
+        # )
+
     return app
