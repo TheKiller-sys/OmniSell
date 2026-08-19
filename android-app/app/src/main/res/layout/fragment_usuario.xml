@@ -190,6 +190,18 @@
                 </androidx.cardview.widget.CardView>
 
                 <Button
+                    android:id="@+id/btn_sync_manual"
+                    android:layout_width="match_parent"
+                    android:layout_height="48dp"
+                    android:text="Sincronizar Ahora"
+                    android:textSize="14sp"
+                    android:textStyle="bold"
+                    android:textColor="@color/white"
+                    android:backgroundTint="@color/info"
+                    android:layout_marginBottom="12dp"
+                    app:cornerRadius="12dp" />
+
+                <Button
                     android:id="@+id/btn_cerrar_sesion"
                     android:layout_width="match_parent"
                     android:layout_height="56dp"

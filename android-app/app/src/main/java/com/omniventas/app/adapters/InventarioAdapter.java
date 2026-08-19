@@ -9,13 +9,13 @@ import androidx.cardview.widget.CardView;
 import androidx.core.content.ContextCompat;
 import androidx.recyclerview.widget.RecyclerView;
 import com.omniventas.app.R;
-import com.omniventas.app.models.Producto;
+import com.omniventas.app.local.ProductoEntity;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
 public class InventarioAdapter extends RecyclerView.Adapter<InventarioAdapter.ViewHolder> {
-    private List<Producto> productos = new ArrayList<>();
+    private List<ProductoEntity> productos = new ArrayList<>();
 
     @NonNull
     @Override
@@ -27,7 +27,7 @@ public class InventarioAdapter extends RecyclerView.Adapter<InventarioAdapter.Vi
 
     @Override
     public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
-        Producto p = productos.get(position);
+        ProductoEntity p = productos.get(position);
         holder.tvNombre.setText(p.getNombre());
         holder.tvSeccion.setText(p.getSeccion() != null ? p.getSeccion() : "Sin categoría");
         holder.tvPrecio.setText("$" + String.format("%.2f", p.getPrecio()));
@@ -50,7 +50,7 @@ public class InventarioAdapter extends RecyclerView.Adapter<InventarioAdapter.Vi
         return productos.size();
     }
 
-    public void setProductos(List<Producto> productos) {
+    public void setProductos(List<ProductoEntity> productos) {
         this.productos = productos != null ? productos : new ArrayList<>();
         Collections.sort(this.productos, (p1, p2) -> p1.getNombre().compareToIgnoreCase(p2.getNombre()));
         notifyDataSetChanged();

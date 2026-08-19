@@ -30,6 +30,16 @@
                     android:layout_marginBottom="16dp"
                     android:scaleType="centerInside" />
 
+                <TextView
+                    android:id="@+id/tv_offline_status"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text=""
+                    android:textSize="12sp"
+                    android:textColor="@color/warning"
+                    android:layout_marginBottom="8dp"
+                    android:visibility="gone" />
+
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"

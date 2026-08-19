@@ -18,6 +18,33 @@
             android:orientation="vertical"
             android:gravity="center_horizontal">
 
+            <!-- Indicador de pendientes -->
+            <LinearLayout
+                android:id="@+id/ll_pendientes"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:background="@color/warning_light"
+                android:padding="8dp"
+                android:gravity="center"
+                android:layout_marginBottom="12dp"
+                android:visibility="gone">
+                <ImageView
+                    android:layout_width="20dp"
+                    android:layout_height="20dp"
+                    android:src="@drawable/ic_sync"
+                    android:tint="@color/warning"
+                    android:layout_marginEnd="8dp" />
+                <TextView
+                    android:id="@+id/tv_pendientes"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="0 ventas pendientes de sincronizar"
+                    android:textSize="13sp"
+                    android:textColor="@color/warning"
+                    android:textStyle="bold" />
+            </LinearLayout>
+
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
@@ -56,7 +83,7 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Ventas del Día"
+                        android:text="Ventas Pendientes"
                         android:textSize="16sp"
                         android:textStyle="bold"
                         android:textColor="@color/dark"
@@ -72,7 +99,7 @@
                         android:id="@+id/tv_sin_ventas"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:text="@string/sin_ventas_hoy"
+                        android:text="No hay ventas pendientes"
                         android:textSize="14sp"
                         android:textColor="@color/gray"
                         android:gravity="center"

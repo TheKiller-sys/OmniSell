@@ -110,4 +110,13 @@
 
     </LinearLayout>
 
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="💾 Modo Offline - Se sincronizará automáticamente"
+        android:textSize="11sp"
+        android:textColor="@color/gray"
+        android:gravity="center"
+        android:layout_marginTop="12dp" />
+
 </LinearLayout>

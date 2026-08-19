@@ -18,31 +18,24 @@ import androidx.recyclerview.widget.RecyclerView;
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 import com.omniventas.app.R;
 import com.omniventas.app.adapters.InventarioAdapter;
-import com.omniventas.app.api.ApiService;
-import com.omniventas.app.api.RetrofitClient;
-import com.omniventas.app.models.Producto;
-import com.omniventas.app.models.RespuestaProductos;
+import com.omniventas.app.local.ProductoEntity;
+import com.omniventas.app.repository.OmniVentasRepository;
 import com.omniventas.app.utils.SessionManager;
 import com.omniventas.app.utils.TelegramLogger;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
-import retrofit2.Call;
-import retrofit2.Callback;
-import retrofit2.Response;
 
 public class InventarioFragment extends Fragment {
-
     private RecyclerView rvInventario;
     private SwipeRefreshLayout swipeRefresh;
-    private TextView tvTotalProductos, tvStockBajo, tvSinStock, tvInventarioVacio;
+    private TextView tvTotalProductos, tvStockBajo, tvSinStock, tvInventarioVacio, tvOfflineIndicator;
     private EditText etBuscarProducto;
     private Button btnLimpiarFiltro;
     private SessionManager sessionManager;
     private TelegramLogger logger;
     private InventarioAdapter inventarioAdapter;
-    private List<Producto> productosOriginales = new ArrayList<>();
-    private List<Producto> productosFiltrados = new ArrayList<>();
+    private OmniVentasRepository repository;
+    private List<ProductoEntity> productosFiltrados = new ArrayList<>();
 
     @Nullable
     @Override
@@ -55,17 +48,24 @@ public class InventarioFragment extends Fragment {
         tvStockBajo = view.findViewById(R.id.tv_stock_bajo);
         tvSinStock = view.findViewById(R.id.tv_sin_stock);
         tvInventarioVacio = view.findViewById(R.id.tv_inventario_vacio);
+        tvOfflineIndicator = view.findViewById(R.id.tv_offline_indicator);
         etBuscarProducto = view.findViewById(R.id.et_buscar_producto);
         btnLimpiarFiltro = view.findViewById(R.id.btn_limpiar_filtro);
 
         sessionManager = new SessionManager(getContext());
         logger = TelegramLogger.getInstance(getContext());
+        repository = new OmniVentasRepository(getContext());
 
         inventarioAdapter = new InventarioAdapter();
         rvInventario.setLayoutManager(new LinearLayoutManager(getContext()));
         rvInventario.setAdapter(inventarioAdapter);
 
-        swipeRefresh.setOnRefreshListener(this::cargarInventario);
+        swipeRefresh.setOnRefreshListener(() -> {
+            repository.syncProductosFromServer();
+            cargarInventarioLocal();
+            swipeRefresh.setRefreshing(false);
+            Toast.makeText(getContext(), "Inventario actualizado", Toast.LENGTH_SHORT).show();
+        });
 
         btnLimpiarFiltro.setOnClickListener(v -> {
             etBuscarProducto.setText("");
@@ -78,68 +78,34 @@ public class InventarioFragment extends Fragment {
             @Override public void afterTextChanged(Editable s) { aplicarFiltros(); }
         });
 
-        cargarInventario();
+        cargarInventarioLocal();
+
+        // Intentar sincronizar en segundo plano
+        repository.syncProductosFromServer();
 
         return view;
     }
 
-    private void cargarInventario() {
-        String token = sessionManager.getToken();
-        if (token == null || token.isEmpty()) {
-            Toast.makeText(getContext(), "Sesión expirada", Toast.LENGTH_SHORT).show();
-            swipeRefresh.setRefreshing(false);
-            return;
-        }
-
-        ApiService apiService = RetrofitClient.getInstance(getContext()).getApiService();
-        apiService.getProductos("Bearer " + token).enqueue(new Callback<RespuestaProductos>() {
-            @Override
-            public void onResponse(Call<RespuestaProductos> call, Response<RespuestaProductos> response) {
-                swipeRefresh.setRefreshing(false);
-                if (response.isSuccessful() && response.body() != null && response.body().isSuccess()) {
-                    productosOriginales = response.body().getProductos();
-                    Collections.sort(productosOriginales, (p1, p2) -> p1.getNombre().compareToIgnoreCase(p2.getNombre()));
-                    productosFiltrados = new ArrayList<>(productosOriginales);
-                    actualizarUI();
-                } else {
-                    Toast.makeText(getContext(), "Error al cargar inventario", Toast.LENGTH_SHORT).show();
-                }
-            }
-
-            @Override
-            public void onFailure(Call<RespuestaProductos> call, Throwable t) {
-                swipeRefresh.setRefreshing(false);
-                Toast.makeText(getContext(), "Error de conexión", Toast.LENGTH_SHORT).show();
-                logger.networkError(t);
-            }
-        });
+    private void cargarInventarioLocal() {
+        List<ProductoEntity> productos = repository.getProductosLocal();
+        productosFiltrados = new ArrayList<>(productos);
+        actualizarUI();
+        
+        tvOfflineIndicator.setText("📡 Datos locales (" + productos.size() + " productos)");
     }
 
     private void aplicarFiltros() {
         String query = etBuscarProducto.getText().toString().toLowerCase().trim();
-
-        productosFiltrados = new ArrayList<>();
-        for (Producto p : productosOriginales) {
-            if (query.isEmpty()) {
-                productosFiltrados.add(p);
-            } else {
-                if (p.getNombre().toLowerCase().contains(query) ||
-                    (p.getSeccion() != null && p.getSeccion().toLowerCase().contains(query))) {
-                    productosFiltrados.add(p);
-                }
-            }
-        }
-
+        productosFiltrados = repository.buscarProductosLocal(query);
         actualizarUI();
     }
 
     private void actualizarUI() {
-        Collections.sort(productosFiltrados, (p1, p2) -> p1.getNombre().compareToIgnoreCase(p2.getNombre()));
         inventarioAdapter.setProductos(productosFiltrados);
 
         int total = productosFiltrados.size();
         int bajo = 0, sinStock = 0;
-        for (Producto p : productosFiltrados) {
+        for (ProductoEntity p : productosFiltrados) {
             if (p.getStock() == 0) sinStock++;
             else if (p.getStock() <= 3) bajo++;
         }

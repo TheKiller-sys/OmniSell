@@ -2,5 +2,7 @@
 -keep class retrofit2.** { *; }
 -keep class okhttp3.** { *; }
 -keep class com.google.gson.** { *; }
+-keep class androidx.room.** { *; }
+-keep class androidx.work.** { *; }
 -dontwarn okhttp3.**
 -dontwarn retrofit2.**

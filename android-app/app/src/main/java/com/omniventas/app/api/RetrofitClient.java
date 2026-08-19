@@ -48,18 +48,10 @@ public class RetrofitClient {
             Response response = chain.proceed(request);
             
             Log.d(TAG, "📡 Código de respuesta: " + response.code());
-            Log.d(TAG, "📡 Mensaje: " + response.message());
             
             try {
                 String bodyString = response.body().string();
                 Log.d(TAG, "📡 Cuerpo de la respuesta: " + bodyString);
-                
-                // VERIFICAR SI LA RESPUESTA ES JSON VÁLIDO
-                String trimmed = bodyString.trim();
-                if (!trimmed.startsWith("{") && !trimmed.startsWith("[")) {
-                    Log.e(TAG, "❌ La respuesta NO es JSON. Es texto plano o HTML");
-                    Log.e(TAG, "🔍 Contenido: " + trimmed.substring(0, Math.min(trimmed.length(), 200)));
-                }
                 
                 okhttp3.MediaType contentType = response.body().contentType();
                 okhttp3.ResponseBody newBody = okhttp3.ResponseBody.create(contentType, bodyString);
@@ -95,8 +87,6 @@ public class RetrofitClient {
 
         apiService = retrofit.create(ApiService.class);
         Log.d(TAG, "✅ API URL: " + API_URL);
-        Log.d(TAG, "✅ Gson con setLenient(true) activado");
-        Log.d(TAG, "✅ ScalarsConverterFactory activado para manejar texto plano");
     }
 
     public static synchronized RetrofitClient getInstance(Context context) {

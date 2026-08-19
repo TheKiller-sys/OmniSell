@@ -17,6 +17,7 @@ import com.omniventas.app.api.ApiService;
 import com.omniventas.app.api.RetrofitClient;
 import com.omniventas.app.models.LoginResponse;
 import com.omniventas.app.models.VendorLoginRequest;
+import com.omniventas.app.sync.SyncManager;
 import com.omniventas.app.utils.SessionManager;
 import com.omniventas.app.utils.TelegramLogger;
 import retrofit2.Call;
@@ -117,6 +118,10 @@ public class LoginActivity extends AppCompatActivity {
                                 vendor.getUserId()
                             );
                             logger.success("Login exitoso: " + vendor.getName());
+                            
+                            // Iniciar sincronización programada
+                            SyncManager.scheduleSync(getApplicationContext());
+                            
                             irAlDashboard();
                         }
                     } else {

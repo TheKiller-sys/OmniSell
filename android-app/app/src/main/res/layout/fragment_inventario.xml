@@ -26,7 +26,16 @@
                 android:textStyle="bold"
                 android:textColor="@color/dark"
                 android:layout_marginTop="8dp"
-                android:layout_marginBottom="16dp" />
+                android:layout_marginBottom="8dp" />
+
+            <TextView
+                android:id="@+id/tv_offline_indicator"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="📡 Datos locales"
+                android:textSize="11sp"
+                android:textColor="@color/gray"
+                android:layout_marginBottom="12dp" />
 
             <LinearLayout
                 android:layout_width="match_parent"

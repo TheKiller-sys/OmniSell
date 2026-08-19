@@ -27,4 +27,7 @@
     <string name="productos_vendidos">Productos Vendidos</string>
     <string name="principal">Principal</string>
     <string name="ventas">Ventas</string>
+    <string name="sincronizando">Sincronizando...</string>
+    <string name="sin_conexion">Sin conexión - Modo Offline</string>
+    <string name="offline_mode">Modo Offline</string>
 </resources>

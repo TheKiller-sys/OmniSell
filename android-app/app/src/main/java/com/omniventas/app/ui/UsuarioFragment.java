@@ -14,6 +14,8 @@ import androidx.fragment.app.Fragment;
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 import com.omniventas.app.LoginActivity;
 import com.omniventas.app.R;
+import com.omniventas.app.repository.OmniVentasRepository;
+import com.omniventas.app.sync.SyncManager;
 import com.omniventas.app.utils.SessionManager;
 import com.omniventas.app.utils.TelegramLogger;
 
@@ -21,10 +23,11 @@ public class UsuarioFragment extends Fragment {
 
     private TextView tvVendorName, tvVendorId;
     private TextView tvTotalVentas, tvProductosVendidos, tvVentasHoy, tvVentasMes;
-    private Button btnCerrarSesion;
+    private Button btnCerrarSesion, btnSyncManual;
     private SwipeRefreshLayout swipeRefresh;
     private SessionManager sessionManager;
     private TelegramLogger logger;
+    private OmniVentasRepository repository;
 
     @Nullable
     @Override
@@ -38,10 +41,12 @@ public class UsuarioFragment extends Fragment {
         tvVentasHoy = view.findViewById(R.id.tv_ventas_hoy_vendedor);
         tvVentasMes = view.findViewById(R.id.tv_ventas_mes_vendedor);
         btnCerrarSesion = view.findViewById(R.id.btn_cerrar_sesion);
+        btnSyncManual = view.findViewById(R.id.btn_sync_manual);
         swipeRefresh = view.findViewById(R.id.swipe_refresh);
 
         sessionManager = new SessionManager(getContext());
         logger = TelegramLogger.getInstance(getContext());
+        repository = new OmniVentasRepository(getContext());
 
         String nombre = sessionManager.getVendorName();
         String id = sessionManager.getVendorId();
@@ -53,10 +58,19 @@ public class UsuarioFragment extends Fragment {
             tvVendorId.setText("ID: " + id);
         }
 
-        tvTotalVentas.setText("42");
-        tvProductosVendidos.setText("156");
-        tvVentasHoy.setText("5");
-        tvVentasMes.setText("38");
+        // Estadísticas locales
+        int pendientes = repository.getVentasPendientesCount();
+        tvVentasHoy.setText(String.valueOf(pendientes));
+        
+        int totalProductos = repository.getTotalProductos();
+        tvTotalVentas.setText(String.valueOf(pendientes));
+        tvProductosVendidos.setText(String.valueOf(totalProductos));
+
+        btnSyncManual.setOnClickListener(v -> {
+            Toast.makeText(getContext(), "Sincronizando...", Toast.LENGTH_SHORT).show();
+            SyncManager.syncNow(getContext());
+            Toast.makeText(getContext(), "Sincronización iniciada", Toast.LENGTH_SHORT).show();
+        });
 
         btnCerrarSesion.setOnClickListener(v -> {
             sessionManager.clearSession();
@@ -69,8 +83,9 @@ public class UsuarioFragment extends Fragment {
         });
 
         swipeRefresh.setOnRefreshListener(() -> {
+            SyncManager.syncNow(getContext());
             swipeRefresh.setRefreshing(false);
-            Toast.makeText(getContext(), "Estadísticas actualizadas", Toast.LENGTH_SHORT).show();
+            Toast.makeText(getContext(), "Sincronización iniciada", Toast.LENGTH_SHORT).show();
         });
 
         return view;

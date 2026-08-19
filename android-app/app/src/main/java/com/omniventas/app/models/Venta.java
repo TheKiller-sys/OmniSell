@@ -8,6 +8,7 @@ public class Venta {
     private double total;
     private String fecha;
     private int productoId;
+    private boolean pendiente;
 
     public int getId() { return id; }
     public void setId(int id) { this.id = id; }
@@ -23,4 +24,6 @@ public class Venta {
     public void setFecha(String fecha) { this.fecha = fecha; }
     public int getProductoId() { return productoId; }
     public void setProductoId(int productoId) { this.productoId = productoId; }
+    public boolean isPendiente() { return pendiente; }
+    public void setPendiente(boolean pendiente) { this.pendiente = pendiente; }
 }

@@ -2,8 +2,6 @@ package com.omniventas.app.ui;
 
 import android.app.Dialog;
 import android.os.Bundle;
-import android.os.Handler;
-import android.os.Looper;
 import android.text.Editable;
 import android.text.TextWatcher;
 import android.util.Log;
@@ -13,6 +11,7 @@ import android.view.ViewGroup;
 import android.view.Window;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 import androidx.annotation.NonNull;
@@ -24,40 +23,27 @@ import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 import com.omniventas.app.R;
 import com.omniventas.app.adapters.ProductoAdapter;
 import com.omniventas.app.adapters.VentaAdapter;
-import com.omniventas.app.api.ApiService;
-import com.omniventas.app.api.RetrofitClient;
+import com.omniventas.app.local.ProductoEntity;
+import com.omniventas.app.local.VentaEntity;
 import com.omniventas.app.models.Producto;
-import com.omniventas.app.models.RespuestaProductos;
 import com.omniventas.app.models.Venta;
-import com.omniventas.app.models.VentaRequest;
-import com.omniventas.app.models.VentaResponse;
-import com.omniventas.app.models.VentasResponse;
+import com.omniventas.app.repository.OmniVentasRepository;
 import com.omniventas.app.utils.SessionManager;
 import com.omniventas.app.utils.TelegramLogger;
-
-import org.json.JSONObject;
-
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
-import retrofit2.Call;
-import retrofit2.Callback;
-import retrofit2.Response;
-
 public class VentasFragment extends Fragment {
-
     private RecyclerView rvVentasHoy;
     private SwipeRefreshLayout swipeRefresh;
     private Button btnRegistrarVenta;
-    private TextView tvSinVentas;
+    private TextView tvSinVentas, tvPendientes;
+    private LinearLayout llPendientes;
     private SessionManager sessionManager;
     private TelegramLogger logger;
     private VentaAdapter ventaAdapter;
-    private List<Venta> ventasHoy = new ArrayList<>();
-    private List<Producto> productosGlobales = new ArrayList<>();
-    private Handler handler = new Handler(Looper.getMainLooper());
-    private Runnable actualizacionAutomatica;
+    private OmniVentasRepository repository;
+    private List<Venta> ventasMostrar = new ArrayList<>();
 
     @Nullable
     @Override
@@ -68,106 +54,66 @@ public class VentasFragment extends Fragment {
         swipeRefresh = view.findViewById(R.id.swipe_refresh);
         btnRegistrarVenta = view.findViewById(R.id.btn_registrar_venta);
         tvSinVentas = view.findViewById(R.id.tv_sin_ventas);
+        tvPendientes = view.findViewById(R.id.tv_pendientes);
+        llPendientes = view.findViewById(R.id.ll_pendientes);
 
         sessionManager = new SessionManager(getContext());
         logger = TelegramLogger.getInstance(getContext());
+        repository = new OmniVentasRepository(getContext());
 
         ventaAdapter = new VentaAdapter();
         rvVentasHoy.setLayoutManager(new LinearLayoutManager(getContext()));
         rvVentasHoy.setAdapter(ventaAdapter);
 
-        swipeRefresh.setOnRefreshListener(this::cargarVentasHoy);
+        swipeRefresh.setOnRefreshListener(() -> {
+            repository.trySyncVentas();
+            cargarVentasLocales();
+            swipeRefresh.setRefreshing(false);
+            Toast.makeText(getContext(), "Ventas actualizadas", Toast.LENGTH_SHORT).show();
+        });
+
         btnRegistrarVenta.setOnClickListener(v -> mostrarDialogoRegistrarVenta());
 
-        actualizacionAutomatica = new Runnable() {
-            @Override
-            public void run() {
-                if (isAdded()) {
-                    cargarVentasHoy();
-                    handler.postDelayed(this, 30000);
-                }
-            }
-        };
-        handler.postDelayed(actualizacionAutomatica, 30000);
-
-        cargarVentasHoy();
-        cargarProductos();
+        cargarVentasLocales();
 
         return view;
     }
 
-    @Override
-    public void onDestroyView() {
-        super.onDestroyView();
-        handler.removeCallbacks(actualizacionAutomatica);
-    }
-
-    private void cargarVentasHoy() {
-        String token = sessionManager.getToken();
-        if (token == null || token.isEmpty()) {
-            swipeRefresh.setRefreshing(false);
-            return;
+    private void cargarVentasLocales() {
+        List<VentaEntity> pendientes = repository.getVentasPendientes();
+        ventasMostrar = new ArrayList<>();
+        
+        for (VentaEntity e : pendientes) {
+            Venta v = new Venta();
+            v.setProducto(e.getProductoNombre());
+            v.setCantidad(e.getCantidad());
+            v.setTotal(e.getTotal());
+            v.setFecha(new java.text.SimpleDateFormat("dd/MM/yyyy HH:mm").format(e.getFecha()));
+            v.setPendiente(true);
+            ventasMostrar.add(v);
         }
 
-        swipeRefresh.setRefreshing(true);
+        int pendientesCount = repository.getVentasPendientesCount();
+        if (pendientesCount > 0) {
+            llPendientes.setVisibility(View.VISIBLE);
+            tvPendientes.setText(pendientesCount + " ventas pendientes de sincronizar");
+        } else {
+            llPendientes.setVisibility(View.GONE);
+        }
 
-        ApiService apiService = RetrofitClient.getInstance(getContext()).getApiService();
-        apiService.getVentasApp("Bearer " + token, 20, 0).enqueue(new Callback<VentasResponse>() {
-            @Override
-            public void onResponse(Call<VentasResponse> call, Response<VentasResponse> response) {
-                swipeRefresh.setRefreshing(false);
-                if (response.isSuccessful() && response.body() != null && response.body().isSuccess()) {
-                    ventasHoy = response.body().getVentas();
-                    actualizarUI();
-                    logger.info("Ventas cargadas: " + ventasHoy.size());
-                } else {
-                    logger.warning("Error cargando ventas: " + response.code());
-                    if (ventasHoy.isEmpty()) {
-                        actualizarUI();
-                    }
-                }
-            }
-
-            @Override
-            public void onFailure(Call<VentasResponse> call, Throwable t) {
-                swipeRefresh.setRefreshing(false);
-                logger.networkError(t);
-                if (ventasHoy.isEmpty()) {
-                    actualizarUI();
-                }
-            }
-        });
+        actualizarUI();
     }
 
     private void actualizarUI() {
-        if (ventasHoy == null || ventasHoy.isEmpty()) {
+        if (ventasMostrar == null || ventasMostrar.isEmpty()) {
             tvSinVentas.setVisibility(View.VISIBLE);
             rvVentasHoy.setVisibility(View.GONE);
         } else {
             tvSinVentas.setVisibility(View.GONE);
             rvVentasHoy.setVisibility(View.VISIBLE);
-            ventaAdapter.setVentas(ventasHoy);
+            ventaAdapter.setShowSyncStatus(true);
+            ventaAdapter.setVentas(ventasMostrar);
         }
-    }
-
-    private void cargarProductos() {
-        String token = sessionManager.getToken();
-        if (token == null || token.isEmpty()) return;
-
-        ApiService apiService = RetrofitClient.getInstance(getContext()).getApiService();
-        apiService.getProductos("Bearer " + token).enqueue(new Callback<RespuestaProductos>() {
-            @Override
-            public void onResponse(Call<RespuestaProductos> call, Response<RespuestaProductos> response) {
-                if (response.isSuccessful() && response.body() != null && response.body().isSuccess()) {
-                    productosGlobales = response.body().getProductos();
-                    Collections.sort(productosGlobales, (p1, p2) -> p1.getNombre().compareToIgnoreCase(p2.getNombre()));
-                }
-            }
-            @Override
-            public void onFailure(Call<RespuestaProductos> call, Throwable t) {
-                logger.networkError(t);
-            }
-        });
     }
 
     private void mostrarDialogoRegistrarVenta() {
@@ -183,9 +129,7 @@ public class VentasFragment extends Fragment {
         Button btnCancelar = dialog.findViewById(R.id.btn_cancelar_venta);
         Button btnRegistrar = dialog.findViewById(R.id.btn_registrar_venta_dialog);
 
-        if (productosGlobales.isEmpty()) {
-            cargarProductos();
-        }
+        List<ProductoEntity> productosLocales = repository.getProductosLocal();
 
         ProductoAdapter productoAdapter = new ProductoAdapter(producto -> {
             tvProductoSeleccionado.setText("Producto seleccionado: " + producto.getNombre());
@@ -198,9 +142,21 @@ public class VentasFragment extends Fragment {
             } catch (NumberFormatException e) {}
             tvTotalVenta.setText("Total: $" + String.format("%.2f", precio * cantidad));
         });
+
         rvProductosBusqueda.setLayoutManager(new LinearLayoutManager(getContext()));
         rvProductosBusqueda.setAdapter(productoAdapter);
-        productoAdapter.setProductos(productosGlobales);
+        
+        List<Producto> productos = new ArrayList<>();
+        for (ProductoEntity entity : productosLocales) {
+            Producto p = new Producto();
+            p.setId(entity.getId());
+            p.setNombre(entity.getNombre());
+            p.setSeccion(entity.getSeccion());
+            p.setPrecio(entity.getPrecio());
+            p.setStock(entity.getStock());
+            productos.add(p);
+        }
+        productoAdapter.setProductos(productos);
 
         etBuscarProducto.addTextChangedListener(new TextWatcher() {
             @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
@@ -208,7 +164,7 @@ public class VentasFragment extends Fragment {
             @Override public void afterTextChanged(Editable s) {
                 String query = s.toString().toLowerCase().trim();
                 List<Producto> filtrados = new ArrayList<>();
-                for (Producto p : productosGlobales) {
+                for (Producto p : productos) {
                     if (p.getNombre().toLowerCase().contains(query) ||
                         (p.getSeccion() != null && p.getSeccion().toLowerCase().contains(query))) {
                         filtrados.add(p);
@@ -236,91 +192,49 @@ public class VentasFragment extends Fragment {
 
         btnCancelar.setOnClickListener(v -> dialog.dismiss());
 
-        btnRegistrar.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                Object tag = tvTotalVenta.getTag();
-                if (tag instanceof Producto) {
-                    final Producto productoSeleccionado = (Producto) tag;
-                    int cantidad = 1;
-                    try {
-                        cantidad = Integer.parseInt(etCantidad.getText().toString());
-                    } catch (NumberFormatException e) {}
-                    final int cantidadFinal = cantidad;
+        btnRegistrar.setOnClickListener(v -> {
+            Object tag = tvTotalVenta.getTag();
+            if (tag instanceof Producto) {
+                final Producto productoSeleccionado = (Producto) tag;
+                int cantidad = 1;
+                try {
+                    cantidad = Integer.parseInt(etCantidad.getText().toString());
+                } catch (NumberFormatException e) {}
 
-                    String token = sessionManager.getToken();
-                    if (token != null && !token.isEmpty()) {
-                        VentaRequest request = new VentaRequest(
-                            productoSeleccionado.getId(),
-                            cantidadFinal,
-                            productoSeleccionado.getPrecio()
-                        );
-                        ApiService apiService = RetrofitClient.getInstance(getContext()).getApiService();
-                        apiService.registrarVenta("Bearer " + token, request).enqueue(new Callback<VentaResponse>() {
-                            @Override
-                            public void onResponse(Call<VentaResponse> call, Response<VentaResponse> response) {
-                                if (response.isSuccessful() && response.body() != null && response.body().isSuccess()) {
-                                    Toast.makeText(getContext(), "✅ Venta registrada: " + productoSeleccionado.getNombre() + " x" + cantidadFinal, Toast.LENGTH_SHORT).show();
-                                    logger.success("Venta registrada: " + productoSeleccionado.getNombre() + " x" + cantidadFinal);
-                                    dialog.dismiss();
-                                    cargarVentasHoy();
-                                    if (getActivity() != null) {
-                                        DashboardFragment dashboard = (DashboardFragment) getActivity()
-                                            .getSupportFragmentManager()
-                                            .findFragmentByTag("dashboard");
-                                        if (dashboard != null) {
-                                            dashboard.cargarDashboard();
-                                        }
-                                    }
-                                } else {
-                                    String errorMsg = "Error al registrar venta";
-                                    try {
-                                        if (response.errorBody() != null) {
-                                            String errorBody = response.errorBody().string();
-                                            Log.e("VentasFragment", "❌ Error body: " + errorBody);
-                                            
-                                            if (errorBody.trim().startsWith("<!DOCTYPE") || errorBody.trim().startsWith("<html")) {
-                                                errorMsg = "Error del servidor (HTML)";
-                                            } else {
-                                                try {
-                                                    JSONObject jsonError = new JSONObject(errorBody);
-                                                    errorMsg = jsonError.optString("message", errorMsg);
-                                                } catch (Exception e) {
-                                                    errorMsg = errorBody;
-                                                }
-                                            }
-                                        }
-                                    } catch (Exception e) {
-                                        Log.e("VentasFragment", "❌ Error leyendo errorBody", e);
-                                        errorMsg = "Error al procesar la respuesta del servidor";
-                                    }
-                                    Toast.makeText(getContext(), "❌ " + errorMsg, Toast.LENGTH_LONG).show();
-                                    logger.error("Error en venta: " + errorMsg);
-                                }
-                            }
+                ProductoEntity localProducto = repository.getProductosLocal().stream()
+                    .filter(p -> p.getId() == productoSeleccionado.getId())
+                    .findFirst()
+                    .orElse(null);
 
-                            @Override
-                            public void onFailure(Call<VentaResponse> call, Throwable t) {
-                                String errorMsg = "Error de conexión";
-                                if (t.getMessage() != null) {
-                                    errorMsg = t.getMessage();
-                                    if (errorMsg.contains("BEGIN_OBJECT")) {
-                                        errorMsg = "El servidor devolvió texto plano en lugar de JSON";
-                                    }
-                                    if (errorMsg.length() > 100) {
-                                        errorMsg = errorMsg.substring(0, 100) + "...";
-                                    }
-                                }
-                                Toast.makeText(getContext(), "❌ " + errorMsg, Toast.LENGTH_LONG).show();
-                                logger.error("Error en venta: " + errorMsg);
-                            }
-                        });
-                    } else {
-                        Toast.makeText(getContext(), "Sesión expirada", Toast.LENGTH_SHORT).show();
-                    }
-                } else {
-                    Toast.makeText(getContext(), "Selecciona un producto", Toast.LENGTH_SHORT).show();
+                if (localProducto == null || localProducto.getStock() < cantidad) {
+                    Toast.makeText(getContext(), "❌ Stock insuficiente", Toast.LENGTH_SHORT).show();
+                    return;
                 }
+
+                repository.registrarVentaOffline(
+                    productoSeleccionado.getId(),
+                    productoSeleccionado.getNombre(),
+                    cantidad,
+                    productoSeleccionado.getPrecio()
+                );
+
+                Toast.makeText(getContext(), 
+                    "✅ Venta registrada OFFLINE: " + productoSeleccionado.getNombre() + " x" + cantidad, 
+                    Toast.LENGTH_LONG).show();
+
+                dialog.dismiss();
+                cargarVentasLocales();
+
+                if (getActivity() != null) {
+                    DashboardFragment dashboard = (DashboardFragment) getActivity()
+                        .getSupportFragmentManager()
+                        .findFragmentByTag("dashboard");
+                    if (dashboard != null) {
+                        dashboard.cargarDashboardLocal();
+                    }
+                }
+            } else {
+                Toast.makeText(getContext(), "Selecciona un producto", Toast.LENGTH_SHORT).show();
             }
         });
 

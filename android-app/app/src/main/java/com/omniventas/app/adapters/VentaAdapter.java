@@ -3,6 +3,7 @@ package com.omniventas.app.adapters;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ImageView;
 import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
@@ -13,6 +14,7 @@ import java.util.List;
 
 public class VentaAdapter extends RecyclerView.Adapter<VentaAdapter.ViewHolder> {
     private List<Venta> ventas = new ArrayList<>();
+    private boolean showSyncStatus = false;
 
     @NonNull
     @Override
@@ -29,6 +31,12 @@ public class VentaAdapter extends RecyclerView.Adapter<VentaAdapter.ViewHolder> 
         holder.tvFecha.setText(v.getFecha());
         holder.tvCantidad.setText(v.getCantidad() + "x");
         holder.tvTotal.setText("$" + String.format("%.2f", v.getTotal()));
+        
+        if (showSyncStatus && v.isPendiente()) {
+            holder.ivSyncStatus.setVisibility(View.VISIBLE);
+        } else {
+            holder.ivSyncStatus.setVisibility(View.GONE);
+        }
     }
 
     @Override
@@ -41,14 +49,21 @@ public class VentaAdapter extends RecyclerView.Adapter<VentaAdapter.ViewHolder> 
         notifyDataSetChanged();
     }
 
+    public void setShowSyncStatus(boolean show) {
+        this.showSyncStatus = show;
+        notifyDataSetChanged();
+    }
+
     static class ViewHolder extends RecyclerView.ViewHolder {
         TextView tvProducto, tvFecha, tvCantidad, tvTotal;
+        ImageView ivSyncStatus;
         ViewHolder(@NonNull View itemView) {
             super(itemView);
             tvProducto = itemView.findViewById(R.id.tv_producto);
             tvFecha = itemView.findViewById(R.id.tv_fecha);
             tvCantidad = itemView.findViewById(R.id.tv_cantidad);
             tvTotal = itemView.findViewById(R.id.tv_total);
+            ivSyncStatus = itemView.findViewById(R.id.iv_sync_status);
         }
     }
 }

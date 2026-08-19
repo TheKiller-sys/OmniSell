@@ -1,13 +1,19 @@
-package com.omniventas.app.models;
+package com.omniventas.app.local;
 
-public class Producto {
+import androidx.room.Entity;
+import androidx.room.PrimaryKey;
+
+@Entity(tableName = "productos")
+public class ProductoEntity {
+    @PrimaryKey
     private int id;
     private String nombre;
     private String seccion;
     private double precio;
     private int stock;
     private String descripcion;
-    private boolean pendiente;
+    private long lastSync;
+    private boolean isDeleted;
 
     public int getId() { return id; }
     public void setId(int id) { this.id = id; }
@@ -21,6 +27,8 @@ public class Producto {
     public void setStock(int stock) { this.stock = stock; }
     public String getDescripcion() { return descripcion; }
     public void setDescripcion(String descripcion) { this.descripcion = descripcion; }
-    public boolean isPendiente() { return pendiente; }
-    public void setPendiente(boolean pendiente) { this.pendiente = pendiente; }
+    public long getLastSync() { return lastSync; }
+    public void setLastSync(long lastSync) { this.lastSync = lastSync; }
+    public boolean isDeleted() { return isDeleted; }
+    public void setDeleted(boolean deleted) { isDeleted = deleted; }
 }
