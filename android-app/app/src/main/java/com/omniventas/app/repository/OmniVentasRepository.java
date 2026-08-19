@@ -16,6 +16,8 @@ import com.omniventas.app.utils.TelegramLogger;
 import com.omniventas.app.sync.SyncManager;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
@@ -26,12 +28,14 @@ public class OmniVentasRepository {
     private final SessionManager sessionManager;
     private final TelegramLogger logger;
     private final Context context;
+    private final ExecutorService executorService;  // ← NUEVO: Para operaciones en segundo plano
 
     public OmniVentasRepository(Context context) {
         this.context = context;
         this.database = AppDatabase.getInstance(context);
         this.sessionManager = new SessionManager(context);
         this.logger = TelegramLogger.getInstance(context);
+        this.executorService = Executors.newSingleThreadExecutor();  // ← NUEVO
     }
 
     // PRODUCTOS
@@ -59,24 +63,33 @@ public class OmniVentasRepository {
             public void onResponse(Call<RespuestaProductos> call, Response<RespuestaProductos> response) {
                 if (response.isSuccessful() && response.body() != null && response.body().isSuccess()) {
                     List<Producto> productos = response.body().getProductos();
-                    List<ProductoEntity> entities = new ArrayList<>();
                     
-                    for (Producto p : productos) {
-                        ProductoEntity entity = new ProductoEntity();
-                        entity.setId(p.getId());
-                        entity.setNombre(p.getNombre());
-                        entity.setSeccion(p.getSeccion());
-                        entity.setPrecio(p.getPrecio());
-                        entity.setStock(p.getStock());
-                        entity.setDescripcion(p.getDescripcion() != null ? p.getDescripcion() : "");
-                        entity.setLastSync(System.currentTimeMillis());
-                        entity.setDeleted(false);
-                        entities.add(entity);
-                    }
-                    
-                    database.productoDao().insertAll(entities);
-                    Log.d(TAG, "✅ Productos sincronizados: " + entities.size());
-                    logger.success("Productos sincronizados desde servidor");
+                    // ← CORREGIDO: Ejecutar en hilo secundario
+                    executorService.execute(() -> {
+                        try {
+                            List<ProductoEntity> entities = new ArrayList<>();
+                            
+                            for (Producto p : productos) {
+                                ProductoEntity entity = new ProductoEntity();
+                                entity.setId(p.getId());
+                                entity.setNombre(p.getNombre());
+                                entity.setSeccion(p.getSeccion());
+                                entity.setPrecio(p.getPrecio());
+                                entity.setStock(p.getStock());
+                                entity.setDescripcion(p.getDescripcion() != null ? p.getDescripcion() : "");
+                                entity.setLastSync(System.currentTimeMillis());
+                                entity.setDeleted(false);
+                                entities.add(entity);
+                            }
+                            
+                            database.productoDao().insertAll(entities);
+                            Log.d(TAG, "✅ Productos sincronizados: " + entities.size());
+                            logger.success("Productos sincronizados desde servidor");
+                        } catch (Exception e) {
+                            Log.e(TAG, "❌ Error guardando productos en DB: " + e.getMessage());
+                            e.printStackTrace();
+                        }
+                    });
                 }
             }
 
@@ -89,30 +102,39 @@ public class OmniVentasRepository {
 
     // VENTAS OFFLINE
     public void registrarVentaOffline(int productoId, String productoNombre, int cantidad, double precioUnitario) {
-        VentaEntity venta = new VentaEntity();
-        venta.setProductoId(productoId);
-        venta.setProductoNombre(productoNombre);
-        venta.setCantidad(cantidad);
-        venta.setPrecioUnitario(precioUnitario);
-        venta.setTotal(cantidad * precioUnitario);
-        venta.setFecha(System.currentTimeMillis());
-        venta.setVendorId(sessionManager.getVendorId());
-        venta.setSincronizado(false);
-        venta.setError(null);
+        // ← CORREGIDO: Ejecutar en hilo secundario
+        executorService.execute(() -> {
+            try {
+                VentaEntity venta = new VentaEntity();
+                venta.setProductoId(productoId);
+                venta.setProductoNombre(productoNombre);
+                venta.setCantidad(cantidad);
+                venta.setPrecioUnitario(precioUnitario);
+                venta.setTotal(cantidad * precioUnitario);
+                venta.setFecha(System.currentTimeMillis());
+                venta.setVendorId(sessionManager.getVendorId());
+                venta.setSincronizado(false);
+                venta.setError(null);
 
-        long id = database.ventaDao().insert(venta);
-        Log.d(TAG, "✅ Venta guardada localmente (ID: " + id + ")");
-        logger.success("Venta registrada offline: " + productoNombre + " x" + cantidad);
+                long id = database.ventaDao().insert(venta);
+                Log.d(TAG, "✅ Venta guardada localmente (ID: " + id + ")");
+                logger.success("Venta registrada offline: " + productoNombre + " x" + cantidad);
 
-        // Reducir stock local
-        ProductoEntity producto = database.productoDao().getById(productoId);
-        if (producto != null) {
-            producto.setStock(producto.getStock() - cantidad);
-            database.productoDao().update(producto);
-        }
+                // Reducir stock local
+                ProductoEntity producto = database.productoDao().getById(productoId);
+                if (producto != null) {
+                    producto.setStock(producto.getStock() - cantidad);
+                    database.productoDao().update(producto);
+                    Log.d(TAG, "✅ Stock actualizado para: " + productoNombre);
+                }
 
-        // Intentar sincronizar inmediatamente si hay conexión
-        SyncManager.syncNow(context);
+                // Intentar sincronizar inmediatamente si hay conexión
+                SyncManager.syncNow(context);
+            } catch (Exception e) {
+                Log.e(TAG, "❌ Error guardando venta offline: " + e.getMessage());
+                e.printStackTrace();
+            }
+        });
     }
 
     public void trySyncVentas() {
