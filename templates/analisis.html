@@ -10,10 +10,10 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     
+    <!-- Tutorial CSS -->
+    <link href="/static/css/tutorial.css" rel="stylesheet">
+    
     <style>
-        /* ============================================
-           VARIABLES Y BASE
-           ============================================ */
         :root {
             --primary: #4361EE;
             --primary-dark: #3651D4;
@@ -54,17 +54,9 @@
         ::-webkit-scrollbar-thumb { background: var(--primary); border-radius: 10px; }
         ::-webkit-scrollbar-thumb:hover { background: var(--primary-dark); }
 
-        /* ============================================
-           ANIMACIONES
-           ============================================ */
         @keyframes fadeInUp {
             from { opacity: 0; transform: translateY(30px) scale(0.98); }
             to { opacity: 1; transform: translateY(0) scale(1); }
-        }
-
-        @keyframes slideUp {
-            from { opacity: 0; transform: translateY(20px); }
-            to { opacity: 1; transform: translateY(0); }
         }
 
         .animate-on-load {
@@ -76,9 +68,6 @@
         .delay-3 { animation-delay: 0.15s; }
         .delay-4 { animation-delay: 0.20s; }
 
-        /* ============================================
-           HEADER (idéntico a los otros templates)
-           ============================================ */
         .header {
             position: fixed;
             top: 0;
@@ -124,18 +113,21 @@
         .header .header-title i { -webkit-text-fill-color: var(--primary); margin-right: 8px; }
 
         .header .header-actions {
-            display: flex; align-items: center; gap: 16px; margin-left: auto;
+            display: flex; align-items: center; gap: 12px;
+            margin-left: auto;
         }
+
         .header .header-actions .business-name {
             font-weight: 600; color: var(--dark-secondary);
             font-size: 0.9rem; padding: 6px 14px;
             background: var(--gray-light); border-radius: 50px;
         }
+
         .header .header-actions .btn-logout {
             background: transparent; border: 2px solid #FEE2E2;
-            color: var(--danger); padding: 8px 18px;
+            color: var(--danger); padding: 6px 16px;
             border-radius: var(--radius-sm);
-            font-weight: 600; font-size: 0.85rem;
+            font-weight: 600; font-size: 0.8rem;
             transition: var(--transition);
         }
         .header .header-actions .btn-logout:hover {
@@ -145,9 +137,6 @@
             box-shadow: 0 4px 15px rgba(239,68,68,0.3);
         }
 
-        /* ============================================
-           SIDEBAR (idéntico a los otros templates)
-           ============================================ */
         .sidebar {
             position: fixed;
             top: var(--header-height);
@@ -169,6 +158,7 @@
             transform: translateX(0);
             opacity: 1;
             visibility: visible;
+            z-index: 1060 !important;
         }
 
         .sidebar .sidebar-logo {
@@ -246,24 +236,21 @@
                 opacity: 1 !important;
                 visibility: visible !important;
                 border-radius: 0;
+                z-index: 1040 !important;
             }
             .main-content { margin-left: var(--sidebar-width); }
             .header .toggle-sidebar { display: none; }
         }
 
-        /* ============================================
-           MAIN CONTENT
-           ============================================ */
         .main-content {
             margin-top: var(--header-height);
             padding: 28px 32px 40px;
             min-height: calc(100vh - var(--header-height));
             transition: var(--transition);
+            position: relative;
+            z-index: 1;
         }
 
-        /* ============================================
-           SECTION HEADER
-           ============================================ */
         .section-header-wrapper {
             display: flex;
             align-items: center;
@@ -273,6 +260,7 @@
             padding-bottom: 16px;
             border-bottom: 2px solid var(--gray-light);
         }
+
         .section-header-wrapper .section-title {
             font-weight: 800;
             font-size: 1.6rem;
@@ -283,6 +271,7 @@
             gap: 12px;
         }
         .section-header-wrapper .section-title i { color: var(--primary); font-size: 1.4rem; }
+
         .section-header-wrapper .back-link {
             color: var(--gray);
             text-decoration: none;
@@ -293,9 +282,6 @@
         }
         .section-header-wrapper .back-link:hover { color: var(--primary); }
 
-        /* ============================================
-           CARDS PREMIUM
-           ============================================ */
         .card-premium {
             border: none;
             border-radius: var(--radius-md);
@@ -329,18 +315,12 @@
         .card-premium .card-header-custom h6 i { color: var(--primary); }
         .card-premium .card-body-custom { padding: 20px 24px 24px; }
 
-        /* ============================================
-           CHART CONTAINER
-           ============================================ */
         .chart-container {
             position: relative;
             height: 300px;
             width: 100%;
         }
 
-        /* ============================================
-           TABLA PREMIUM
-           ============================================ */
         .table-premium {
             width: 100%;
             border-collapse: separate;
@@ -395,9 +375,6 @@
         .empty-state i { font-size: 2.5rem; opacity: 0.3; margin-bottom: 12px; display: block; }
         .empty-state h6 { font-weight: 600; color: var(--dark-secondary); }
 
-        /* ============================================
-           BOTONES
-           ============================================ */
         .btn-premium {
             border-radius: var(--radius-sm);
             padding: 8px 18px;
@@ -425,15 +402,13 @@
         .badge-premium.warning { background: #FEF3C7; color: var(--warning); }
         .badge-premium.danger { background: #FEE2E2; color: var(--danger); }
 
-        /* ============================================
-           RESPONSIVE
-           ============================================ */
         @media (max-width: 992px) {
             .main-content { padding: 20px; }
             .section-header-wrapper .section-title { font-size: 1.3rem; }
         }
+
         @media (max-width: 768px) {
-            .header { padding: 0 16px; }
+            .header { padding: 0 12px; }
             .header .business-name { display: none; }
             .main-content { padding: 16px; }
             .card-premium .card-header-custom { flex-direction: column; align-items: flex-start; }
@@ -442,6 +417,7 @@
             .table-premium thead th,
             .table-premium tbody td { padding: 8px 10px; }
         }
+
         @media (max-width: 576px) {
             .card-premium .card-body-custom { padding: 16px; }
         }
@@ -463,6 +439,11 @@
         </button>
         <h1 class="header-title"><i class="fas fa-brain"></i>OmniVentas</h1>
         <div class="header-actions">
+            <button class="btn-tutorial-header" onclick="OmniTutorial.reset()" title="Ver tutorial interactivo">
+                <i class="fas fa-play-circle"></i>
+                <span>Ver Tutorial</span>
+                <span class="badge-tutorial">?</span>
+            </button>
             <span class="business-name">{{ business_name }}</span>
             <a href="/logout" class="btn btn-logout">
                 <i class="fas fa-sign-out-alt me-1"></i>Salir
@@ -583,6 +564,7 @@
     SCRIPTS
     ============================================ -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="/static/js/tutorial.js"></script>
     <script>
         // ============================================================
         // TOGGLE SIDEBAR
