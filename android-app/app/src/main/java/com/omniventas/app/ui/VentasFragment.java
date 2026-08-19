@@ -6,18 +6,19 @@ import android.os.Looper;
 import android.os.Vibrator;
 import android.text.Editable;
 import android.text.TextWatcher;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageView;
-import android.widget.Switch;
 import android.widget.TextView;
 import android.widget.Toast;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatDelegate;
+import androidx.appcompat.widget.SwitchCompat;  // ← IMPORT CORRECTO
 import androidx.fragment.app.Fragment;
 import com.google.android.material.chip.Chip;
 import com.omniventas.app.R;
@@ -35,13 +36,14 @@ import retrofit2.Callback;
 import retrofit2.Response;
 
 public class VentasFragment extends Fragment {
+    private static final String TAG = "VentasFragment";
 
     private EditText etSearchProduct;
     private TextView tvLiveTotal, tvLivePercent, tvProductName, tvProductDescription;
     private TextView tvUnitPrice, tvQuantity, tvDiscount, tvSubtotal, tvPendientesCount;
     private ImageView btnDecreaseQty, btnIncreaseQty;
     private Button btnConfirmSale;
-    private Switch switchHaptic;
+    private SwitchCompat switchHaptic;  // ← SwitchCompat
     private Chip chipBlueJeans, chipRedTshirt, chipSneakers, chipHoodie;
     private SessionManager sessionManager;
     private TelegramLogger logger;
@@ -53,82 +55,116 @@ public class VentasFragment extends Fragment {
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
-        View view = inflater.inflate(R.layout.fragment_ventas, container, false);
+        Log.d(TAG, "onCreateView iniciado");
+        
+        try {
+            View view = inflater.inflate(R.layout.fragment_ventas, container, false);
+            Log.d(TAG, "Layout inflado correctamente");
 
-        etSearchProduct = view.findViewById(R.id.et_search_product);
-        tvLiveTotal = view.findViewById(R.id.tv_live_total);
-        tvLivePercent = view.findViewById(R.id.tv_live_percent);
-        tvProductName = view.findViewById(R.id.tv_product_name);
-        tvProductDescription = view.findViewById(R.id.tv_product_description);
-        tvUnitPrice = view.findViewById(R.id.tv_unit_price);
-        tvQuantity = view.findViewById(R.id.tv_quantity);
-        tvDiscount = view.findViewById(R.id.tv_discount);
-        tvSubtotal = view.findViewById(R.id.tv_subtotal);
-        tvPendientesCount = view.findViewById(R.id.tv_pendientes_count);
-        btnDecreaseQty = view.findViewById(R.id.btn_decrease_qty);
-        btnIncreaseQty = view.findViewById(R.id.btn_increase_qty);
-        btnConfirmSale = view.findViewById(R.id.btn_confirm_sale);
-        switchHaptic = view.findViewById(R.id.switch_haptic);
-        chipBlueJeans = view.findViewById(R.id.chip_blue_jeans);
-        chipRedTshirt = view.findViewById(R.id.chip_red_tshirt);
-        chipSneakers = view.findViewById(R.id.chip_sneakers);
-        chipHoodie = view.findViewById(R.id.chip_hoodie);
+            // Inicializar vistas
+            etSearchProduct = view.findViewById(R.id.et_search_product);
+            tvLiveTotal = view.findViewById(R.id.tv_live_total);
+            tvLivePercent = view.findViewById(R.id.tv_live_percent);
+            tvProductName = view.findViewById(R.id.tv_product_name);
+            tvProductDescription = view.findViewById(R.id.tv_product_description);
+            tvUnitPrice = view.findViewById(R.id.tv_unit_price);
+            tvQuantity = view.findViewById(R.id.tv_quantity);
+            tvDiscount = view.findViewById(R.id.tv_discount);
+            tvSubtotal = view.findViewById(R.id.tv_subtotal);
+            tvPendientesCount = view.findViewById(R.id.tv_pendientes_count);
+            btnDecreaseQty = view.findViewById(R.id.btn_decrease_qty);
+            btnIncreaseQty = view.findViewById(R.id.btn_increase_qty);
+            btnConfirmSale = view.findViewById(R.id.btn_confirm_sale);
+            
+            // ← CORRECTO: SwitchCompat
+            switchHaptic = view.findViewById(R.id.switch_haptic);
+            
+            chipBlueJeans = view.findViewById(R.id.chip_blue_jeans);
+            chipRedTshirt = view.findViewById(R.id.chip_red_tshirt);
+            chipSneakers = view.findViewById(R.id.chip_sneakers);
+            chipHoodie = view.findViewById(R.id.chip_hoodie);
 
-        sessionManager = new SessionManager(getContext());
-        logger = TelegramLogger.getInstance(getContext());
-        repository = new OmniVentasRepository(getContext());
-
-        AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_NO);
-
-        // Mostrar ventas pendientes
-        int pendientes = repository.getVentasPendientesCount();
-        if (pendientes > 0) {
-            tvPendientesCount.setVisibility(View.VISIBLE);
-            tvPendientesCount.setText(pendientes + " pendientes");
-        } else {
-            tvPendientesCount.setVisibility(View.GONE);
-        }
-
-        btnDecreaseQty.setOnClickListener(v -> {
-            if (quantity > 1) {
-                quantity--;
-                updateQuantityAndPrice();
+            // Verificar que los views importantes no sean null
+            if (switchHaptic == null) {
+                Log.e(TAG, "⚠️ switch_haptic es NULL");
             }
-        });
 
-        btnIncreaseQty.setOnClickListener(v -> {
-            if (selectedProduct != null && quantity < selectedProduct.getStock()) {
-                quantity++;
-                updateQuantityAndPrice();
-            } else if (selectedProduct == null) {
-                Toast.makeText(getContext(), "Select a product first", Toast.LENGTH_SHORT).show();
+            sessionManager = new SessionManager(getContext());
+            logger = TelegramLogger.getInstance(getContext());
+            repository = new OmniVentasRepository(getContext());
+
+            AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_NO);
+
+            // Mostrar ventas pendientes
+            int pendientes = repository.getVentasPendientesCount();
+            if (pendientes > 0) {
+                tvPendientesCount.setVisibility(View.VISIBLE);
+                tvPendientesCount.setText(pendientes + " pendientes");
             } else {
-                Toast.makeText(getContext(), "Not enough stock", Toast.LENGTH_SHORT).show();
+                tvPendientesCount.setVisibility(View.GONE);
             }
-        });
 
-        etSearchProduct.addTextChangedListener(new TextWatcher() {
-            @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
-            @Override public void onTextChanged(CharSequence s, int start, int before, int count) {}
-            @Override public void afterTextChanged(Editable s) {
-                String query = s.toString().toLowerCase().trim();
-                // Aquí se podrían filtrar productos de la lista
+            // Configurar controles de cantidad
+            btnDecreaseQty.setOnClickListener(v -> {
+                if (quantity > 1) {
+                    quantity--;
+                    updateQuantityAndPrice();
+                }
+            });
+
+            btnIncreaseQty.setOnClickListener(v -> {
+                if (selectedProduct != null && quantity < selectedProduct.getStock()) {
+                    quantity++;
+                    updateQuantityAndPrice();
+                } else if (selectedProduct == null) {
+                    Toast.makeText(getContext(), "Select a product first", Toast.LENGTH_SHORT).show();
+                } else {
+                    Toast.makeText(getContext(), "Not enough stock", Toast.LENGTH_SHORT).show();
+                }
+            });
+
+            // Búsqueda de productos
+            etSearchProduct.addTextChangedListener(new TextWatcher() {
+                @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+                @Override public void onTextChanged(CharSequence s, int start, int before, int count) {}
+                @Override public void afterTextChanged(Editable s) {
+                    String query = s.toString().toLowerCase().trim();
+                    // Aquí se podrían filtrar productos de la lista
+                }
+            });
+
+            // Chips de productos populares
+            chipBlueJeans.setOnClickListener(v -> selectProduct("Blue Jeans", "Regular Fit", 42.00, 20, 1));
+            chipRedTshirt.setOnClickListener(v -> selectProduct("Red T-Shirt", "Cotton", 25.00, 15, 2));
+            chipSneakers.setOnClickListener(v -> selectProduct("Sneakers", "Running", 89.00, 10, 3));
+            chipHoodie.setOnClickListener(v -> selectProduct("Hoodie", "Warm", 55.00, 8, 4));
+
+            // Botón confirmar venta
+            btnConfirmSale.setOnClickListener(v -> confirmSale());
+
+            updateUI();
+
+            Log.d(TAG, "✅ onCreateView completado");
+            return view;
+
+        } catch (Exception e) {
+            Log.e(TAG, "❌ Error en onCreateView: " + e.getMessage());
+            e.printStackTrace();
+            
+            if (getContext() != null) {
+                Toast.makeText(getContext(), "Error: " + e.getMessage(), Toast.LENGTH_LONG).show();
             }
-        });
-
-        chipBlueJeans.setOnClickListener(v -> selectProduct("Blue Jeans", "Regular Fit", 42.00, 20, 1));
-        chipRedTshirt.setOnClickListener(v -> selectProduct("Red T-Shirt", "Cotton", 25.00, 15, 2));
-        chipSneakers.setOnClickListener(v -> selectProduct("Sneakers", "Running", 89.00, 10, 3));
-        chipHoodie.setOnClickListener(v -> selectProduct("Hoodie", "Warm", 55.00, 8, 4));
-
-        btnConfirmSale.setOnClickListener(v -> confirmSale());
-
-        updateUI();
-
-        return view;
+            
+            // Devolver un layout simple para evitar crash
+            TextView errorView = new TextView(getContext());
+            errorView.setText("Error cargando Ventas\n\n" + e.getMessage());
+            errorView.setPadding(20, 20, 20, 20);
+            return errorView;
+        }
     }
 
     private void selectProduct(String name, String desc, double price, int stock, int id) {
+        Log.d(TAG, "selectProduct: " + name);
         selectedProduct = new Producto();
         selectedProduct.setNombre(name);
         selectedProduct.setDescripcion(desc);
@@ -168,6 +204,8 @@ public class VentasFragment extends Fragment {
     }
 
     private void confirmSale() {
+        Log.d(TAG, "confirmSale - Iniciando");
+        
         if (selectedProduct == null) {
             Toast.makeText(getContext(), "Select a product first", Toast.LENGTH_SHORT).show();
             return;
@@ -178,10 +216,16 @@ public class VentasFragment extends Fragment {
             return;
         }
 
-        if (switchHaptic.isChecked()) {
-            Vibrator vibrator = (Vibrator) getContext().getSystemService(android.content.Context.VIBRATOR_SERVICE);
-            if (vibrator != null) {
-                vibrator.vibrate(50);
+        // Verificar Haptic Feedback con SwitchCompat
+        if (switchHaptic != null && switchHaptic.isChecked()) {
+            try {
+                Vibrator vibrator = (Vibrator) getContext().getSystemService(android.content.Context.VIBRATOR_SERVICE);
+                if (vibrator != null) {
+                    vibrator.vibrate(50);
+                    Log.d(TAG, "Vibración activada");
+                }
+            } catch (Exception e) {
+                Log.e(TAG, "Error en vibración: " + e.getMessage());
             }
         }
 
@@ -220,40 +264,50 @@ public class VentasFragment extends Fragment {
         apiService.registrarVenta("Bearer " + token, request).enqueue(new Callback<VentaResponse>() {
             @Override
             public void onResponse(Call<VentaResponse> call, Response<VentaResponse> response) {
-                if (response.isSuccessful() && response.body() != null && response.body().isSuccess()) {
-                    Toast.makeText(getContext(), "✅ Sale confirmed!", Toast.LENGTH_SHORT).show();
-                    logger.success("Venta registrada: " + selectedProduct.getNombre() + " x" + quantity);
-                    
-                    selectedProduct.setStock(selectedProduct.getStock() - quantity);
-                    quantity = 1;
-                    updateUI();
-                    
-                    // Actualizar Dashboard
-                    if (getActivity() != null) {
-                        DashboardFragment dashboard = (DashboardFragment) getActivity()
-                            .getSupportFragmentManager()
-                            .findFragmentByTag("dashboard");
-                        if (dashboard != null) {
-                            dashboard.actualizarDesdeVenta();
+                Log.d(TAG, "confirmSale - onResponse recibido");
+                try {
+                    if (response.isSuccessful() && response.body() != null && response.body().isSuccess()) {
+                        Toast.makeText(getContext(), "✅ Sale confirmed!", Toast.LENGTH_SHORT).show();
+                        logger.success("Venta registrada: " + selectedProduct.getNombre() + " x" + quantity);
+                        
+                        selectedProduct.setStock(selectedProduct.getStock() - quantity);
+                        quantity = 1;
+                        updateUI();
+                        
+                        // Actualizar Dashboard
+                        if (getActivity() != null) {
+                            androidx.fragment.app.Fragment fragment = getActivity()
+                                .getSupportFragmentManager()
+                                .findFragmentByTag("dashboard");
+                            
+                            if (fragment instanceof DashboardFragment) {
+                                DashboardFragment dashboard = (DashboardFragment) fragment;
+                                dashboard.actualizarDesdeVenta();
+                                Log.d(TAG, "✅ Dashboard actualizado desde venta");
+                            }
                         }
+                    } else {
+                        // Fallback a modo offline
+                        repository.registrarVentaOffline(
+                            selectedProduct.getId(),
+                            selectedProduct.getNombre(),
+                            quantity,
+                            selectedProduct.getPrecio()
+                        );
+                        Toast.makeText(getContext(), "✅ Venta guardada OFFLINE: " + selectedProduct.getNombre() + " x" + quantity, Toast.LENGTH_LONG).show();
+                        selectedProduct.setStock(selectedProduct.getStock() - quantity);
+                        quantity = 1;
+                        updateUI();
                     }
-                } else {
-                    // Fallback a modo offline
-                    repository.registrarVentaOffline(
-                        selectedProduct.getId(),
-                        selectedProduct.getNombre(),
-                        quantity,
-                        selectedProduct.getPrecio()
-                    );
-                    Toast.makeText(getContext(), "✅ Venta guardada OFFLINE: " + selectedProduct.getNombre() + " x" + quantity, Toast.LENGTH_LONG).show();
-                    selectedProduct.setStock(selectedProduct.getStock() - quantity);
-                    quantity = 1;
-                    updateUI();
+                } catch (Exception e) {
+                    Log.e(TAG, "❌ Error en onResponse: " + e.getMessage());
+                    e.printStackTrace();
                 }
             }
 
             @Override
             public void onFailure(Call<VentaResponse> call, Throwable t) {
+                Log.e(TAG, "❌ confirmSale - onFailure: " + t.getMessage());
                 // Modo offline
                 repository.registrarVentaOffline(
                     selectedProduct.getId(),
