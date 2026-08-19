@@ -1,6 +1,8 @@
 package com.omniventas.app.ui;
 
+import android.os.AsyncTask;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -17,6 +19,7 @@ import com.omniventas.app.R;
 import com.omniventas.app.adapters.InventarioAdapter;
 import com.omniventas.app.api.ApiService;
 import com.omniventas.app.api.RetrofitClient;
+import com.omniventas.app.local.ProductoEntity;
 import com.omniventas.app.models.Producto;
 import com.omniventas.app.models.RespuestaProductos;
 import com.omniventas.app.repository.OmniVentasRepository;
@@ -29,6 +32,7 @@ import retrofit2.Callback;
 import retrofit2.Response;
 
 public class InventarioFragment extends Fragment {
+    private static final String TAG = "InventarioFragment";
 
     private RecyclerView rvInventario;
     private TextView tvStatsProducts, tvUpdatedNow, tvInventarioVacio;
@@ -44,59 +48,111 @@ public class InventarioFragment extends Fragment {
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
-        View view = inflater.inflate(R.layout.fragment_inventario, container, false);
+        Log.d(TAG, "onCreateView iniciado");
+        
+        try {
+            View view = inflater.inflate(R.layout.fragment_inventario, container, false);
+            Log.d(TAG, "Layout inflado correctamente");
 
-        rvInventario = view.findViewById(R.id.rv_inventario);
-        tvStatsProducts = view.findViewById(R.id.tv_stats_products);
-        tvUpdatedNow = view.findViewById(R.id.tv_updated_now);
-        tvInventarioVacio = view.findViewById(R.id.tv_inventario_vacio);
-        btnScan = view.findViewById(R.id.btn_scan);
-        chipAll = view.findViewById(R.id.chip_all);
-        chipLowStock = view.findViewById(R.id.chip_low_stock);
-        chipElectronics = view.findViewById(R.id.chip_electronics);
-        chipClothing = view.findViewById(R.id.chip_clothing);
+            rvInventario = view.findViewById(R.id.rv_inventario);
+            tvStatsProducts = view.findViewById(R.id.tv_stats_products);
+            tvUpdatedNow = view.findViewById(R.id.tv_updated_now);
+            tvInventarioVacio = view.findViewById(R.id.tv_inventario_vacio);
+            btnScan = view.findViewById(R.id.btn_scan);
+            chipAll = view.findViewById(R.id.chip_all);
+            chipLowStock = view.findViewById(R.id.chip_low_stock);
+            chipElectronics = view.findViewById(R.id.chip_electronics);
+            chipClothing = view.findViewById(R.id.chip_clothing);
 
-        sessionManager = new SessionManager(getContext());
-        logger = TelegramLogger.getInstance(getContext());
-        repository = new OmniVentasRepository(getContext());
+            sessionManager = new SessionManager(getContext());
+            logger = TelegramLogger.getInstance(getContext());
+            repository = new OmniVentasRepository(getContext());
 
-        adapter = new InventarioAdapter();
-        rvInventario.setLayoutManager(new GridLayoutManager(getContext(), 2));
-        rvInventario.setAdapter(adapter);
+            adapter = new InventarioAdapter();
+            rvInventario.setLayoutManager(new GridLayoutManager(getContext(), 2));
+            rvInventario.setAdapter(adapter);
 
-        btnScan.setOnClickListener(v -> 
-            Toast.makeText(getContext(), "Escáner disponible en próxima versión", Toast.LENGTH_SHORT).show()
-        );
+            btnScan.setOnClickListener(v -> 
+                Toast.makeText(getContext(), "Escáner disponible en próxima versión", Toast.LENGTH_SHORT).show()
+            );
 
-        chipAll.setOnClickListener(v -> filterProducts("all"));
-        chipLowStock.setOnClickListener(v -> filterProducts("low_stock"));
-        chipElectronics.setOnClickListener(v -> filterProducts("electronics"));
-        chipClothing.setOnClickListener(v -> filterProducts("clothing"));
+            chipAll.setOnClickListener(v -> filterProducts("all"));
+            chipLowStock.setOnClickListener(v -> filterProducts("low_stock"));
+            chipElectronics.setOnClickListener(v -> filterProducts("electronics"));
+            chipClothing.setOnClickListener(v -> filterProducts("clothing"));
 
-        cargarInventario();
+            // ✅ CORREGIDO: Cargar inventario en segundo plano
+            cargarInventario();
 
-        return view;
+            Log.d(TAG, "✅ onCreateView completado");
+            return view;
+
+        } catch (Exception e) {
+            Log.e(TAG, "❌ Error en onCreateView: " + e.getMessage());
+            e.printStackTrace();
+            
+            if (getContext() != null) {
+                Toast.makeText(getContext(), "Error: " + e.getMessage(), Toast.LENGTH_LONG).show();
+            }
+            
+            TextView errorView = new TextView(getContext());
+            errorView.setText("Error cargando Inventario\n\n" + e.getMessage());
+            errorView.setPadding(20, 20, 20, 20);
+            return errorView;
+        }
     }
 
+    // ✅ CORREGIDO: Cargar inventario en segundo plano con AsyncTask
     private void cargarInventario() {
-        // Primero mostrar datos locales
-        List<com.omniventas.app.local.ProductoEntity> locales = repository.getProductosLocal();
-        productos = new ArrayList<>();
-        for (com.omniventas.app.local.ProductoEntity entity : locales) {
-            Producto p = new Producto();
-            p.setId(entity.getId());
-            p.setNombre(entity.getNombre());
-            p.setSeccion(entity.getSeccion());
-            p.setPrecio(entity.getPrecio());
-            p.setStock(entity.getStock());
-            p.setDescripcion(entity.getDescripcion());
-            productos.add(p);
-        }
-        filteredProducts = new ArrayList<>(productos);
-        adapter.setProductos(filteredProducts);
-        updateStats();
+        new CargarInventarioTask().execute();
+    }
 
-        // Luego sincronizar desde servidor
+    // ✅ AsyncTask para cargar inventario en segundo plano
+    private class CargarInventarioTask extends AsyncTask<Void, Void, List<Producto>> {
+        @Override
+        protected List<Producto> doInBackground(Void... voids) {
+            try {
+                List<Producto> resultado = new ArrayList<>();
+                List<ProductoEntity> locales = repository.getProductosLocal();
+                
+                for (ProductoEntity entity : locales) {
+                    Producto p = new Producto();
+                    p.setId(entity.getId());
+                    p.setNombre(entity.getNombre());
+                    p.setSeccion(entity.getSeccion());
+                    p.setPrecio(entity.getPrecio());
+                    p.setStock(entity.getStock());
+                    p.setDescripcion(entity.getDescripcion());
+                    resultado.add(p);
+                }
+                
+                Log.d(TAG, "✅ Productos locales cargados: " + resultado.size());
+                return resultado;
+            } catch (Exception e) {
+                Log.e(TAG, "❌ Error cargando productos locales: " + e.getMessage());
+                return new ArrayList<>();
+            }
+        }
+
+        @Override
+        protected void onPostExecute(List<Producto> result) {
+            try {
+                productos = result;
+                filteredProducts = new ArrayList<>(productos);
+                adapter.setProductos(filteredProducts);
+                updateStats();
+                tvUpdatedNow.setText("Datos locales");
+                
+                // Luego sincronizar desde servidor
+                sincronizarDesdeServidor();
+            } catch (Exception e) {
+                Log.e(TAG, "❌ Error actualizando UI: " + e.getMessage());
+            }
+        }
+    }
+
+    // ✅ Sincronizar desde servidor en segundo plano
+    private void sincronizarDesdeServidor() {
         String token = sessionManager.getToken();
         if (token == null || token.isEmpty()) return;
 
@@ -106,12 +162,18 @@ public class InventarioFragment extends Fragment {
             public void onResponse(Call<RespuestaProductos> call, Response<RespuestaProductos> response) {
                 if (response.isSuccessful() && response.body() != null && response.body().isSuccess()) {
                     productos = response.body().getProductos();
-                    filteredProducts = new ArrayList<>(productos);
-                    adapter.setProductos(filteredProducts);
-                    updateStats();
-                    tvUpdatedNow.setText("Actualizado ahora");
                     
-                    // Guardar en Room
+                    // ✅ Actualizar UI en el hilo principal
+                    if (getActivity() != null) {
+                        getActivity().runOnUiThread(() -> {
+                            filteredProducts = new ArrayList<>(productos);
+                            adapter.setProductos(filteredProducts);
+                            updateStats();
+                            tvUpdatedNow.setText("Actualizado ahora");
+                        });
+                    }
+                    
+                    // Guardar en Room (ya usa AsyncTask internamente)
                     repository.syncProductosFromServer();
                 }
             }
@@ -169,4 +231,4 @@ public class InventarioFragment extends Fragment {
             rvInventario.setVisibility(View.VISIBLE);
         }
     }
-}
+                                             }
