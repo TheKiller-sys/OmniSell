@@ -1627,7 +1627,7 @@ jobs:
           </ScrollView>
           EOF
 
-      - name: Create Ventas Layout (New Sale)
+      - name: Create Ventas Layout (New Sale) - CORREGIDO
         run: |
           cd android-app
           cat > app/src/main/res/layout/fragment_ventas.xml << 'EOF'
@@ -1667,7 +1667,6 @@ jobs:
                       android:background="@color/warning_light"
                       android:paddingHorizontal="12dp"
                       android:paddingVertical="4dp"
-                      app:cornerRadius="12dp"
                       android:visibility="gone" />
               </LinearLayout>
           
@@ -1737,7 +1736,7 @@ jobs:
                           android:layout_height="wrap_content"
                           android:text="Blue Jeans"
                           app:chipBackgroundColor="@color/primary"
-                          app:chipTextColor="@color/white"
+                          android:textColor="@color/white"
                           android:layout_marginEnd="8dp" />
           
                       <com.google.android.material.chip.Chip
@@ -1746,7 +1745,7 @@ jobs:
                           android:layout_height="wrap_content"
                           android:text="Red T-Shirt"
                           app:chipBackgroundColor="@color/light_gray"
-                          app:chipTextColor="@color/dark"
+                          android:textColor="@color/dark"
                           android:layout_marginEnd="8dp" />
           
                       <com.google.android.material.chip.Chip
@@ -1755,7 +1754,7 @@ jobs:
                           android:layout_height="wrap_content"
                           android:text="Sneakers"
                           app:chipBackgroundColor="@color/light_gray"
-                          app:chipTextColor="@color/dark"
+                          android:textColor="@color/dark"
                           android:layout_marginEnd="8dp" />
           
                       <com.google.android.material.chip.Chip
@@ -1764,7 +1763,7 @@ jobs:
                           android:layout_height="wrap_content"
                           android:text="Hoodie"
                           app:chipBackgroundColor="@color/light_gray"
-                          app:chipTextColor="@color/dark" />
+                          android:textColor="@color/dark" />
                   </LinearLayout>
               </HorizontalScrollView>
           
@@ -2062,7 +2061,7 @@ jobs:
           </LinearLayout>
           EOF
 
-      - name: Create Inventario Layout
+      - name: Create Inventario Layout - CORREGIDO
         run: |
           cd android-app
           cat > app/src/main/res/layout/fragment_inventario.xml << 'EOF'
@@ -2146,7 +2145,7 @@ jobs:
                           android:layout_height="wrap_content"
                           android:text="All"
                           app:chipBackgroundColor="@color/primary"
-                          app:chipTextColor="@color/white"
+                          android:textColor="@color/white"
                           android:layout_marginEnd="8dp" />
           
                       <com.google.android.material.chip.Chip
@@ -2155,7 +2154,7 @@ jobs:
                           android:layout_height="wrap_content"
                           android:text="Low Stock"
                           app:chipBackgroundColor="@color/light_gray"
-                          app:chipTextColor="@color/dark"
+                          android:textColor="@color/dark"
                           android:layout_marginEnd="8dp" />
           
                       <com.google.android.material.chip.Chip
@@ -2164,7 +2163,7 @@ jobs:
                           android:layout_height="wrap_content"
                           android:text="Electronics"
                           app:chipBackgroundColor="@color/light_gray"
-                          app:chipTextColor="@color/dark"
+                          android:textColor="@color/dark"
                           android:layout_marginEnd="8dp" />
           
                       <com.google.android.material.chip.Chip
@@ -2173,7 +2172,7 @@ jobs:
                           android:layout_height="wrap_content"
                           android:text="Clothing"
                           app:chipBackgroundColor="@color/light_gray"
-                          app:chipTextColor="@color/dark" />
+                          android:textColor="@color/dark" />
                   </LinearLayout>
               </HorizontalScrollView>
           
@@ -3131,6 +3130,7 @@ jobs:
               private double total;
               private String fecha;
               private int productoId;
+              private boolean pendiente;
 
               public int getId() { return id; }
               public void setId(int id) { this.id = id; }
@@ -3146,6 +3146,8 @@ jobs:
               public void setFecha(String fecha) { this.fecha = fecha; }
               public int getProductoId() { return productoId; }
               public void setProductoId(int productoId) { this.productoId = productoId; }
+              public boolean isPendiente() { return pendiente; }
+              public void setPendiente(boolean pendiente) { this.pendiente = pendiente; }
           }
           EOF
           
@@ -4471,6 +4473,7 @@ jobs:
           import com.omniventas.app.api.RetrofitClient;
           import com.omniventas.app.models.DashboardResponse;
           import com.omniventas.app.models.Venta;
+          import com.omniventas.app.repository.OmniVentasRepository;
           import com.omniventas.app.utils.SessionManager;
           import com.omniventas.app.utils.TelegramLogger;
           import java.util.Calendar;
@@ -4488,6 +4491,7 @@ jobs:
               private SwipeRefreshLayout swipeRefresh;
               private SessionManager sessionManager;
               private TelegramLogger logger;
+              private OmniVentasRepository repository;
               private Handler handler = new Handler(Looper.getMainLooper());
               private Runnable actualizacionAutomatica;
 
@@ -4512,6 +4516,7 @@ jobs:
 
                   sessionManager = new SessionManager(getContext());
                   logger = TelegramLogger.getInstance(getContext());
+                  repository = new OmniVentasRepository(getContext());
 
                   String vendorName = sessionManager.getVendorName();
                   String greeting = "Good morning";
@@ -4529,13 +4534,14 @@ jobs:
                       @Override
                       public void run() {
                           if (isAdded()) {
-                              cargarDashboard();
-                              handler.postDelayed(this, 10000);
+                              cargarDashboardLocal();
+                              handler.postDelayed(this, 15000);
                           }
                       }
                   };
-                  handler.postDelayed(actualizacionAutomatica, 10000);
+                  handler.postDelayed(actualizacionAutomatica, 15000);
 
+                  cargarDashboardLocal();
                   cargarDashboard();
 
                   return view;
@@ -4545,6 +4551,26 @@ jobs:
               public void onDestroyView() {
                   super.onDestroyView();
                   handler.removeCallbacks(actualizacionAutomatica);
+              }
+
+              // Método público para actualizar desde otros fragmentos
+              public void actualizarDesdeVenta() {
+                  if (isAdded()) {
+                      cargarDashboardLocal();
+                  }
+              }
+
+              public void cargarDashboardLocal() {
+                  // Mostrar datos locales inmediatamente
+                  int ventasPendientes = repository.getVentasPendientesCount();
+                  int totalProductos = repository.getTotalProductos();
+                  int stockBajo = repository.getStockBajo();
+                  
+                  tvLiveRevenue.setText("$" + String.format("%,.0f", (double) ventasPendientes * 100));
+                  tvPendingOrders.setText(String.valueOf(ventasPendientes));
+                  
+                  tvOfflineStatus.setVisibility(View.VISIBLE);
+                  tvOfflineStatus.setText("📡 Modo Offline - " + ventasPendientes + " pendientes");
               }
 
               private void cargarDashboard() {
@@ -4594,6 +4620,9 @@ jobs:
                               }
                               tvConversionRate.setText(String.format("%.1f%%", conversion));
                               tvConversionTrend.setText("↑ 0.0%");
+                              
+                              // Sincronizar productos en segundo plano
+                              repository.syncProductosFromServer();
                           } else {
                               tvOfflineStatus.setVisibility(View.VISIBLE);
                               tvOfflineStatus.setText("📡 Mostrando datos locales");
@@ -4734,6 +4763,7 @@ jobs:
                       @Override public void onTextChanged(CharSequence s, int start, int before, int count) {}
                       @Override public void afterTextChanged(Editable s) {
                           String query = s.toString().toLowerCase().trim();
+                          // Aquí se podrían filtrar productos de la lista
                       }
                   });
 
@@ -4855,7 +4885,7 @@ jobs:
                                       .getSupportFragmentManager()
                                       .findFragmentByTag("dashboard");
                                   if (dashboard != null) {
-                                      dashboard.actualizarDashboard();
+                                      dashboard.actualizarDesdeVenta();
                                   }
                               }
                           } else {
