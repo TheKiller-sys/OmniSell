@@ -268,4 +268,15 @@ public class DashboardFragment extends Fragment {
         Log.d(TAG, "actualizarDashboard - Actualizando dashboard");
         cargarDashboard();
     }
+
+    // ============================================================
+    // MÉTODO PARA ACTUALIZAR DESDE VentasFragment
+    // ============================================================
+    public void actualizarDesdeVenta() {
+        Log.d(TAG, "actualizarDesdeVenta - Actualizando dashboard desde venta");
+        if (isAdded()) {
+            cargarDashboardLocal();
+            cargarDashboard();
+        }
+    }
 }
