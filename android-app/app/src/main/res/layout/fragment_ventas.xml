@@ -403,6 +403,7 @@
                         android:textSize="14sp"
                         android:textColor="@color/dark" />
 
+                    <!-- ← CORREGIDO: Usar SwitchCompat en lugar de Switch -->
                     <androidx.appcompat.widget.SwitchCompat
                         android:id="@+id/switch_haptic"
                         android:layout_width="wrap_content"
