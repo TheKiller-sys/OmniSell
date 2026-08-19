@@ -1360,7 +1360,7 @@
             <div class="onboarding-content">
                 <!-- Indicador de paso -->
                 <div class="step-indicator" id="step-indicator">
-                    <span id="current-step-text">1</span> / <span id="total-steps-text">5</span>
+                    <span id="current-step-text">1</span> / <span id="total-steps-text">11</span>
                 </div>
                 <!-- Título y Descripción -->
                 <h3 id="step-title">Bienvenido a OmniVentas</h3>
@@ -1736,7 +1736,7 @@
         }
 
         // ============================================================
-        // ONBOARDING TUTORIAL - Lógica Multi-Página
+        // ONBOARDING TUTORIAL - Lógica Multi-Página (HUMANIZADA Y EXPLICATIVA)
         // ============================================================
         (function() {
             'use strict';
@@ -1751,80 +1751,80 @@
             const BTN_PREV = document.getElementById('btn-prev-step');
             const BTN_SKIP = document.getElementById('btn-skip-tour');
 
-            // 1. DEFINIR LOS PASOS DEL TOUR
+            // 1. DEFINIR LOS PASOS DEL TOUR (TEXTOS HUMANIZADOS Y DETALLADOS)
             const STEPS = [
                 {
                     target: '.section-header-wrapper',
-                    title: '🚀 Bienvenido a tu Dashboard',
-                    desc: 'Aquí verás el resumen de tu negocio en tiempo real. Ingresos, ventas, y métricas clave siempre actualizadas.',
+                    title: '🚀 ¡Bienvenido a tu Centro de Control!',
+                    desc: 'Este es tu <strong>Dashboard Principal</strong>. Piensa en él como el <em>tablero de instrumentos de tu negocio</em>. Aquí no solo verás números; verás la <strong>salud de tu empresa</strong> en tiempo real. Cada gráfico y cada tarjeta están diseñados para que tomes decisiones inteligentes basadas en datos reales, no en corazonadas.',
                     page: '/dashboard'
                 },
                 {
                     target: '.stats-row',
-                    title: '📈 Tus Métricas Clave',
-                    desc: 'Estas tarjetas te muestran tus ingresos totales, ganancia neta, margen promedio y número de ventas. Pasa el mouse para más detalles.',
+                    title: '📈 Tus Métricas Vitales (El Pulso de tu Negocio)',
+                    desc: 'Estas 4 tarjetas son tu <strong>termómetro financiero</strong>.<br><br>• <strong>Ingresos Totales:</strong> El dinero que ha entrado a tu caja. Es tu <em>bruto</em>.<br>• <strong>Ganancia Neta:</strong> El dinero real que te queda después de pagar costos. Es tu <em>beneficio real</em>.<br>• <strong>Margen Promedio:</strong> El porcentaje de ganancia que obtienes por cada venta. Si es bajo, necesitas ajustar precios.<br>• <strong>Total Ventas:</strong> La cantidad de transacciones realizadas. Te dice qué tan activo está tu equipo.<br><br><em>Consejo:</em> Pasa el mouse sobre cualquiera de ellas para ver detalles adicionales.',
                     page: '/dashboard'
                 },
                 {
                     target: '#salesChart',
-                    title: '📊 Análisis Visual de Ventas',
-                    desc: 'Visualiza la tendencia de tus ventas en diferentes periodos. Usa los botones "Mensual", "Semanal" o "Diario" para cambiar la vista.',
+                    title: '📊 Análisis Visual de Ventas (Tu Radar)',
+                    desc: 'Este gráfico de barras te muestra la <strong>tendencia de tus ventas</strong> a lo largo del tiempo.<br><br><strong>¿Cómo usarlo?</strong><br>• <strong>Mensual:</strong> Para ver el rendimiento general de tu negocio mes a mes.<br>• <strong>Semanal:</strong> Para detectar semanas buenas y malas.<br>• <strong>Diario:</strong> Para identificar qué días de la semana venden más (ideal para promociones).<br><br><em>Importante:</em> Si ves que las ventas bajan, no entres en pánico. Usa este gráfico para identificar la causa y actuar a tiempo.',
                     page: '/dashboard'
                 },
                 {
                     target: '#inventoryTable',
-                    title: '📦 Gestión de Inventario',
-                    desc: 'Controla el stock de tus productos en tiempo real. Los estados "Óptimo", "Atención" o "Crítico" te alertarán sobre reposiciones.',
+                    title: '📦 Gestión de Inventario (Tu Almacén Inteligente)',
+                    desc: 'Aquí tienes el control total de tu stock. No más cuadernos o Excel.<br><br><strong>El sistema clasifica automáticamente tus productos:</strong><br>• <span style="color: #10B981;">Óptimo:</span> Stock saludable. No te preocupes.<br>• <span style="color: #F59E0B;">Atención:</span> Quedan 3 o menos unidades. ¡Es hora de reabastecer!<br>• <span style="color: #EF4444;">Crítico:</span> Producto agotado. Has perdido una venta potencial.<br><br><em>Objetivo:</em> Mantén todos tus productos en verde (Óptimo) y nunca pierdas una venta por falta de stock.',
                     page: '/dashboard'
                 },
                 {
                     target: '.header-actions',
-                    title: '🎯 Navegación y Configuración',
-                    desc: 'Desde aquí puedes ver el nombre de tu negocio y cerrar sesión. El menú lateral te permite navegar a Ventas, Finanzas, Clientes y más.',
+                    title: '🎯 Navegación y Seguridad (Tu Panel de Control)',
+                    desc: 'En la esquina superior derecha siempre verás el <strong>nombre de tu negocio</strong> y el botón para <strong>cerrar sesión</strong>.<br><br><strong>Pero lo más importante está a tu izquierda:</strong><br>El menú lateral te da acceso a todas las herramientas de gestión:<br>• <strong>Ventas:</strong> Registra nuevas transacciones y ve tu historial.<br>• <strong>Finanzas:</strong> Analiza tus ingresos, gastos y beneficios netos.<br>• <strong>Análisis:</strong> Descubre cuáles son tus productos estrella (los que más ganancia dejan).<br>• <strong>Vendedores:</strong> Gestiona a tu equipo y asigna roles.<br>• <strong>Clientes:</strong> Construye una base de datos de tus compradores (próximamente con historial de compras).<br><br><em>Importante:</em> En la sección de <strong>Configuración</strong> puedes cambiar la contraseña y los datos de tu negocio.',
                     page: '/dashboard',
-                    nextPage: '/ventas' // Después de este paso, vamos a Ventas
+                    nextPage: '/ventas'
                 },
                 {
                     target: '.section-header-wrapper',
-                    title: '🛒 Gestión de Ventas',
-                    desc: 'En esta página puedes registrar nuevas ventas manualmente, filtrar por fechas y exportar tu historial a Excel.',
+                    title: '🛒 Gestión de Ventas (Tu Caja Registradora Digital)',
+                    desc: 'Esta es tu <strong>herramienta de facturación</strong>. Aquí ocurre la magia de convertir productos en dinero.<br><br><strong>Funcionalidades clave:</strong><br>• <strong>Registrar Venta:</strong> Selecciona un producto, ingresa la cantidad y el sistema calcula el total automáticamente.<br>• <strong>Filtros de Fecha:</strong> Puedes ver las ventas de "hoy", "esta semana" o "este mes" para tener un control temporal preciso.<br>• <strong>Exportar:</strong> Genera un archivo CSV (Excel) con tu historial de ventas para llevar tus contabilidades externas.<br><br><em>Tip:</em> Las ventas registradas aquí se reflejan <strong>instantáneamente</strong> en tu Dashboard y reducen el stock automáticamente.',
                     page: '/ventas',
                     nextPage: '/inventario'
                 },
                 {
                     target: '.card-premium',
-                    title: '📦 Inventario Completo',
-                    desc: 'Gestiona todos tus productos, su stock, precios y márgenes. Puedes agregar, editar o eliminar productos desde aquí.',
+                    title: '📦 Inventario Completo (El Corazón de tu Negocio)',
+                    desc: 'Esta es la <strong>base de datos de tus productos</strong>. Sin un inventario preciso, no puedes vender.<br><br><strong>¿Qué puedes hacer aquí?</strong><br>• <strong>Agregar Productos:</strong> Da de alta nuevos artículos con su precio de venta, costo de compra y stock inicial.<br>• <strong>Editar:</strong> Si cambia el precio de un producto, actualízalo aquí y las ventas futuras usarán el nuevo valor.<br>• <strong>Eliminar:</strong> Si un producto ya no se vende, puedes darlo de baja del sistema.<br><br><em>Consejo de oro:</em> El <strong>Margen</strong> que ves en la tabla es el porcentaje de ganancia de cada producto. A mayor margen, más saludable es tu negocio.',
                     page: '/inventario',
                     nextPage: '/vendedores'
                 },
                 {
                     target: '.section-title',
-                    title: '👥 Gestión de Vendedores',
-                    desc: 'Crea y administra a tu equipo de ventas. Asigna roles, activa o desactiva vendedores y controla su rendimiento.',
+                    title: '👥 Gestión de Vendedores (Tu Equipo en Acción)',
+                    desc: 'Aquí <strong>creas y administras a tu fuerza de ventas</strong>.<br><br><strong>¿Cómo funciona?</strong><br>• <strong>Crear Vendedor:</strong> Escribe su nombre y el sistema genera un <strong>ID único de 8 caracteres</strong> (ej: AAAA0000).<br>• <strong>Ese ID es su llave:</strong> Con él, el vendedor puede iniciar sesión en la <strong>App Android</strong> y registrar ventas desde su teléfono.<br>• <strong>Estado:</strong> Puedes activar o desactivar vendedores. Si un vendedor ya no trabaja contigo, desactívalo (no lo borres, así conservas el historial de sus ventas).<br><br><em>Importante:</em> Solo los administradores pueden gestionar vendedores. Es una función exclusiva para dueños y gerentes.',
                     page: '/vendedores',
                     nextPage: '/finanzas'
                 },
                 {
                     target: '.section-header-wrapper',
-                    title: '💰 Análisis Financiero',
-                    desc: 'Visualiza tus ingresos, gastos y beneficios netos. Los gráficos te ayudan a entender la salud financiera de tu negocio.',
+                    title: '💰 Análisis Financiero (Tu Contador Personal)',
+                    desc: 'Esta sección es <strong>tu brújula económica</strong>. Aquí no adivinas, sabes.<br><br><strong>¿Qué te enseña?</strong><br>• <strong>Ingresos vs Gastos:</strong> El gráfico de barras te muestra si estás ganando más de lo que gastas. Si la barra de gastos es más alta, tienes un problema grave.<br>• <strong>Distribución de Gastos:</strong> El gráfico de torta te dice en qué se va tu dinero: ¿Productos? ¿Transporte? ¿Publicidad? Si ves que la publicidad se come tus ganancias, puedes ajustar.<br>• <strong>Resumen Mensual:</strong> La tabla te da un vistazo rápido de cómo fue cada mes. Te ayuda a detectar estacionalidad (ej: en diciembre se vende más).<br><br><em>Objetivo:</em> Que siempre sepas si estás ganando o perdiendo dinero. Nunca tomes decisiones financieras sin consultar esta sección.',
                     page: '/finanzas',
                     nextPage: '/analisis'
                 },
                 {
                     target: '.section-header-wrapper',
-                    title: '🧠 Análisis Avanzado',
-                    desc: 'Descubre qué productos se venden más, la tendencia de ventas y la clasificación ABC de tus productos para optimizar tu inventario.',
+                    title: '🧠 Análisis Avanzado (Tu Inteligencia de Negocio)',
+                    desc: 'Esta es la sección para <strong>tomar decisiones estratégicas</strong>. Los datos crudos están bien, pero aquí los convertimos en <strong>información accionable</strong>.<br><br><strong>Herramientas clave:</strong><br>• <strong>Top 10 Productos:</strong> Descubre cuáles son tus "vacas sagradas". Los productos que más unidades venden y más ganancia dejan.<br>• <strong>Tendencia de Ventas:</strong> Un gráfico de línea que te muestra si tu negocio está creciendo, estancado o en declive.<br>• <strong>Clasificación ABC:</strong> Un método de gestión de inventario que clasifica tus productos en:<br>  - <strong>A (80%):</strong> Tus productos estrella. El 20% de tus productos generan el 80% de tu ganancia.<br>  - <strong>B (15%):</strong> Productos de rendimiento medio.<br>  - <strong>C (5%):</strong> Productos de bajo rendimiento. (Analiza si vale la pena mantenerlos).<br><br><em>Consejo de experto:</em> Invierte tu tiempo y dinero en los productos de categoría A. Son los que realmente hacen crecer tu negocio.',
                     page: '/analisis',
                     nextPage: '/clientes'
                 },
                 {
                     target: '.section-header-wrapper',
-                    title: '👤 Gestión de Clientes',
-                    desc: 'Registra y gestiona la información de tus clientes. Lleva un control de sus compras y fideliza a tu base de usuarios.',
+                    title: '👤 Gestión de Clientes (Tu Base de Datos de Oro)',
+                    desc: 'Esta sección <strong>aún está en desarrollo</strong>, pero te contamos su potencial porque es <strong>vital para tu éxito</strong>.<br><br><strong>¿Qué podrás hacer aquí?</strong><br>• <strong>Registrar Clientes:</strong> Guardar el nombre, email y teléfono de todos los que te compran.<br>• <strong>Historial de Compras:</strong> Ver exactamente qué compró cada cliente, cuánto gastó y cuándo.<br>• <strong>Fidelización:</strong> Con estos datos, podrás identificar a tus mejores clientes y ofrecerles promociones especiales.<br><br><em>No subestimes esta sección:</em> Un cliente feliz y bien tratado es la mejor publicidad que puedes tener.',
                     page: '/clientes',
-                    nextPage: null // Último paso
+                    nextPage: null
                 }
             ];
 
@@ -1833,15 +1833,36 @@
 
             // 2. INICIALIZACIÓN (DETECCIÓN DE PRIMERA VEZ)
             function initOnboarding() {
-                // Verificar si es primera vez y si estamos en la página correcta
+                // 🔥 MODO PRUEBA: Forzar visualización. Cambia a false en producción.
+                const forceShow = true; 
+                
+                // Verificar si el usuario ya completó el tutorial
                 const onboardingComplete = localStorage.getItem("omniventas_onboarding_complete");
                 const currentPage = window.location.pathname;
                 
-                // Si no está completado y estamos en /dashboard, empezar
-                if (!onboardingComplete && currentPage === '/dashboard') {
+                // Verificar si venimos de un paso guardado en sessionStorage
+                const savedStep = sessionStorage.getItem('onboarding_next_step');
+                
+                // Lógica de visualización:
+                if (forceShow || (!onboardingComplete && currentPage === '/dashboard')) {
+                    // Si forceShow está activo, reiniciar localStorage para pruebas
+                    if (forceShow) {
+                        localStorage.removeItem("omniventas_onboarding_complete");
+                    }
+                    // Esperar un poco para que el DOM cargue completamente
                     setTimeout(() => {
                         startTour();
-                    }, 1000);
+                    }, 800);
+                } else if (savedStep !== null) {
+                    // Reanudar el tutorial en el paso guardado
+                    const stepIndex = parseInt(savedStep);
+                    if (stepIndex < STEPS.length) {
+                        setTimeout(() => {
+                            startTour();
+                            goToStep(stepIndex);
+                            sessionStorage.removeItem('onboarding_next_step');
+                        }, 500);
+                    }
                 }
             }
 
@@ -1850,6 +1871,7 @@
                 isRunning = true;
                 OVERLAY.classList.add('active');
                 TOTAL_STEPS.textContent = STEPS.length;
+                
                 // Encontrar el índice correcto basado en la página actual
                 const startIndex = STEPS.findIndex(step => step.page === window.location.pathname);
                 if (startIndex !== -1) {
@@ -1868,9 +1890,9 @@
                 // Limpiar resaltado anterior
                 document.querySelectorAll('.onboarding-highlight').forEach(el => el.classList.remove('onboarding-highlight'));
 
-                // Actualizar texto
-                TITLE.textContent = step.title;
-                DESC.textContent = step.desc;
+                // Actualizar texto con HTML (permitimos etiquetas <strong>, <em>, <span>)
+                TITLE.innerHTML = step.title;
+                DESC.innerHTML = step.desc;
                 CURRENT_STEP.textContent = index + 1;
 
                 // Scroll y resaltado del elemento objetivo
@@ -1919,7 +1941,7 @@
                 // Guardar en localStorage para no volver a mostrar
                 localStorage.setItem("omniventas_onboarding_complete", "true");
                 sessionStorage.removeItem('onboarding_next_step');
-                console.log("✅ Tutorial completado");
+                console.log("✅ Tutorial completado. ¡Bienvenido a OmniVentas!");
             }
 
             // 7. SOPORTE PARA TECLADO (Flechas)
@@ -1932,24 +1954,10 @@
 
             // 8. VERIFICAR AL CARGAR LA PÁGINA
             document.addEventListener('DOMContentLoaded', function() {
-                // Verificar si venimos de un paso del tutorial
-                const savedStep = sessionStorage.getItem('onboarding_next_step');
-                if (savedStep !== null) {
-                    // Reanudar el tutorial en el paso guardado
-                    const stepIndex = parseInt(savedStep);
-                    if (stepIndex < STEPS.length) {
-                        // Esperar a que cargue el DOM
-                        setTimeout(() => {
-                            startTour();
-                            // Ir al paso específico
-                            goToStep(stepIndex);
-                            // Limpiar el sessionStorage
-                            sessionStorage.removeItem('onboarding_next_step');
-                        }, 500);
-                    }
-                } else {
+                // Esperar a que el DOM esté completamente cargado
+                setTimeout(() => {
                     initOnboarding();
-                }
+                }, 500);
             });
 
         })();
