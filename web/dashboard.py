@@ -65,51 +65,41 @@ def create_app():
     def load_user(user_id):
         try:
             DatabaseManager.verify_and_fix_global_tables()
-            
             conn = DatabaseManager.get_global_connection()
             if conn is None:
-                logger.error("No se pudo obtener conexión a la base de datos")
-                log_to_telegram(
-                    level='ERROR',
-                    message="Error cargando usuario: No se pudo obtener conexión a la base de datos",
-                    data={'user_id': user_id}
-                )
                 return None
-                
+        
             c = conn.cursor()
             is_postgres = 'RENDER' in os.environ and os.environ.get('DATABASE_URL')
-            
+        
             if is_postgres:
                 c.execute("SELECT id, business_id, username, role FROM users WHERE id = %s", (user_id,))
             else:
                 c.execute("SELECT id, business_id, username, role FROM users WHERE id = ?", (user_id,))
             user_data = c.fetchone()
+        
             if user_data:
-                user = User(user_data[0], user_data[1], user_data[2], user_data[3] if len(user_data) > 3 else 'admin')
-                
-                log_to_telegram(
-                    level='SUCCESS',
-                    message=f"✅ Usuario cargado en sesión: {user.username}",
-                    data={'user_id': user.id, 'role': user.role, 'business_id': user.business_id},
-                    user=user,
-                    business_id=user.business_id
-                )
-                return user
+                return User(user_data[0], user_data[1], user_data[2], user_data[3] if len(user_data) > 3 else 'admin')
             else:
+            # ✅ FUERZA LA LIMPIEZA DE LA SESIÓN SI EL USUARIO NO EXISTE
+                logger.warning(f"Usuario ID {user_id} no encontrado. Limpiando sesión...")
+            
+            # Importar logout_user y session desde flask_login y flask
+                from flask_login import logout_user
+                from flask import session
+            
+                logout_user()
+                session.clear()
+            
                 log_to_telegram(
-                    level='WARNING',
-                    message=f"Usuario no encontrado: ID {user_id}",
+                    level='INFO',
+                    message=f"Sesión forzada a cerrar: Usuario ID {user_id} no existe",
                     data={'user_id': user_id}
                 )
                 return None
         except Exception as e:
             logger.error(f"Error loading user: {e}")
-            log_to_telegram(
-                level='ERROR',
-                message=f"Error cargando usuario: {str(e)}",
-                data={'user_id': user_id, 'error': str(e), 'traceback': traceback.format_exc()}
-            )
-        return None
+            return None
 
     # ============================================================
     # BEFORE REQUEST - CORREGIDO: EXCLUIR /api/login-vendedor
