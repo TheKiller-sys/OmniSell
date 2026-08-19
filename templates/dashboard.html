@@ -274,7 +274,7 @@
             transform: translateX(0);
             opacity: 1;
             visibility: visible;
-            z-index: 1060 !important; /* 🛠️ CORRECCIÓN: Más alto que el header cuando está abierto */
+            z-index: 1060 !important;
         }
 
         .sidebar .sidebar-logo {
@@ -395,7 +395,7 @@
                 opacity: 1 !important;
                 visibility: visible !important;
                 border-radius: 0;
-                z-index: 1040 !important; /* 🛠️ En escritorio, el sidebar es fijo y debe estar debajo del header */
+                z-index: 1040 !important;
             }
 
             .main-content {
@@ -416,7 +416,7 @@
             min-height: calc(100vh - var(--header-height));
             transition: var(--transition);
             position: relative;
-            z-index: 1; /* 🛠️ CORRECCIÓN: Bajo para no superponerse al menú */
+            z-index: 1;
         }
 
         /* ============================================
@@ -431,7 +431,7 @@
             padding-bottom: 16px;
             border-bottom: 2px solid var(--gray-light);
             position: relative;
-            z-index: 1; /* 🛠️ CORRECCIÓN: No debe tener z-index alto */
+            z-index: 1;
         }
 
         .section-header-wrapper .section-title {
@@ -1754,7 +1754,6 @@
             const BTN_PREV = document.getElementById('btn-prev-step');
             const BTN_SKIP = document.getElementById('btn-skip-tour');
 
-            // 1. DEFINIR LOS PASOS DEL TOUR (TEXTOS HUMANIZADOS, DETALLADOS Y EXTENDIDOS)
             const STEPS = [
                 {
                     target: '.section-header-wrapper',
@@ -1947,23 +1946,20 @@
             let currentStepIndex = 0;
             let isRunning = false;
 
-            // 2. INICIALIZACIÓN (DETECCIÓN DE PRIMERA VEZ - MODO PRODUCCIÓN)
             function initOnboarding() {
-                // 🔥 MODO PRODUCCIÓN: Solo se muestra si es la primera visita
-                const onboardingComplete = localStorage.getItem("omniventas_onboarding_complete");
-                const currentPage = window.location.pathname;
+                // 🔥 FIX: Forzamos la visualización del tutorial.
+                // En producción, cambia esto a: const onboardingComplete = localStorage.getItem("omniventas_onboarding_complete");
+                const onboardingComplete = null; // <--- FORZADO PARA QUE SALGA AHORA
                 
-                // Verificar si venimos de un paso guardado en sessionStorage
+                const currentPage = window.location.pathname;
                 const savedStep = sessionStorage.getItem('onboarding_next_step');
                 
-                // Lógica de visualización en producción:
-                if (!onboardingComplete && currentPage === '/dashboard') {
-                    // Es la primera visita y estamos en /dashboard
+                if (onboardingComplete === null && currentPage === '/dashboard') {
+                    console.log("🟢 Iniciando onboarding...");
                     setTimeout(() => {
                         startTour();
                     }, 800);
                 } else if (savedStep !== null) {
-                    // Reanudar el tutorial en el paso guardado
                     const stepIndex = parseInt(savedStep);
                     if (stepIndex < STEPS.length) {
                         setTimeout(() => {
@@ -1972,58 +1968,49 @@
                             sessionStorage.removeItem('onboarding_next_step');
                         }, 500);
                     }
+                } else {
+                    console.log("🔴 Onboarding no iniciado (ya completado o página incorrecta)");
                 }
             }
 
-            // 3. INICIAR EL TOUR
             function startTour() {
                 isRunning = true;
                 OVERLAY.classList.add('active');
                 TOTAL_STEPS.textContent = STEPS.length;
                 
-                // Encontrar el índice correcto basado en la página actual
                 const startIndex = STEPS.findIndex(step => step.page === window.location.pathname);
                 if (startIndex !== -1) {
                     goToStep(startIndex);
                 } else {
-                    // Si no encuentra coincidencia, empezar desde el principio
                     goToStep(0);
                 }
             }
 
-            // 4. NAVEGACIÓN ENTRE PASOS
             function goToStep(index) {
                 currentStepIndex = index;
                 const step = STEPS[index];
 
-                // Limpiar resaltado anterior
                 document.querySelectorAll('.onboarding-highlight').forEach(el => el.classList.remove('onboarding-highlight'));
 
-                // Actualizar texto con HTML (permitimos etiquetas <strong>, <em>, <span>, <br>)
                 TITLE.innerHTML = step.title;
                 DESC.innerHTML = step.desc;
                 CURRENT_STEP.textContent = index + 1;
 
-                // Scroll y resaltado del elemento objetivo
                 const targetElement = document.querySelector(step.target);
                 if (targetElement) {
                     targetElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
                     targetElement.classList.add('onboarding-highlight');
                 }
 
-                // Control de botones
                 BTN_PREV.style.display = (index === 0) ? 'none' : 'inline-flex';
                 BTN_NEXT.textContent = (index === STEPS.length - 1) ? '✅ ¡Entendido!' : 'Siguiente →';
             }
 
-            // 5. EVENTOS DE BOTONES
             BTN_NEXT.addEventListener('click', function() {
                 const currentStep = STEPS[currentStepIndex];
                 
                 if (currentStepIndex < STEPS.length - 1) {
-                    // Si hay un nextPage definido y no es la misma página, navegar
                     if (currentStep.nextPage && currentStep.nextPage !== window.location.pathname) {
-                        // Guardar el progreso en sessionStorage para recordar el paso
                         sessionStorage.setItem('onboarding_next_step', currentStepIndex + 1);
                         window.location.href = currentStep.nextPage;
                     } else {
@@ -2042,18 +2029,15 @@
 
             BTN_SKIP.addEventListener('click', finishTour);
 
-            // 6. FINALIZAR EL TOUR
             function finishTour() {
                 isRunning = false;
                 OVERLAY.classList.remove('active');
                 document.querySelectorAll('.onboarding-highlight').forEach(el => el.classList.remove('onboarding-highlight'));
-                // Guardar en localStorage para no volver a mostrar
                 localStorage.setItem("omniventas_onboarding_complete", "true");
                 sessionStorage.removeItem('onboarding_next_step');
                 console.log("✅ Tutorial completado. ¡Bienvenido a OmniVentas!");
             }
 
-            // 7. SOPORTE PARA TECLADO (Flechas)
             document.addEventListener('keydown', function(e) {
                 if (!isRunning) return;
                 if (e.key === 'ArrowRight' || e.key === 'Enter') BTN_NEXT.click();
@@ -2061,9 +2045,7 @@
                 if (e.key === 'Escape') BTN_SKIP.click();
             });
 
-            // 8. EJECUTAR AL CARGAR LA PÁGINA
             document.addEventListener('DOMContentLoaded', function() {
-                // Pequeña pausa para asegurar que todo el DOM está renderizado
                 setTimeout(() => {
                     initOnboarding();
                 }, 1000);
@@ -2071,11 +2053,7 @@
 
         })();
 
-        // ============================================================
-        // INICIALIZACIÓN PRINCIPAL
-        // ============================================================
         document.addEventListener('DOMContentLoaded', function() {
-            // Fecha
             document.getElementById('today-date').textContent = new Date().toLocaleDateString('es-ES', {
                 day: '2-digit',
                 month: 'short'
@@ -2083,7 +2061,6 @@
             
             updateTimestamp();
 
-            // Botones de período
             document.querySelectorAll('[data-period]').forEach(btn => {
                 btn.addEventListener('click', function() {
                     const period = this.getAttribute('data-period');
@@ -2094,15 +2071,11 @@
                 });
             });
 
-            // Botón de actualización manual
             document.getElementById('manual-refresh').addEventListener('click', function() {
                 loadDashboardData();
                 loadSalesData(currentPeriod);
             });
 
-            // ============================================================
-            // WEBSOCKET
-            // ============================================================
             try {
                 socket = io({
                     reconnection: true,
@@ -2145,23 +2118,16 @@
                 console.warn('⚠️ WebSocket no disponible:', error);
             }
 
-            // ============================================================
-            // INTERVALO DE ACTUALIZACIÓN (15 segundos)
-            // ============================================================
             refreshInterval = setInterval(() => {
                 console.log('🔄 Actualización automática del dashboard...');
                 loadDashboardData();
                 loadSalesData(currentPeriod);
             }, 15000);
 
-            // ============================================================
-            // CARGA INICIAL
-            // ============================================================
             console.log('🚀 Cargando datos iniciales del dashboard...');
             loadDashboardData();
             loadSalesData(currentPeriod);
 
-            // Badge de ventas en sidebar desde el inicio
             setTimeout(() => {
                 const badge = document.getElementById('sidebar-ventas-count');
                 if (badge) {
@@ -2173,9 +2139,6 @@
             }, 1000);
         });
 
-        // ============================================================
-        // LIMPIEZA
-        // ============================================================
         window.addEventListener('beforeunload', function() {
             if (refreshInterval) {
                 clearInterval(refreshInterval);
