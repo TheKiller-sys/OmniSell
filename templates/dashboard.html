@@ -5,16 +5,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard - OmniVentas</title>
     
-    <!-- Bootstrap 5 -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet">
-    
-    <!-- Google Fonts Premium -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
-    
-    <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.2/socket.io.min.js"></script>
+    
+    <!-- Tutorial CSS -->
+    <link href="/static/css/tutorial.css" rel="stylesheet">
     
     <style>
         /* ============================================
@@ -47,14 +45,7 @@
             --header-height: 72px;
         }
 
-        /* ============================================
-           RESET Y BASE
-           ============================================ */
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
 
         body {
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
@@ -64,129 +55,61 @@
             -webkit-font-smoothing: antialiased;
         }
 
-        /* Scrollbar personalizada */
-        ::-webkit-scrollbar {
-            width: 6px;
-            height: 6px;
-        }
-        ::-webkit-scrollbar-track {
-            background: var(--gray-light);
-        }
-        ::-webkit-scrollbar-thumb {
-            background: var(--primary);
-            border-radius: 10px;
-        }
-        ::-webkit-scrollbar-thumb:hover {
-            background: var(--primary-dark);
-        }
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: var(--gray-light); }
+        ::-webkit-scrollbar-thumb { background: var(--primary); border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--primary-dark); }
 
-        /* ============================================
-           ANIMACIONES
-           ============================================ */
         @keyframes fadeInUp {
-            from {
-                opacity: 0;
-                transform: translateY(30px) scale(0.98);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0) scale(1);
-            }
-        }
-
-        @keyframes slideInLeft {
-            from {
-                opacity: 0;
-                transform: translateX(-30px);
-            }
-            to {
-                opacity: 1;
-                transform: translateX(0);
-            }
+            from { opacity: 0; transform: translateY(30px) scale(0.98); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
         }
 
         @keyframes pulse-ring {
-            0% { transform: scale(1); opacity: 1; }
+            0%, 100% { transform: scale(1); opacity: 1; }
             50% { transform: scale(1.05); opacity: 0.7; }
-            100% { transform: scale(1); opacity: 1; }
-        }
-
-        @keyframes shimmer {
-            0% { background-position: -200% 0; }
-            100% { background-position: 200% 0; }
-        }
-
-        @keyframes countUp {
-            from {
-                opacity: 0;
-                transform: translateY(10px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-        @keyframes float {
-            0%, 100% { transform: translateY(0px); }
-            50% { transform: translateY(-8px); }
         }
 
         .animate-on-load {
             opacity: 0;
             animation: fadeInUp 0.6s ease-out forwards;
         }
-
         .delay-1 { animation-delay: 0.05s; }
         .delay-2 { animation-delay: 0.10s; }
         .delay-3 { animation-delay: 0.15s; }
         .delay-4 { animation-delay: 0.20s; }
 
-        /* ============================================
-           HEADER - Efecto Glassmorphism
-           ============================================ */
         .header {
             position: fixed;
             top: 0;
             left: 0;
             width: 100%;
             height: var(--header-height);
-            background: rgba(255, 255, 255, 0.85);
+            background: rgba(255,255,255,0.85);
             backdrop-filter: blur(20px) saturate(180%);
-            -webkit-backdrop-filter: blur(20px) saturate(180%);
-            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+            border-bottom: 1px solid rgba(255,255,255,0.2);
             z-index: 1050;
             display: flex;
             align-items: center;
             padding: 0 28px;
             transition: var(--transition);
         }
-
-        .header.scrolled {
-            box-shadow: var(--shadow-md);
-        }
+        .header.scrolled { box-shadow: var(--shadow-md); }
 
         .header .toggle-sidebar {
-            width: 42px;
-            height: 42px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
+            width: 42px; height: 42px;
+            display: flex; align-items: center; justify-content: center;
             background: var(--primary-gradient);
             color: white;
             border-radius: var(--radius-sm);
             margin-right: 16px;
             cursor: pointer;
             border: none;
-            box-shadow: 0 4px 15px rgba(67, 97, 238, 0.3);
+            box-shadow: 0 4px 15px rgba(67,97,238,0.3);
             transition: var(--transition);
             font-size: 1.1rem;
         }
-
-        .header .toggle-sidebar:hover {
-            transform: rotate(90deg) scale(1.05);
-            box-shadow: 0 6px 25px rgba(67, 97, 238, 0.4);
-        }
+        .header .toggle-sidebar:hover { transform: rotate(90deg) scale(1.05); }
 
         .header .header-title {
             font-weight: 800;
@@ -198,31 +121,21 @@
             letter-spacing: -0.5px;
             margin-bottom: 0;
         }
-
-        .header .header-title i {
-            -webkit-text-fill-color: var(--primary);
-            margin-right: 8px;
-        }
+        .header .header-title i { -webkit-text-fill-color: var(--primary); margin-right: 8px; }
 
         .header .header-actions {
-            display: flex;
-            align-items: center;
-            gap: 12px;
+            display: flex; align-items: center; gap: 12px;
             margin-left: auto;
         }
 
         .header .header-actions .business-name {
-            font-weight: 600;
-            color: var(--dark-secondary);
-            font-size: 0.9rem;
-            padding: 6px 14px;
-            background: var(--gray-light);
-            border-radius: 50px;
+            font-weight: 600; color: var(--dark-secondary);
+            font-size: 0.9rem; padding: 6px 14px;
+            background: var(--gray-light); border-radius: 50px;
         }
 
         .header .header-actions .online-dot {
-            width: 10px;
-            height: 10px;
+            width: 10px; height: 10px;
             background: var(--success);
             border-radius: 50%;
             display: inline-block;
@@ -230,59 +143,20 @@
             margin-right: 4px;
         }
 
-        /* ============================================
-           BOTÓN DE TUTORIAL EN EL HEADER
-           ============================================ */
-        .btn-tutorial-header {
-            border-radius: var(--radius-sm);
-            font-weight: 600;
-            font-size: 0.8rem;
-            padding: 5px 14px;
-            border: 2px solid var(--primary);
-            color: var(--primary);
-            background: transparent;
-            transition: var(--transition);
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            cursor: pointer;
-            white-space: nowrap;
-        }
-
-        .btn-tutorial-header:hover {
-            background: var(--primary-gradient);
-            color: white;
-            transform: translateY(-2px);
-            box-shadow: 0 4px 15px rgba(67, 97, 238, 0.3);
-            border-color: transparent;
-        }
-
-        .btn-tutorial-header i {
-            font-size: 0.9rem;
-        }
-
         .header .header-actions .btn-logout {
-            background: transparent;
-            border: 2px solid #FEE2E2;
-            color: var(--danger);
-            padding: 6px 16px;
+            background: transparent; border: 2px solid #FEE2E2;
+            color: var(--danger); padding: 6px 16px;
             border-radius: var(--radius-sm);
-            font-weight: 600;
-            font-size: 0.8rem;
+            font-weight: 600; font-size: 0.8rem;
             transition: var(--transition);
         }
-
         .header .header-actions .btn-logout:hover {
-            background: var(--danger);
-            color: white;
+            background: var(--danger); color: white;
             border-color: var(--danger);
             transform: translateY(-2px);
-            box-shadow: 0 4px 15px rgba(239, 68, 68, 0.3);
+            box-shadow: 0 4px 15px rgba(239,68,68,0.3);
         }
 
-        /* ============================================
-           SIDEBAR - Diseño Premium
-           ============================================ */
         .sidebar {
             position: fixed;
             top: var(--header-height);
@@ -300,7 +174,6 @@
             box-shadow: 5px 0 30px rgba(0,0,0,0.2);
             transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
         }
-
         .sidebar-open .sidebar {
             transform: translateX(0);
             opacity: 1;
@@ -311,18 +184,10 @@
         .sidebar .sidebar-logo {
             padding: 24px 20px 20px;
             border-bottom: 1px solid rgba(255,255,255,0.06);
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            font-size: 1.3rem;
-            font-weight: 700;
+            display: flex; align-items: center; gap: 12px;
+            font-size: 1.3rem; font-weight: 700;
         }
-
-        .sidebar .sidebar-logo i {
-            color: var(--primary);
-            font-size: 1.6rem;
-        }
-
+        .sidebar .sidebar-logo i { color: var(--primary); font-size: 1.6rem; }
         .sidebar .sidebar-logo span {
             background: var(--primary-gradient);
             -webkit-background-clip: text;
@@ -330,10 +195,7 @@
             background-clip: text;
         }
 
-        .sidebar .nav {
-            padding: 12px 0;
-        }
-
+        .sidebar .nav { padding: 12px 0; }
         .sidebar .nav-link {
             color: rgba(255,255,255,0.6);
             padding: 12px 24px;
@@ -346,27 +208,14 @@
             gap: 14px;
             transition: var(--transition);
             text-decoration: none;
-            position: relative;
         }
-
-        .sidebar .nav-link i {
-            width: 22px;
-            text-align: center;
-            font-size: 1.05rem;
-            flex-shrink: 0;
-        }
-
-        .sidebar .nav-link:hover {
-            color: white;
-            background: rgba(255,255,255,0.06);
-        }
-
+        .sidebar .nav-link i { width: 22px; text-align: center; font-size: 1.05rem; flex-shrink: 0; }
+        .sidebar .nav-link:hover { color: white; background: rgba(255,255,255,0.06); }
         .sidebar .nav-link.active {
             color: white;
-            background: rgba(67, 97, 238, 0.2);
+            background: rgba(67,97,238,0.2);
             box-shadow: inset 3px 0 0 var(--primary);
         }
-
         .sidebar .nav-link .badge-nav {
             margin-left: auto;
             background: var(--primary);
@@ -381,10 +230,9 @@
             border-top: 1px solid rgba(255,255,255,0.06);
             margin-top: 12px;
         }
-
         .sidebar .sidebar-footer .btn-sidebar-logout {
             width: 100%;
-            background: rgba(239, 68, 68, 0.15);
+            background: rgba(239,68,68,0.15);
             color: #FCA5A5;
             border: none;
             padding: 10px;
@@ -392,35 +240,25 @@
             font-weight: 600;
             transition: var(--transition);
         }
-
         .sidebar .sidebar-footer .btn-sidebar-logout:hover {
-            background: rgba(239, 68, 68, 0.25);
+            background: rgba(239,68,68,0.25);
             color: white;
         }
 
         .sidebar-overlay {
             position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
             background: rgba(0,0,0,0.4);
             z-index: 1030;
             opacity: 0;
             visibility: hidden;
             transition: all 0.3s ease;
         }
-
-        .sidebar-open .sidebar-overlay {
-            opacity: 1;
-            visibility: visible;
-        }
+        .sidebar-open .sidebar-overlay { opacity: 1; visibility: visible; }
 
         @media (min-width: 992px) {
-            .sidebar-overlay {
-                display: none;
-            }
-
+            .sidebar-overlay { display: none; }
             .sidebar {
                 transform: translateX(0) !important;
                 opacity: 1 !important;
@@ -428,19 +266,10 @@
                 border-radius: 0;
                 z-index: 1040 !important;
             }
-
-            .main-content {
-                margin-left: var(--sidebar-width);
-            }
-
-            .header .toggle-sidebar {
-                display: none;
-            }
+            .main-content { margin-left: var(--sidebar-width); }
+            .header .toggle-sidebar { display: none; }
         }
 
-        /* ============================================
-           MAIN CONTENT
-           ============================================ */
         .main-content {
             margin-top: var(--header-height);
             padding: 28px 32px 40px;
@@ -450,9 +279,6 @@
             z-index: 1;
         }
 
-        /* ============================================
-           SECTION HEADER CON REFRESH
-           ============================================ */
         .section-header-wrapper {
             display: flex;
             align-items: center;
@@ -474,11 +300,7 @@
             align-items: center;
             gap: 12px;
         }
-
-        .section-header-wrapper .section-title i {
-            color: var(--primary);
-            font-size: 1.4rem;
-        }
+        .section-header-wrapper .section-title i { color: var(--primary); font-size: 1.4rem; }
 
         .section-header-wrapper .refresh-btn {
             background: var(--gray-light);
@@ -494,20 +316,13 @@
             justify-content: center;
             font-size: 0.95rem;
         }
-
         .section-header-wrapper .refresh-btn:hover {
             background: var(--primary-light);
             color: var(--primary);
             transform: rotate(45deg);
         }
-
-        .section-header-wrapper .refresh-btn.spinning {
-            animation: spin 0.8s ease-in-out;
-        }
-
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
+        .section-header-wrapper .refresh-btn.spinning { animation: spin 0.8s ease-in-out; }
+        @keyframes spin { to { transform: rotate(360deg); } }
 
         .section-header-wrapper .last-update {
             font-size: 0.8rem;
@@ -518,17 +333,9 @@
             padding: 4px 14px;
             border-radius: 50px;
         }
+        .section-header-wrapper .last-update i { margin-right: 6px; }
 
-        .section-header-wrapper .last-update i {
-            margin-right: 6px;
-        }
-
-        /* ============================================
-           STATS CARDS - Premium
-           ============================================ */
-        .stats-row {
-            margin-bottom: 28px;
-        }
+        .stats-row { margin-bottom: 28px; }
 
         .stat-card {
             border: none;
@@ -542,26 +349,18 @@
             overflow: hidden;
             cursor: default;
         }
-
         .stat-card::before {
             content: '';
             position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 4px;
+            top: 0; left: 0;
+            width: 100%; height: 4px;
             background: var(--primary-gradient);
             opacity: 0.6;
         }
-
-        .stat-card:hover {
-            transform: translateY(-6px);
-            box-shadow: var(--shadow-lg);
-        }
+        .stat-card:hover { transform: translateY(-6px); box-shadow: var(--shadow-lg); }
 
         .stat-card .stat-icon {
-            width: 48px;
-            height: 48px;
+            width: 48px; height: 48px;
             border-radius: var(--radius-sm);
             display: flex;
             align-items: center;
@@ -569,26 +368,10 @@
             font-size: 1.2rem;
             flex-shrink: 0;
         }
-
-        .stat-card .stat-icon.blue {
-            background: var(--primary-light);
-            color: var(--primary);
-        }
-
-        .stat-card .stat-icon.green {
-            background: #D1FAE5;
-            color: var(--success);
-        }
-
-        .stat-card .stat-icon.purple {
-            background: #EDE9FE;
-            color: #7C3AED;
-        }
-
-        .stat-card .stat-icon.orange {
-            background: #FEF3C7;
-            color: var(--warning);
-        }
+        .stat-card .stat-icon.blue { background: var(--primary-light); color: var(--primary); }
+        .stat-card .stat-icon.green { background: #D1FAE5; color: var(--success); }
+        .stat-card .stat-icon.purple { background: #EDE9FE; color: #7C3AED; }
+        .stat-card .stat-icon.orange { background: #FEF3C7; color: var(--warning); }
 
         .stat-card .stat-value {
             font-weight: 800;
@@ -597,13 +380,7 @@
             line-height: 1.2;
             margin-top: 4px;
         }
-
-        .stat-card .stat-value .currency {
-            font-size: 1.2rem;
-            font-weight: 600;
-            color: var(--gray);
-        }
-
+        .stat-card .stat-value .currency { font-size: 1.2rem; font-weight: 600; color: var(--gray); }
         .stat-card .stat-label {
             font-size: 0.8rem;
             font-weight: 600;
@@ -611,7 +388,6 @@
             text-transform: uppercase;
             letter-spacing: 0.5px;
         }
-
         .stat-card .stat-trend {
             font-size: 0.75rem;
             font-weight: 600;
@@ -622,24 +398,10 @@
             gap: 4px;
             margin-top: 6px;
         }
+        .stat-card .stat-trend.up { background: #D1FAE5; color: var(--success); }
+        .stat-card .stat-trend.down { background: #FEE2E2; color: var(--danger); }
+        .stat-card .stat-trend i { font-size: 0.65rem; }
 
-        .stat-card .stat-trend.up {
-            background: #D1FAE5;
-            color: var(--success);
-        }
-
-        .stat-card .stat-trend.down {
-            background: #FEE2E2;
-            color: var(--danger);
-        }
-
-        .stat-card .stat-trend i {
-            font-size: 0.65rem;
-        }
-
-        /* ============================================
-           CARDS - Premium
-           ============================================ */
         .card-premium {
             border: none;
             border-radius: var(--radius-md);
@@ -649,11 +411,7 @@
             transition: var(--transition);
             margin-bottom: 28px;
         }
-
-        .card-premium:hover {
-            box-shadow: var(--shadow-lg);
-            transform: translateY(-4px);
-        }
+        .card-premium:hover { box-shadow: var(--shadow-lg); transform: translateY(-4px); }
 
         .card-premium .card-header-custom {
             padding: 18px 24px;
@@ -665,7 +423,6 @@
             flex-wrap: wrap;
             gap: 10px;
         }
-
         .card-premium .card-header-custom h6 {
             font-weight: 700;
             font-size: 0.95rem;
@@ -675,33 +432,20 @@
             align-items: center;
             gap: 10px;
         }
+        .card-premium .card-header-custom h6 i { color: var(--primary); }
+        .card-premium .card-body-custom { padding: 20px 24px 24px; }
 
-        .card-premium .card-header-custom h6 i {
-            color: var(--primary);
-        }
-
-        .card-premium .card-body-custom {
-            padding: 20px 24px 24px;
-        }
-
-        /* ============================================
-           CHART CONTAINER
-           ============================================ */
         .chart-container {
             position: relative;
             height: 300px;
             width: 100%;
         }
 
-        /* ============================================
-           TABLA DE INVENTARIO - Premium
-           ============================================ */
         .table-premium {
             width: 100%;
             border-collapse: separate;
             border-spacing: 0 4px;
         }
-
         .table-premium thead th {
             background: var(--gray-light);
             color: var(--dark-secondary);
@@ -712,33 +456,24 @@
             padding: 10px 16px;
             border: none;
         }
-
         .table-premium tbody tr {
             background: var(--white);
             border-radius: var(--radius-sm);
             transition: var(--transition);
             cursor: default;
         }
-
         .table-premium tbody tr:hover {
             transform: translateX(4px);
             box-shadow: var(--shadow-sm);
         }
-
         .table-premium tbody td {
             padding: 12px 16px;
             vertical-align: middle;
             border: none;
             font-size: 0.9rem;
         }
-
-        .table-premium tbody td:first-child {
-            border-radius: var(--radius-sm) 0 0 var(--radius-sm);
-        }
-
-        .table-premium tbody td:last-child {
-            border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
-        }
+        .table-premium tbody td:first-child { border-radius: var(--radius-sm) 0 0 var(--radius-sm); }
+        .table-premium tbody td:last-child { border-radius: 0 var(--radius-sm) var(--radius-sm) 0; }
 
         .status-badge {
             padding: 4px 14px;
@@ -749,54 +484,22 @@
             text-transform: uppercase;
             letter-spacing: 0.3px;
         }
+        .status-badge.optimal { background: #D1FAE5; color: var(--success); }
+        .status-badge.warning { background: #FEF3C7; color: var(--warning); }
+        .status-badge.critical { background: #FEE2E2; color: var(--danger); }
 
-        .status-badge.optimal {
-            background: #D1FAE5;
-            color: var(--success);
-        }
-
-        .status-badge.warning {
-            background: #FEF3C7;
-            color: var(--warning);
-        }
-
-        .status-badge.critical {
-            background: #FEE2E2;
-            color: var(--danger);
-        }
-
-        /* ============================================
-           EMPTY STATE
-           ============================================ */
         .empty-state {
             text-align: center;
             padding: 40px 20px;
             color: var(--gray);
         }
+        .empty-state i { font-size: 2.5rem; opacity: 0.3; margin-bottom: 12px; display: block; }
+        .empty-state h6 { font-weight: 600; color: var(--dark-secondary); }
+        .empty-state p { font-size: 0.9rem; }
 
-        .empty-state i {
-            font-size: 2.5rem;
-            opacity: 0.3;
-            margin-bottom: 12px;
-            display: block;
-        }
-
-        .empty-state h6 {
-            font-weight: 600;
-            color: var(--dark-secondary);
-        }
-
-        .empty-state p {
-            font-size: 0.9rem;
-        }
-
-        /* ============================================
-           VENTAS DE HOY - Mini Tabla
-           ============================================ */
         .today-sales-table {
             width: 100%;
         }
-
         .today-sales-table thead th {
             font-size: 0.7rem;
             text-transform: uppercase;
@@ -806,30 +509,15 @@
             padding: 6px 0 10px;
             border-bottom: 1px solid var(--gray-light);
         }
-
         .today-sales-table tbody td {
             padding: 8px 0;
             border-bottom: 1px solid #F8FAFC;
             font-size: 0.85rem;
         }
+        .today-sales-table tbody tr:last-child td { border-bottom: none; }
+        .today-sales-table .product-name { font-weight: 600; color: var(--dark-secondary); }
+        .today-sales-table .sale-total { font-weight: 700; color: var(--primary); }
 
-        .today-sales-table tbody tr:last-child td {
-            border-bottom: none;
-        }
-
-        .today-sales-table .product-name {
-            font-weight: 600;
-            color: var(--dark-secondary);
-        }
-
-        .today-sales-table .sale-total {
-            font-weight: 700;
-            color: var(--primary);
-        }
-
-        /* ============================================
-           BUTTON GROUP PERIOD
-           ============================================ */
         .btn-group-period .btn {
             border: 2px solid var(--gray-light);
             color: var(--gray);
@@ -839,282 +527,35 @@
             transition: var(--transition);
             background: transparent;
         }
+        .btn-group-period .btn:hover { border-color: var(--primary); color: var(--primary); }
+        .btn-group-period .btn.active { background: var(--primary); color: white; border-color: var(--primary); }
 
-        .btn-group-period .btn:hover {
-            border-color: var(--primary);
-            color: var(--primary);
-        }
-
-        .btn-group-period .btn.active {
-            background: var(--primary);
-            color: white;
-            border-color: var(--primary);
-        }
-
-        /* ============================================
-           RESPONSIVE
-           ============================================ */
         @media (max-width: 992px) {
-            .main-content {
-                padding: 20px;
-            }
-
-            .stat-card .stat-value {
-                font-size: 1.4rem;
-            }
-
-            .section-header-wrapper .section-title {
-                font-size: 1.3rem;
-            }
-            
-            .btn-tutorial-header {
-                font-size: 0.7rem;
-                padding: 4px 10px;
-            }
+            .main-content { padding: 20px; }
+            .stat-card .stat-value { font-size: 1.4rem; }
+            .section-header-wrapper .section-title { font-size: 1.3rem; }
         }
 
         @media (max-width: 768px) {
-            .header {
-                padding: 0 12px;
-            }
-
-            .header .business-name {
-                display: none;
-            }
-
-            .header .header-actions .btn-logout {
-                padding: 4px 12px;
-                font-size: 0.7rem;
-            }
-
-            .btn-tutorial-header {
-                font-size: 0.65rem;
-                padding: 3px 8px;
-            }
-
-            .btn-tutorial-header span {
-                display: none;
-            }
-            .btn-tutorial-header i {
-                font-size: 0.9rem;
-            }
-
-            .main-content {
-                padding: 16px;
-            }
-
-            .stat-card {
-                padding: 16px 18px;
-            }
-
-            .stat-card .stat-value {
-                font-size: 1.2rem;
-            }
-
-            .card-premium .card-header-custom {
-                flex-direction: column;
-                align-items: flex-start;
-            }
-
-            .section-header-wrapper .last-update {
-                margin-left: 0;
-                width: 100%;
-                text-align: left;
-            }
-
-            .chart-container {
-                height: 220px;
-            }
-
-            .table-premium {
-                font-size: 0.8rem;
-            }
-
+            .header { padding: 0 12px; }
+            .header .business-name { display: none; }
+            .header .header-actions .btn-logout { padding: 4px 12px; font-size: 0.7rem; }
+            .main-content { padding: 16px; }
+            .stat-card { padding: 16px 18px; }
+            .stat-card .stat-value { font-size: 1.2rem; }
+            .card-premium .card-header-custom { flex-direction: column; align-items: flex-start; }
+            .section-header-wrapper .last-update { margin-left: 0; width: 100%; text-align: left; }
+            .chart-container { height: 220px; }
+            .table-premium { font-size: 0.8rem; }
             .table-premium thead th,
-            .table-premium tbody td {
-                padding: 8px 10px;
-            }
+            .table-premium tbody td { padding: 8px 10px; }
         }
 
         @media (max-width: 576px) {
-            .stat-card .stat-value {
-                font-size: 1rem;
-            }
-
-            .stat-card .stat-icon {
-                width: 36px;
-                height: 36px;
-                font-size: 0.9rem;
-            }
-
-            .card-premium .card-body-custom {
-                padding: 16px;
-            }
-
-            .btn-group-period .btn {
-                font-size: 0.65rem;
-                padding: 2px 10px;
-            }
-        }
-
-        /* ============================================
-           ONBOARDING PREMIUM - ESTILOS CORREGIDOS
-           ============================================ */
-        .onboarding-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(15, 23, 42, 0.85);
-            z-index: 99999;
-            backdrop-filter: blur(4px);
-            -webkit-backdrop-filter: blur(4px);
-            display: flex !important;
-            align-items: center;
-            justify-content: center;
-            pointer-events: none;
-            transition: opacity 0.4s ease;
-            opacity: 0;
-            visibility: hidden;
-        }
-
-        .onboarding-overlay.active {
-            opacity: 1;
-            pointer-events: all;
-            visibility: visible;
-        }
-
-        .onboarding-card {
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
-            border-radius: 24px;
-            padding: 30px 36px;
-            max-width: 480px;
-            width: 90%;
-            box-shadow: 0 25px 80px rgba(0, 0, 0, 0.3);
-            border: 1px solid rgba(255, 255, 255, 0.3);
-            position: relative;
-            transform: translateY(30px) scale(0.95);
-            opacity: 0;
-            transition: all 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
-        }
-
-        .onboarding-card.active {
-            transform: translateY(0) scale(1);
-            opacity: 1;
-        }
-
-        .onboarding-content {
-            display: flex;
-            flex-direction: column;
-            gap: 16px;
-        }
-
-        .step-indicator {
-            font-size: 0.75rem;
-            font-weight: 600;
-            color: var(--gray);
-            text-align: right;
-            letter-spacing: 1px;
-        }
-
-        .onboarding-card h3 {
-            font-size: 1.4rem;
-            font-weight: 800;
-            color: var(--dark);
-            margin-bottom: 4px;
-        }
-
-        .onboarding-card p {
-            font-size: 0.95rem;
-            color: var(--dark-secondary);
-            line-height: 1.6;
-            margin-bottom: 0;
-            max-height: 300px;
-            overflow-y: auto;
-        }
-
-        .onboarding-card p::-webkit-scrollbar {
-            width: 4px;
-        }
-        .onboarding-card p::-webkit-scrollbar-thumb {
-            background: var(--primary);
-            border-radius: 10px;
-        }
-
-        .onboarding-nav {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-top: 16px;
-            padding-top: 16px;
-            border-top: 1px solid var(--gray-light);
-        }
-
-        .btn-skip {
-            background: transparent;
-            border: none;
-            color: var(--gray);
-            font-weight: 500;
-            font-size: 0.85rem;
-            cursor: pointer;
-            transition: all 0.3s ease;
-        }
-
-        .btn-skip:hover {
-            color: var(--danger);
-        }
-
-        .nav-buttons {
-            display: flex;
-            gap: 10px;
-        }
-
-        .btn-prev, .btn-next {
-            padding: 8px 20px;
-            border-radius: 12px;
-            font-weight: 600;
-            font-size: 0.85rem;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            border: none;
-        }
-
-        .btn-prev {
-            background: var(--gray-light);
-            color: var(--dark-secondary);
-        }
-
-        .btn-prev:hover {
-            background: #E2E8F0;
-            transform: translateY(-2px);
-        }
-
-        .btn-next {
-            background: var(--primary-gradient);
-            color: white;
-            box-shadow: 0 4px 15px rgba(67, 97, 238, 0.3);
-        }
-
-        .btn-next:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 30px rgba(67, 97, 238, 0.4);
-        }
-
-        .onboarding-highlight {
-            position: relative;
-            z-index: 100000;
-            box-shadow: 0 0 0 4px #4361EE, 0 0 30px rgba(67, 97, 238, 0.4) !important;
-            border-radius: 16px !important;
-            transition: all 0.3s ease;
-            animation: pulse-ring 2s infinite;
-        }
-
-        @keyframes slideUp {
-            from { opacity: 0; transform: translateY(30px) scale(0.95); }
-            to { opacity: 1; transform: translateY(0) scale(1); }
+            .stat-card .stat-value { font-size: 1rem; }
+            .stat-card .stat-icon { width: 36px; height: 36px; font-size: 0.9rem; }
+            .card-premium .card-body-custom { padding: 16px; }
+            .btn-group-period .btn { font-size: 0.65rem; padding: 2px 10px; }
         }
     </style>
 </head>
@@ -1136,10 +577,10 @@
             <i class="fas fa-chart-line"></i>OmniVentas
         </h1>
         <div class="header-actions">
-            <!-- BOTÓN DE TUTORIAL EN EL HEADER (ARRIBA A LA DERECHA) -->
-            <button class="btn-tutorial-header" onclick="forzarInicioTutorial()" title="Ver tutorial nuevamente">
+            <button class="btn-tutorial-header" onclick="OmniTutorial.reset()" title="Ver tutorial interactivo">
                 <i class="fas fa-play-circle"></i>
                 <span>Ver Tutorial</span>
+                <span class="badge-tutorial">?</span>
             </button>
             <span class="business-name">
                 <span class="online-dot"></span>
@@ -1181,12 +622,6 @@
                 </a>
             </li>
             <li class="nav-item">
-                <a class="nav-link" href="/vendedores">
-                    <i class="fas fa-user-tie"></i>
-                    <span>Vendedores</span>
-                </a>
-            </li>
-            <li class="nav-item">
                 <a class="nav-link" href="/finanzas">
                     <i class="fas fa-chart-pie"></i>
                     <span>Finanzas</span>
@@ -1202,6 +637,12 @@
                 <a class="nav-link" href="/clientes">
                     <i class="fas fa-users"></i>
                     <span>Clientes</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="/vendedores">
+                    <i class="fas fa-user-tie"></i>
+                    <span>Vendedores</span>
                 </a>
             </li>
             <li class="nav-item mt-3 pt-3 border-top border-secondary border-opacity-10">
@@ -1241,7 +682,6 @@
 
         <!-- Stats Row -->
         <div class="row stats-row g-3">
-            <!-- Ingresos -->
             <div class="col-xl-3 col-md-6">
                 <div class="stat-card animate-on-load">
                     <div class="d-flex align-items-center justify-content-between">
@@ -1263,7 +703,6 @@
                 </div>
             </div>
 
-            <!-- Ganancia -->
             <div class="col-xl-3 col-md-6">
                 <div class="stat-card animate-on-load delay-1">
                     <div class="d-flex align-items-center justify-content-between">
@@ -1285,7 +724,6 @@
                 </div>
             </div>
 
-            <!-- Margen -->
             <div class="col-xl-3 col-md-6">
                 <div class="stat-card animate-on-load delay-2">
                     <div class="d-flex align-items-center justify-content-between">
@@ -1306,7 +744,6 @@
                 </div>
             </div>
 
-            <!-- Ventas -->
             <div class="col-xl-3 col-md-6">
                 <div class="stat-card animate-on-load delay-3">
                     <div class="d-flex align-items-center justify-content-between">
@@ -1330,7 +767,6 @@
 
         <!-- Charts Row -->
         <div class="row g-4">
-            <!-- Gráfico Principal -->
             <div class="col-lg-8">
                 <div class="card-premium animate-on-load delay-1">
                     <div class="card-header-custom">
@@ -1352,7 +788,6 @@
                 </div>
             </div>
 
-            <!-- Ventas de Hoy -->
             <div class="col-lg-4">
                 <div class="card-premium animate-on-load delay-2">
                     <div class="card-header-custom">
@@ -1426,40 +861,37 @@
     </main>
 
     <!-- ============================================
-    ONBOARDING TUTORIAL (Guía Interactiva Multi-Página)
-    ============================================ -->
-    <div id="onboarding-overlay" class="onboarding-overlay">
-        <!-- Caja de texto principal -->
-        <div class="onboarding-card" id="onboarding-card">
-            <div class="onboarding-content">
-                <!-- Indicador de paso -->
-                <div class="step-indicator" id="step-indicator">
-                    <span id="current-step-text">1</span> / <span id="total-steps-text">11</span>
-                </div>
-                <!-- Título y Descripción -->
-                <h3 id="step-title">Bienvenido a OmniVentas</h3>
-                <p id="step-description">
-                    Te guiaremos por las partes clave de tu nuevo panel de control.
-                </p>
-                <!-- Navegación -->
-                <div class="onboarding-nav">
-                    <button id="btn-skip-tour" class="btn-skip">Saltar tutorial</button>
-                    <div class="nav-buttons">
-                        <button id="btn-prev-step" class="btn-prev" style="display: none;">← Anterior</button>
-                        <button id="btn-next-step" class="btn-next">Siguiente →</button>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- ============================================
     SCRIPTS
     ============================================ -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="/static/js/tutorial.js"></script>
     <script>
         // ============================================================
-        // CONFIGURACIÓN GLOBAL
+        // TOGGLE SIDEBAR
+        // ============================================================
+        function toggleSidebar() {
+            document.body.classList.toggle('sidebar-open');
+        }
+
+        document.querySelectorAll('.sidebar .nav-link').forEach(link => {
+            link.addEventListener('click', function() {
+                if (window.innerWidth < 992) {
+                    document.body.classList.remove('sidebar-open');
+                }
+            });
+        });
+
+        window.addEventListener('scroll', function() {
+            const header = document.getElementById('header');
+            if (window.scrollY > 20) {
+                header.classList.add('scrolled');
+            } else {
+                header.classList.remove('scrolled');
+            }
+        });
+
+        // ============================================================
+        // VARIABLES
         // ============================================================
         let currentPeriod = 'monthly';
         let salesChart = null;
@@ -1468,22 +900,6 @@
         let socket = null;
         let reconnectAttempts = 0;
         const MAX_RECONNECT_ATTEMPTS = 5;
-
-        // ============================================================
-        // TOGGLE SIDEBAR
-        // ============================================================
-        function toggleSidebar() {
-            document.body.classList.toggle('sidebar-open');
-        }
-
-        // Cerrar sidebar al hacer clic en enlace (móvil)
-        document.querySelectorAll('.sidebar .nav-link').forEach(link => {
-            link.addEventListener('click', function() {
-                if (window.innerWidth < 992) {
-                    document.body.classList.remove('sidebar-open');
-                }
-            });
-        });
 
         // ============================================================
         // TIMESTAMP
@@ -1496,62 +912,6 @@
                 second: '2-digit' 
             });
             document.getElementById('update-time').textContent = timeStr;
-        }
-
-        // ============================================================
-        // HEADER SCROLL EFFECT
-        // ============================================================
-        window.addEventListener('scroll', function() {
-            const header = document.getElementById('header');
-            if (window.scrollY > 20) {
-                header.classList.add('scrolled');
-            } else {
-                header.classList.remove('scrolled');
-            }
-        });
-
-        // ============================================================
-        // FUNCIÓN PARA FORZAR EL INICIO DEL TUTORIAL (BOTÓN)
-        // ============================================================
-        function forzarInicioTutorial() {
-            // Limpiar las variables que impiden mostrar el tutorial
-            localStorage.removeItem("omniventas_onboarding_complete");
-            sessionStorage.removeItem('onboarding_next_step');
-            
-            // Obtener referencias
-            const overlay = document.getElementById('onboarding-overlay');
-            const card = document.getElementById('onboarding-card');
-            
-            // Mostrar overlay
-            overlay.classList.add('active');
-            setTimeout(() => {
-                card.classList.add('active');
-            }, 100);
-            
-            // Iniciar el tour en el paso 0
-            if (window._onboardingInstance) {
-                window._onboardingInstance.startTour();
-            } else {
-                // Si la instancia no está disponible, reiniciar la página
-                setTimeout(() => {
-                    location.reload();
-                }, 500);
-            }
-            
-            // Feedback visual en el botón
-            const btn = document.querySelector('.btn-tutorial-header');
-            if (btn) {
-                const originalHTML = btn.innerHTML;
-                btn.innerHTML = '<i class="fas fa-check-circle"></i> ¡Tutorial Iniciado!';
-                btn.style.borderColor = 'var(--success)';
-                btn.style.color = 'var(--success)';
-                
-                setTimeout(() => {
-                    btn.innerHTML = originalHTML;
-                    btn.style.borderColor = '';
-                    btn.style.color = '';
-                }, 2000);
-            }
         }
 
         // ============================================================
@@ -1669,13 +1029,11 @@
         // ACTUALIZAR DASHBOARD
         // ============================================================
         function updateDashboard(data) {
-            // Stats
             document.getElementById('total-ingresos').textContent = data.ingresos.toFixed(2);
             document.getElementById('total-ganancia').textContent = data.ganancia.toFixed(2);
             document.getElementById('margen-promedio').textContent = data.margen;
             document.getElementById('total-ventas').textContent = data.ventas;
 
-            // Tendencias
             if (data.tendencias) {
                 updateTrend('ingresos-trend', data.tendencias.ingresos);
                 updateTrend('ganancia-trend', data.tendencias.ganancia);
@@ -1683,7 +1041,6 @@
                 updateTrend('ventas-trend', data.tendencias.ventas);
             }
 
-            // Ventas de hoy
             const salesTable = document.getElementById('today-sales');
             const salesEmpty = document.getElementById('today-sales-empty');
             salesTable.innerHTML = '';
@@ -1699,15 +1056,12 @@
                     `;
                     salesTable.appendChild(row);
                 });
-
-                // Actualizar badge del sidebar
                 document.getElementById('sidebar-ventas-count').textContent = data.ventas_hoy.length;
             } else {
                 salesEmpty.style.display = 'block';
                 document.getElementById('sidebar-ventas-count').textContent = '0';
             }
 
-            // Inventario
             const inventoryBody = document.getElementById('inventory-body');
             const inventoryEmpty = document.getElementById('inventory-empty');
             const inventoryCount = document.getElementById('inventory-count');
@@ -1749,7 +1103,6 @@
                 inventoryCount.textContent = '0 productos';
             }
 
-            // Fecha de hoy
             document.getElementById('today-date').textContent = new Date().toLocaleDateString('es-ES', {
                 day: '2-digit',
                 month: 'short'
@@ -1854,276 +1207,6 @@
         }
 
         // ============================================================
-        // ONBOARDING TUTORIAL - Lógica Multi-Página (CORREGIDA)
-        // ============================================================
-        (function() {
-            'use strict';
-
-            const OVERLAY = document.getElementById('onboarding-overlay');
-            const CARD = document.getElementById('onboarding-card');
-            const TITLE = document.getElementById('step-title');
-            const DESC = document.getElementById('step-description');
-            const CURRENT_STEP = document.getElementById('current-step-text');
-            const TOTAL_STEPS = document.getElementById('total-steps-text');
-            const BTN_NEXT = document.getElementById('btn-next-step');
-            const BTN_PREV = document.getElementById('btn-prev-step');
-            const BTN_SKIP = document.getElementById('btn-skip-tour');
-
-            // 1. DEFINIR LOS PASOS DEL TOUR
-            const STEPS = [
-                {
-                    target: '.section-header-wrapper',
-                    title: '🚀 ¡Bienvenido a tu Centro de Control!',
-                    desc: `<strong>Este es el Dashboard de OmniVentas.</strong><br><br>
-                    Aquí ves todos los indicadores vitales de tu negocio en tiempo real.<br><br>
-                    <strong>¿Qué encontrarás aquí?</strong><br>
-                    • <strong>Métricas clave:</strong> Dinero que entra, dinero que ganas, y cuánto vendes.<br>
-                    • <strong>Gráficos intuitivos:</strong> Visualiza tus tendencias de ventas.<br>
-                    • <strong>Alertas inteligentes:</strong> Te avisamos cuando algo necesita atención.`,
-                    page: '/dashboard'
-                },
-                {
-                    target: '.stats-row',
-                    title: '📈 Tus Métricas Vitales',
-                    desc: `<strong>Estas 4 tarjetas son tu termómetro financiero.</strong><br><br>
-                    • <span style="color: #4361EE;"><strong>Ingresos Totales:</strong></span> Dinero que ha entrado a tu caja.<br>
-                    • <span style="color: #10B981;"><strong>Ganancia Neta:</strong></span> El beneficio real después de costos.<br>
-                    • <span style="color: #7C3AED;"><strong>Margen Promedio:</strong></span> Porcentaje de ganancia por venta.<br>
-                    • <span style="color: #F59E0B;"><strong>Total Ventas:</strong></span> Cantidad de transacciones realizadas.`,
-                    page: '/dashboard'
-                },
-                {
-                    target: '#salesChart',
-                    title: '📊 Análisis Visual de Ventas',
-                    desc: `<strong>Este gráfico es tu mejor aliado.</strong><br><br>
-                    <strong>Filtros disponibles:</strong><br>
-                    • <strong>Mensual:</strong> Evolución mes a mes.<br>
-                    • <strong>Semanal:</strong> Detecta semanas buenas y malas.<br>
-                    • <strong>Diario:</strong> Identifica qué días venden más.`,
-                    page: '/dashboard'
-                },
-                {
-                    target: '#inventoryTable',
-                    title: '📦 Gestión de Inventario',
-                    desc: `<strong>Control total de tu stock.</strong><br><br>
-                    <strong>Clasificación automática:</strong><br>
-                    • <span style="color: #10B981;">🟢 Óptimo:</span> Stock saludable.<br>
-                    • <span style="color: #F59E0B;">🟡 Atención:</span> Quedan 3 o menos unidades.<br>
-                    • <span style="color: #EF4444;">🔴 Crítico:</span> Producto agotado.`,
-                    page: '/dashboard'
-                },
-                {
-                    target: '.header-actions',
-                    title: '🎯 Navegación y Seguridad',
-                    desc: `<strong>Panel de control completo.</strong><br><br>
-                    • <strong>Menú lateral:</strong> Acceso a todas las herramientas.<br>
-                    • <strong>Ventas:</strong> Registra y revisa transacciones.<br>
-                    • <strong>Inventario:</strong> Gestiona productos y stock.<br>
-                    • <strong>Vendedores:</strong> Administra tu equipo.<br>
-                    • <strong>Finanzas:</strong> Analiza ingresos y gastos.<br>
-                    • <strong>Análisis:</strong> Descubre productos estrella.`,
-                    page: '/dashboard',
-                    nextPage: '/ventas'
-                },
-                {
-                    target: '.section-header-wrapper',
-                    title: '🛒 Gestión de Ventas',
-                    desc: `<strong>Tu caja registradora digital.</strong><br><br>
-                    <strong>Funcionalidades:</strong><br>
-                    • <strong>📝 Registrar Venta:</strong> Selecciona producto y cantidad.<br>
-                    • <strong>📅 Filtros de Fecha:</strong> Control temporal preciso.<br>
-                    • <strong>📊 Exportar a Excel:</strong> Descarga tu historial.`,
-                    page: '/ventas',
-                    nextPage: '/inventario'
-                },
-                {
-                    target: '.card-premium',
-                    title: '📦 Inventario Completo',
-                    desc: `<strong>La base de datos de tus productos.</strong><br><br>
-                    <strong>Acciones disponibles:</strong><br>
-                    • <strong>➕ Agregar:</strong> Nuevos productos con precio y stock.<br>
-                    • <strong>✏️ Editar:</strong> Actualiza precios y stock.<br>
-                    • <strong>🗑️ Eliminar:</strong> Da de baja productos.<br><br>
-                    <em>El margen te muestra la rentabilidad de cada producto.</em>`,
-                    page: '/inventario',
-                    nextPage: '/vendedores'
-                },
-                {
-                    target: '.section-title',
-                    title: '👥 Gestión de Vendedores',
-                    desc: `<strong>Administra tu fuerza de ventas.</strong><br><br>
-                    • <strong>➕ Crear Vendedor:</strong> Genera un ID único de 8 caracteres.<br>
-                    • <strong>🔑 ID de acceso:</strong> El vendedor lo usa en la App Android.<br>
-                    • <strong>🔄 Estado:</strong> Activa o desactiva vendedores.`,
-                    page: '/vendedores',
-                    nextPage: '/finanzas'
-                },
-                {
-                    target: '.section-header-wrapper',
-                    title: '💰 Análisis Financiero',
-                    desc: `<strong>Tu brújula económica.</strong><br><br>
-                    • <strong>📊 Ingresos vs Gastos:</strong> ¿Estás ganando más de lo que gastas?<br>
-                    • <strong>🥧 Distribución de Gastos:</strong> ¿En qué se va tu dinero?<br>
-                    • <strong>📅 Resumen Mensual:</strong> Visualiza el rendimiento mes a mes.`,
-                    page: '/finanzas',
-                    nextPage: '/analisis'
-                },
-                {
-                    target: '.section-header-wrapper',
-                    title: '🧠 Análisis Avanzado',
-                    desc: `<strong>Decisiones basadas en datos.</strong><br><br>
-                    • <strong>🏆 Top 10 Productos:</strong> Tus "vacas sagradas".<br>
-                    • <strong>📈 Tendencia de Ventas:</strong> ¿Tu negocio está creciendo?<br>
-                    • <strong>🏷️ Clasificación ABC:</strong> Prioriza tus productos.`,
-                    page: '/analisis',
-                    nextPage: '/clientes'
-                },
-                {
-                    target: '.section-header-wrapper',
-                    title: '👤 Gestión de Clientes',
-                    desc: `<strong>Tu base de datos de oro.</strong><br><br>
-                    <strong>Próximamente podrás:</strong><br>
-                    • <strong>📇 Registrar Clientes:</strong> Guarda contactos.<br>
-                    • <strong>🛍️ Historial de Compras:</strong> Seguimiento de compras.<br>
-                    • <strong>🎁 Fidelización:</strong> Identifica a tus mejores clientes.`,
-                    page: '/clientes',
-                    nextPage: null
-                }
-            ];
-
-            let currentStepIndex = 0;
-            let isRunning = false;
-
-            // Función pública para iniciar el tour desde el botón
-            window._onboardingInstance = {
-                startTour: function() {
-                    startTour();
-                },
-                goToStep: function(index) {
-                    goToStep(index);
-                },
-                finishTour: function() {
-                    finishTour();
-                }
-            };
-
-            // 2. INICIALIZACIÓN
-            function initOnboarding() {
-                const onboardingComplete = localStorage.getItem("omniventas_onboarding_complete");
-                const currentPage = window.location.pathname;
-                const savedStep = sessionStorage.getItem('onboarding_next_step');
-                
-                if (!onboardingComplete && currentPage === '/dashboard') {
-                    setTimeout(() => {
-                        startTour();
-                    }, 800);
-                } else if (savedStep !== null) {
-                    const stepIndex = parseInt(savedStep);
-                    if (stepIndex < STEPS.length) {
-                        setTimeout(() => {
-                            startTour();
-                            goToStep(stepIndex);
-                            sessionStorage.removeItem('onboarding_next_step');
-                        }, 500);
-                    }
-                }
-            }
-
-            // 3. INICIAR EL TOUR
-            function startTour() {
-                isRunning = true;
-                OVERLAY.classList.add('active');
-                TOTAL_STEPS.textContent = STEPS.length;
-                
-                // Mostrar la card con animación
-                setTimeout(() => {
-                    CARD.classList.add('active');
-                }, 150);
-                
-                const startIndex = STEPS.findIndex(step => step.page === window.location.pathname);
-                if (startIndex !== -1) {
-                    goToStep(startIndex);
-                } else {
-                    goToStep(0);
-                }
-            }
-
-            // 4. NAVEGACIÓN ENTRE PASOS
-            function goToStep(index) {
-                currentStepIndex = index;
-                const step = STEPS[index];
-
-                document.querySelectorAll('.onboarding-highlight').forEach(el => el.classList.remove('onboarding-highlight'));
-
-                TITLE.innerHTML = step.title;
-                DESC.innerHTML = step.desc;
-                CURRENT_STEP.textContent = index + 1;
-
-                const targetElement = document.querySelector(step.target);
-                if (targetElement) {
-                    targetElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                    targetElement.classList.add('onboarding-highlight');
-                }
-
-                BTN_PREV.style.display = (index === 0) ? 'none' : 'inline-flex';
-                BTN_NEXT.textContent = (index === STEPS.length - 1) ? '✅ ¡Entendido!' : 'Siguiente →';
-            }
-
-            // 5. EVENTOS DE BOTONES
-            BTN_NEXT.addEventListener('click', function() {
-                const currentStep = STEPS[currentStepIndex];
-                
-                if (currentStepIndex < STEPS.length - 1) {
-                    if (currentStep.nextPage && currentStep.nextPage !== window.location.pathname) {
-                        sessionStorage.setItem('onboarding_next_step', currentStepIndex + 1);
-                        window.location.href = currentStep.nextPage;
-                    } else {
-                        goToStep(currentStepIndex + 1);
-                    }
-                } else {
-                    finishTour();
-                }
-            });
-
-            BTN_PREV.addEventListener('click', function() {
-                if (currentStepIndex > 0) {
-                    goToStep(currentStepIndex - 1);
-                }
-            });
-
-            BTN_SKIP.addEventListener('click', finishTour);
-
-            // 6. FINALIZAR EL TOUR
-            function finishTour() {
-                isRunning = false;
-                CARD.classList.remove('active');
-                setTimeout(() => {
-                    OVERLAY.classList.remove('active');
-                }, 400);
-                document.querySelectorAll('.onboarding-highlight').forEach(el => el.classList.remove('onboarding-highlight'));
-                localStorage.setItem("omniventas_onboarding_complete", "true");
-                sessionStorage.removeItem('onboarding_next_step');
-                console.log("✅ Tutorial completado.");
-            }
-
-            // 7. SOPORTE PARA TECLADO
-            document.addEventListener('keydown', function(e) {
-                if (!isRunning) return;
-                if (e.key === 'ArrowRight' || e.key === 'Enter') BTN_NEXT.click();
-                if (e.key === 'ArrowLeft') BTN_PREV.click();
-                if (e.key === 'Escape') BTN_SKIP.click();
-            });
-
-            // 8. EJECUTAR AL CARGAR
-            document.addEventListener('DOMContentLoaded', function() {
-                setTimeout(() => {
-                    initOnboarding();
-                }, 500);
-            });
-
-        })();
-
-        // ============================================================
         // INICIALIZACIÓN PRINCIPAL
         // ============================================================
         document.addEventListener('DOMContentLoaded', function() {
@@ -2149,7 +1232,7 @@
                 loadSalesData(currentPeriod);
             });
 
-            // WEBSOCKET
+            // WebSocket
             try {
                 socket = io({
                     reconnection: true,
@@ -2192,7 +1275,7 @@
                 console.warn('⚠️ WebSocket no disponible:', error);
             }
 
-            // INTERVALO DE ACTUALIZACIÓN (15 segundos)
+            // Intervalo de actualización (15 segundos)
             refreshInterval = setInterval(() => {
                 console.log('🔄 Actualización automática del dashboard...');
                 loadDashboardData();
