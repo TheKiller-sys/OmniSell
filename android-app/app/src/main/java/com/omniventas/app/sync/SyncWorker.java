@@ -17,6 +17,8 @@ import com.omniventas.app.utils.SessionManager;
 import com.omniventas.app.utils.TelegramLogger;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
@@ -26,12 +28,14 @@ public class SyncWorker extends Worker {
     private SessionManager sessionManager;
     private AppDatabase database;
     private TelegramLogger logger;
+    private ExecutorService executorService;
 
     public SyncWorker(@NonNull Context context, @NonNull WorkerParameters params) {
         super(context, params);
         sessionManager = new SessionManager(context);
         database = AppDatabase.getInstance(context);
         logger = TelegramLogger.getInstance(context);
+        executorService = Executors.newSingleThreadExecutor();
     }
 
     @NonNull
@@ -65,23 +69,31 @@ public class SyncWorker extends Worker {
             
             if (response.isSuccessful() && response.body() != null && response.body().isSuccess()) {
                 List<Producto> productos = response.body().getProductos();
-                List<ProductoEntity> entities = new ArrayList<>();
                 
-                for (Producto p : productos) {
-                    ProductoEntity entity = new ProductoEntity();
-                    entity.setId(p.getId());
-                    entity.setNombre(p.getNombre());
-                    entity.setSeccion(p.getSeccion());
-                    entity.setPrecio(p.getPrecio());
-                    entity.setStock(p.getStock());
-                    entity.setDescripcion(p.getDescripcion() != null ? p.getDescripcion() : "");
-                    entity.setLastSync(System.currentTimeMillis());
-                    entity.setDeleted(false);
-                    entities.add(entity);
-                }
-                
-                database.productoDao().insertAll(entities);
-                Log.d(TAG, "✅ Productos sincronizados: " + entities.size());
+                // ← CORREGIDO: Ejecutar en hilo secundario
+                executorService.execute(() -> {
+                    try {
+                        List<ProductoEntity> entities = new ArrayList<>();
+                        
+                        for (Producto p : productos) {
+                            ProductoEntity entity = new ProductoEntity();
+                            entity.setId(p.getId());
+                            entity.setNombre(p.getNombre());
+                            entity.setSeccion(p.getSeccion());
+                            entity.setPrecio(p.getPrecio());
+                            entity.setStock(p.getStock());
+                            entity.setDescripcion(p.getDescripcion() != null ? p.getDescripcion() : "");
+                            entity.setLastSync(System.currentTimeMillis());
+                            entity.setDeleted(false);
+                            entities.add(entity);
+                        }
+                        
+                        database.productoDao().insertAll(entities);
+                        Log.d(TAG, "✅ Productos sincronizados: " + entities.size());
+                    } catch (Exception e) {
+                        Log.e(TAG, "❌ Error guardando productos en SyncWorker: " + e.getMessage());
+                    }
+                });
             }
         } catch (Exception e) {
             Log.e(TAG, "❌ Error sincronizando productos: " + e.getMessage());
@@ -118,23 +130,59 @@ public class SyncWorker extends Worker {
                 Response<VentaResponse> response = call.execute();
 
                 if (response.isSuccessful() && response.body() != null && response.body().isSuccess()) {
-                    database.ventaDao().marcarSincronizada(venta.getId());
-                    Log.d(TAG, "✅ Venta sincronizada: " + venta.getProductoNombre());
-                    logger.success("Venta sincronizada offline: " + venta.getProductoNombre());
+                    // ← CORREGIDO: Ejecutar en hilo secundario
+                    executorService.execute(() -> {
+                        try {
+                            database.ventaDao().marcarSincronizada(venta.getId());
+                            Log.d(TAG, "✅ Venta sincronizada: " + venta.getProductoNombre());
+                            logger.success("Venta sincronizada offline: " + venta.getProductoNombre());
+                        } catch (Exception e) {
+                            Log.e(TAG, "❌ Error marcando venta como sincronizada: " + e.getMessage());
+                        }
+                    });
                 } else {
                     String errorMsg = "Error al sincronizar venta";
                     if (response.errorBody() != null) {
                         errorMsg = response.errorBody().string();
                     }
-                    database.ventaDao().setError(venta.getId(), errorMsg);
+                    // ← CORREGIDO: Ejecutar en hilo secundario
+                    executorService.execute(() -> {
+                        try {
+                            database.ventaDao().setError(venta.getId(), errorMsg);
+                        } catch (Exception e) {
+                            Log.e(TAG, "❌ Error guardando error: " + e.getMessage());
+                        }
+                    });
                     Log.e(TAG, "❌ Error sincronizando venta: " + errorMsg);
                 }
             } catch (Exception e) {
                 Log.e(TAG, "❌ Error enviando venta: " + e.getMessage());
-                database.ventaDao().setError(venta.getId(), e.getMessage());
+                executorService.execute(() -> {
+                    try {
+                        database.ventaDao().setError(venta.getId(), e.getMessage());
+                    } catch (Exception ex) {
+                        Log.e(TAG, "❌ Error guardando error: " + ex.getMessage());
+                    }
+                });
             }
         }
 
-        database.ventaDao().deleteSincronizadas();
+        // Limpiar ventas ya sincronizadas
+        executorService.execute(() -> {
+            try {
+                database.ventaDao().deleteSincronizadas();
+                Log.d(TAG, "✅ Ventas sincronizadas eliminadas");
+            } catch (Exception e) {
+                Log.e(TAG, "❌ Error eliminando ventas sincronizadas: " + e.getMessage());
+            }
+        });
+    }
+
+    @Override
+    public void onStopped() {
+        super.onStopped();
+        if (executorService != null) {
+            executorService.shutdown();
+        }
     }
 }
