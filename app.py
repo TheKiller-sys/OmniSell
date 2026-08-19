@@ -1439,7 +1439,6 @@ def crear_vendedor_web():
         
         # 2. Crear en la base de datos del negocio
         try:
-            from database.db_manager import DatabaseManager
             db = DatabaseManager(business_id)
             
             if is_postgres:
