@@ -17,6 +17,7 @@ import com.omniventas.app.api.ApiService;
 import com.omniventas.app.api.RetrofitClient;
 import com.omniventas.app.models.DashboardResponse;
 import com.omniventas.app.models.Venta;
+import com.omniventas.app.repository.OmniVentasRepository;
 import com.omniventas.app.utils.SessionManager;
 import com.omniventas.app.utils.TelegramLogger;
 import java.util.Calendar;
@@ -34,6 +35,7 @@ public class DashboardFragment extends Fragment {
     private SwipeRefreshLayout swipeRefresh;
     private SessionManager sessionManager;
     private TelegramLogger logger;
+    private OmniVentasRepository repository;
     private Handler handler = new Handler(Looper.getMainLooper());
     private Runnable actualizacionAutomatica;
 
@@ -58,6 +60,7 @@ public class DashboardFragment extends Fragment {
 
         sessionManager = new SessionManager(getContext());
         logger = TelegramLogger.getInstance(getContext());
+        repository = new OmniVentasRepository(getContext());
 
         String vendorName = sessionManager.getVendorName();
         String greeting = "Good morning";
@@ -75,13 +78,14 @@ public class DashboardFragment extends Fragment {
             @Override
             public void run() {
                 if (isAdded()) {
-                    cargarDashboard();
-                    handler.postDelayed(this, 10000);
+                    cargarDashboardLocal();
+                    handler.postDelayed(this, 15000);
                 }
             }
         };
-        handler.postDelayed(actualizacionAutomatica, 10000);
+        handler.postDelayed(actualizacionAutomatica, 15000);
 
+        cargarDashboardLocal();
         cargarDashboard();
 
         return view;
@@ -91,6 +95,26 @@ public class DashboardFragment extends Fragment {
     public void onDestroyView() {
         super.onDestroyView();
         handler.removeCallbacks(actualizacionAutomatica);
+    }
+
+    // Método público para actualizar desde otros fragmentos
+    public void actualizarDesdeVenta() {
+        if (isAdded()) {
+            cargarDashboardLocal();
+        }
+    }
+
+    public void cargarDashboardLocal() {
+        // Mostrar datos locales inmediatamente
+        int ventasPendientes = repository.getVentasPendientesCount();
+        int totalProductos = repository.getTotalProductos();
+        int stockBajo = repository.getStockBajo();
+        
+        tvLiveRevenue.setText("$" + String.format("%,.0f", (double) ventasPendientes * 100));
+        tvPendingOrders.setText(String.valueOf(ventasPendientes));
+        
+        tvOfflineStatus.setVisibility(View.VISIBLE);
+        tvOfflineStatus.setText("📡 Modo Offline - " + ventasPendientes + " pendientes");
     }
 
     private void cargarDashboard() {
@@ -140,6 +164,9 @@ public class DashboardFragment extends Fragment {
                     }
                     tvConversionRate.setText(String.format("%.1f%%", conversion));
                     tvConversionTrend.setText("↑ 0.0%");
+                    
+                    // Sincronizar productos en segundo plano
+                    repository.syncProductosFromServer();
                 } else {
                     tvOfflineStatus.setVisibility(View.VISIBLE);
                     tvOfflineStatus.setText("📡 Mostrando datos locales");

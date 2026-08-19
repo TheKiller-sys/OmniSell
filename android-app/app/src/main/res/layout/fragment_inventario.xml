@@ -78,7 +78,7 @@
                 android:layout_height="wrap_content"
                 android:text="All"
                 app:chipBackgroundColor="@color/primary"
-                app:chipTextColor="@color/white"
+                android:textColor="@color/white"
                 android:layout_marginEnd="8dp" />
 
             <com.google.android.material.chip.Chip
@@ -87,7 +87,7 @@
                 android:layout_height="wrap_content"
                 android:text="Low Stock"
                 app:chipBackgroundColor="@color/light_gray"
-                app:chipTextColor="@color/dark"
+                android:textColor="@color/dark"
                 android:layout_marginEnd="8dp" />
 
             <com.google.android.material.chip.Chip
@@ -96,7 +96,7 @@
                 android:layout_height="wrap_content"
                 android:text="Electronics"
                 app:chipBackgroundColor="@color/light_gray"
-                app:chipTextColor="@color/dark"
+                android:textColor="@color/dark"
                 android:layout_marginEnd="8dp" />
 
             <com.google.android.material.chip.Chip
@@ -105,7 +105,7 @@
                 android:layout_height="wrap_content"
                 android:text="Clothing"
                 app:chipBackgroundColor="@color/light_gray"
-                app:chipTextColor="@color/dark" />
+                android:textColor="@color/dark" />
         </LinearLayout>
     </HorizontalScrollView>
 

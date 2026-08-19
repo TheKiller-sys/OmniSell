@@ -112,6 +112,7 @@ public class VentasFragment extends Fragment {
             @Override public void onTextChanged(CharSequence s, int start, int before, int count) {}
             @Override public void afterTextChanged(Editable s) {
                 String query = s.toString().toLowerCase().trim();
+                // Aquí se podrían filtrar productos de la lista
             }
         });
 
@@ -233,7 +234,7 @@ public class VentasFragment extends Fragment {
                             .getSupportFragmentManager()
                             .findFragmentByTag("dashboard");
                         if (dashboard != null) {
-                            dashboard.actualizarDashboard();
+                            dashboard.actualizarDesdeVenta();
                         }
                     }
                 } else {

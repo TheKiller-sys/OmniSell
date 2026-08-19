@@ -34,7 +34,6 @@
             android:background="@color/warning_light"
             android:paddingHorizontal="12dp"
             android:paddingVertical="4dp"
-            app:cornerRadius="12dp"
             android:visibility="gone" />
     </LinearLayout>
 
@@ -104,7 +103,7 @@
                 android:layout_height="wrap_content"
                 android:text="Blue Jeans"
                 app:chipBackgroundColor="@color/primary"
-                app:chipTextColor="@color/white"
+                android:textColor="@color/white"
                 android:layout_marginEnd="8dp" />
 
             <com.google.android.material.chip.Chip
@@ -113,7 +112,7 @@
                 android:layout_height="wrap_content"
                 android:text="Red T-Shirt"
                 app:chipBackgroundColor="@color/light_gray"
-                app:chipTextColor="@color/dark"
+                android:textColor="@color/dark"
                 android:layout_marginEnd="8dp" />
 
             <com.google.android.material.chip.Chip
@@ -122,7 +121,7 @@
                 android:layout_height="wrap_content"
                 android:text="Sneakers"
                 app:chipBackgroundColor="@color/light_gray"
-                app:chipTextColor="@color/dark"
+                android:textColor="@color/dark"
                 android:layout_marginEnd="8dp" />
 
             <com.google.android.material.chip.Chip
@@ -131,7 +130,7 @@
                 android:layout_height="wrap_content"
                 android:text="Hoodie"
                 app:chipBackgroundColor="@color/light_gray"
-                app:chipTextColor="@color/dark" />
+                android:textColor="@color/dark" />
         </LinearLayout>
     </HorizontalScrollView>
 
