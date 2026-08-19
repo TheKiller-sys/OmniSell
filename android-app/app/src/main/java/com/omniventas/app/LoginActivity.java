@@ -3,6 +3,7 @@ package com.omniventas.app;
 import android.animation.ObjectAnimator;
 import android.content.Intent;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
 import android.view.animation.AnimationUtils;
 import android.view.inputmethod.EditorInfo;
@@ -25,6 +26,7 @@ import retrofit2.Callback;
 import retrofit2.Response;
 
 public class LoginActivity extends AppCompatActivity {
+    private static final String TAG = "LoginActivity";
     private EditText etVendorId;
     private Button btnLogin;
     private CardView cardLogin;
@@ -36,45 +38,61 @@ public class LoginActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_login);
+        Log.d(TAG, "onCreate iniciado");
+        
+        try {
+            setContentView(R.layout.activity_login);
+            Log.d(TAG, "setContentView completado");
 
-        sessionManager = new SessionManager(this);
-        logger = TelegramLogger.getInstance(this);
+            sessionManager = new SessionManager(this);
+            logger = TelegramLogger.getInstance(this);
 
-        if (sessionManager.isLoggedIn()) {
-            irAlDashboard();
-            return;
-        }
+            if (sessionManager.isLoggedIn()) {
+                Log.d(TAG, "Usuario ya logueado, redirigiendo al Dashboard");
+                irAlDashboard();
+                return;
+            }
 
-        etVendorId = findViewById(R.id.et_vendor_id);
-        btnLogin = findViewById(R.id.btn_login);
-        cardLogin = findViewById(R.id.card_login);
-        progressBar = findViewById(R.id.progressBar);
-        tvError = findViewById(R.id.tv_error);
+            etVendorId = findViewById(R.id.et_vendor_id);
+            btnLogin = findViewById(R.id.btn_login);
+            cardLogin = findViewById(R.id.card_login);
+            progressBar = findViewById(R.id.progressBar);
+            tvError = findViewById(R.id.tv_error);
 
-        if (etVendorId != null) {
-            etVendorId.setText("");
-        }
+            if (etVendorId != null) {
+                etVendorId.setText("");
+            }
 
-        if (cardLogin != null) {
-            cardLogin.startAnimation(AnimationUtils.loadAnimation(this, R.anim.slide_up));
-        }
+            if (cardLogin != null) {
+                cardLogin.startAnimation(AnimationUtils.loadAnimation(this, R.anim.slide_up));
+            }
 
-        btnLogin.setOnClickListener(v -> realizarLogin());
+            btnLogin.setOnClickListener(v -> realizarLogin());
 
-        if (etVendorId != null) {
-            etVendorId.setOnEditorActionListener((v, actionId, event) -> {
-                if (actionId == EditorInfo.IME_ACTION_DONE) {
-                    realizarLogin();
-                    return true;
-                }
-                return false;
-            });
+            if (etVendorId != null) {
+                etVendorId.setOnEditorActionListener((v, actionId, event) -> {
+                    if (actionId == EditorInfo.IME_ACTION_DONE) {
+                        realizarLogin();
+                        return true;
+                    }
+                    return false;
+                });
+            }
+            
+            Log.d(TAG, "onCreate completado correctamente");
+            
+        } catch (Exception e) {
+            Log.e(TAG, "❌ Error en onCreate: " + e.getMessage());
+            e.printStackTrace();
+            Toast.makeText(this, "Error al iniciar la app: " + e.getMessage(), Toast.LENGTH_LONG).show();
         }
     }
 
     private void realizarLogin() {
+        Log.d(TAG, "realizarLogin iniciado");
+        
         String vendorId = etVendorId.getText().toString().trim().toUpperCase();
+        Log.d(TAG, "Vendor ID ingresado: " + vendorId);
 
         if (vendorId.isEmpty()) {
             mostrarError("Ingresa tu ID de vendedor");
@@ -99,52 +117,88 @@ public class LoginActivity extends AppCompatActivity {
 
         ApiService apiService = RetrofitClient.getInstance(this).getApiService();
         VendorLoginRequest request = new VendorLoginRequest(vendorId);
+        
+        Log.d(TAG, "Enviando petición de login...");
 
         apiService.loginVendor(request).enqueue(new Callback<LoginResponse>() {
             @Override
             public void onResponse(Call<LoginResponse> call, Response<LoginResponse> response) {
+                Log.d(TAG, "Login - onResponse recibido");
                 setLoading(false);
-                if (response.isSuccessful() && response.body() != null) {
-                    LoginResponse loginResponse = response.body();
-                    if (loginResponse.isSuccess()) {
-                        String token = loginResponse.getToken();
-                        LoginResponse.Vendor vendor = loginResponse.getVendor();
-                        if (vendor != null && token != null) {
-                            sessionManager.saveUser(
-                                token,
-                                vendor.getId(),
-                                vendor.getName(),
-                                vendor.getBusinessName(),
-                                vendor.getUserId()
-                            );
-                            logger.success("Login exitoso: " + vendor.getName());
+                
+                try {
+                    if (response.isSuccessful() && response.body() != null) {
+                        LoginResponse loginResponse = response.body();
+                        Log.d(TAG, "Login - success: " + loginResponse.isSuccess());
+                        Log.d(TAG, "Login - message: " + loginResponse.getMessage());
+                        
+                        if (loginResponse.isSuccess()) {
+                            String token = loginResponse.getToken();
+                            LoginResponse.Vendor vendor = loginResponse.getVendor();
                             
-                            SyncManager.scheduleSync(getApplicationContext());
-                            
-                            irAlDashboard();
+                            if (vendor != null && token != null) {
+                                Log.d(TAG, "Login - Vendor ID: " + vendor.getId());
+                                Log.d(TAG, "Login - Vendor Name: " + vendor.getName());
+                                
+                                sessionManager.saveUser(
+                                    token,
+                                    vendor.getId(),
+                                    vendor.getName(),
+                                    vendor.getBusinessName(),
+                                    vendor.getUserId()
+                                );
+                                
+                                logger.success("Login exitoso: " + vendor.getName());
+                                
+                                SyncManager.scheduleSync(getApplicationContext());
+                                
+                                Log.d(TAG, "Login exitoso, redirigiendo al Dashboard");
+                                irAlDashboard();
+                            } else {
+                                Log.e(TAG, "Login - Vendor o token son null");
+                                mostrarError("Error en la respuesta del servidor");
+                            }
+                        } else {
+                            String msg = loginResponse.getMessage() != null ? loginResponse.getMessage() : "ID inválido";
+                            Log.e(TAG, "Login fallido: " + msg);
+                            mostrarError(msg);
+                            logger.warning("Login fallido: " + msg);
                         }
                     } else {
-                        String msg = loginResponse.getMessage() != null ? loginResponse.getMessage() : "ID inválido";
-                        mostrarError(msg);
-                        logger.warning("Login fallido: " + msg);
+                        Log.e(TAG, "Login - Response no exitosa. Código: " + response.code());
+                        mostrarError("Error del servidor. Código: " + response.code());
                     }
-                } else {
-                    mostrarError("Error del servidor. Código: " + response.code());
+                } catch (Exception e) {
+                    Log.e(TAG, "❌ Error procesando login: " + e.getMessage());
+                    e.printStackTrace();
+                    mostrarError("Error al procesar la respuesta: " + e.getMessage());
+                    logger.error("Error en login: " + e.getMessage());
                 }
             }
 
             @Override
             public void onFailure(Call<LoginResponse> call, Throwable t) {
+                Log.e(TAG, "❌ Login - onFailure: " + t.getMessage());
+                t.printStackTrace();
                 setLoading(false);
-                mostrarError("Error de conexión");
+                mostrarError("Error de conexión: " + t.getMessage());
                 logger.networkError(t);
             }
         });
     }
 
     private void irAlDashboard() {
-        startActivity(new Intent(this, MainActivity.class));
-        finish();
+        Log.d(TAG, "irAlDashboard iniciado");
+        try {
+            Intent intent = new Intent(this, MainActivity.class);
+            startActivity(intent);
+            finish();
+            Log.d(TAG, "✅ Dashboard iniciado correctamente");
+        } catch (Exception e) {
+            Log.e(TAG, "❌ Error al ir al Dashboard: " + e.getMessage());
+            e.printStackTrace();
+            Toast.makeText(this, "Error: " + e.getMessage(), Toast.LENGTH_LONG).show();
+        }
     }
 
     private void setLoading(boolean loading) {
@@ -171,7 +225,9 @@ public class LoginActivity extends AppCompatActivity {
     @Override
     protected void onResume() {
         super.onResume();
+        Log.d(TAG, "onResume - Verificando sesión");
         if (sessionManager.isLoggedIn()) {
+            Log.d(TAG, "Sesión activa, redirigiendo al Dashboard");
             irAlDashboard();
         }
     }
