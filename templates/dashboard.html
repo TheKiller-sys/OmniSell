@@ -493,6 +493,36 @@
         }
 
         /* ============================================
+           BOTÓN DE TUTORIAL
+           ============================================ */
+        .btn-tutorial {
+            border-radius: var(--radius-sm);
+            font-weight: 600;
+            font-size: 0.85rem;
+            padding: 6px 16px;
+            border: 2px solid var(--primary);
+            color: var(--primary);
+            background: transparent;
+            transition: var(--transition);
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            cursor: pointer;
+        }
+
+        .btn-tutorial:hover {
+            background: var(--primary-gradient);
+            color: white;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(67, 97, 238, 0.3);
+            border-color: transparent;
+        }
+
+        .btn-tutorial i {
+            font-size: 1rem;
+        }
+
+        /* ============================================
            STATS CARDS - Premium
            ============================================ */
         .stats-row {
@@ -881,6 +911,11 @@
             .table-premium tbody td {
                 padding: 8px 10px;
             }
+
+            .btn-tutorial {
+                font-size: 0.75rem;
+                padding: 4px 12px;
+            }
         }
 
         @media (max-width: 576px) {
@@ -901,6 +936,11 @@
             .btn-group-period .btn {
                 font-size: 0.65rem;
                 padding: 2px 10px;
+            }
+
+            .btn-tutorial {
+                font-size: 0.7rem;
+                padding: 3px 10px;
             }
         }
 
@@ -1159,9 +1199,15 @@
                 <i class="fas fa-chart-line"></i>
                 Resumen General
             </h2>
-            <button class="refresh-btn" id="manual-refresh" title="Actualizar datos">
-                <i class="fas fa-sync-alt"></i>
-            </button>
+            <div class="d-flex gap-2 align-items-center">
+                <!-- Botón para reiniciar el tutorial -->
+                <button class="btn-tutorial" onclick="reiniciarOnboarding()" title="Ver tutorial nuevamente">
+                    <i class="fas fa-play-circle"></i> Ver Tutorial
+                </button>
+                <button class="refresh-btn" id="manual-refresh" title="Actualizar datos">
+                    <i class="fas fa-sync-alt"></i>
+                </button>
+            </div>
             <span class="last-update">
                 <i class="fas fa-clock"></i>
                 Última actualización: <span id="update-time">--:--:--</span>
@@ -1438,6 +1484,35 @@
                 header.classList.remove('scrolled');
             }
         });
+
+        // ============================================================
+        // REINICIAR ONBOARDING (TUTORIAL)
+        // ============================================================
+        function reiniciarOnboarding() {
+            // Limpiar las variables que impiden mostrar el tutorial
+            localStorage.removeItem("omniventas_onboarding_complete");
+            sessionStorage.removeItem('onboarding_next_step');
+            
+            // Mostrar mensaje de confirmación
+            const btn = document.querySelector('.btn-tutorial');
+            if (btn) {
+                const originalHTML = btn.innerHTML;
+                btn.innerHTML = '<i class="fas fa-check-circle"></i> ¡Tutorial Reiniciado!';
+                btn.style.borderColor = 'var(--success)';
+                btn.style.color = 'var(--success)';
+                
+                setTimeout(() => {
+                    btn.innerHTML = originalHTML;
+                    btn.style.borderColor = '';
+                    btn.style.color = '';
+                }, 2000);
+            }
+            
+            // Recargar la página para iniciar el tutorial
+            setTimeout(() => {
+                location.reload();
+            }, 800);
+        }
 
         // ============================================================
         // CARGA DE DATOS DEL DASHBOARD
@@ -1754,6 +1829,7 @@
             const BTN_PREV = document.getElementById('btn-prev-step');
             const BTN_SKIP = document.getElementById('btn-skip-tour');
 
+            // 1. DEFINIR LOS PASOS DEL TOUR (TEXTOS HUMANIZADOS, DETALLADOS Y EXTENDIDOS)
             const STEPS = [
                 {
                     target: '.section-header-wrapper',
@@ -1946,20 +2022,23 @@
             let currentStepIndex = 0;
             let isRunning = false;
 
+            // 2. INICIALIZACIÓN (DETECCIÓN DE PRIMERA VEZ - MODO PRODUCCIÓN)
             function initOnboarding() {
-                // 🔥 FIX: Forzamos la visualización del tutorial.
-                // En producción, cambia esto a: const onboardingComplete = localStorage.getItem("omniventas_onboarding_complete");
-                const onboardingComplete = null; // <--- FORZADO PARA QUE SALGA AHORA
-                
+                // 🔥 MODO PRODUCCIÓN: Solo se muestra si es la primera visita
+                const onboardingComplete = localStorage.getItem("omniventas_onboarding_complete");
                 const currentPage = window.location.pathname;
+                
+                // Verificar si venimos de un paso guardado en sessionStorage
                 const savedStep = sessionStorage.getItem('onboarding_next_step');
                 
-                if (onboardingComplete === null && currentPage === '/dashboard') {
-                    console.log("🟢 Iniciando onboarding...");
+                // Lógica de visualización en producción:
+                if (!onboardingComplete && currentPage === '/dashboard') {
+                    // Es la primera visita y estamos en /dashboard
                     setTimeout(() => {
                         startTour();
                     }, 800);
                 } else if (savedStep !== null) {
+                    // Reanudar el tutorial en el paso guardado
                     const stepIndex = parseInt(savedStep);
                     if (stepIndex < STEPS.length) {
                         setTimeout(() => {
@@ -1968,49 +2047,58 @@
                             sessionStorage.removeItem('onboarding_next_step');
                         }, 500);
                     }
-                } else {
-                    console.log("🔴 Onboarding no iniciado (ya completado o página incorrecta)");
                 }
             }
 
+            // 3. INICIAR EL TOUR
             function startTour() {
                 isRunning = true;
                 OVERLAY.classList.add('active');
                 TOTAL_STEPS.textContent = STEPS.length;
                 
+                // Encontrar el índice correcto basado en la página actual
                 const startIndex = STEPS.findIndex(step => step.page === window.location.pathname);
                 if (startIndex !== -1) {
                     goToStep(startIndex);
                 } else {
+                    // Si no encuentra coincidencia, empezar desde el principio
                     goToStep(0);
                 }
             }
 
+            // 4. NAVEGACIÓN ENTRE PASOS
             function goToStep(index) {
                 currentStepIndex = index;
                 const step = STEPS[index];
 
+                // Limpiar resaltado anterior
                 document.querySelectorAll('.onboarding-highlight').forEach(el => el.classList.remove('onboarding-highlight'));
 
+                // Actualizar texto con HTML (permitimos etiquetas <strong>, <em>, <span>, <br>)
                 TITLE.innerHTML = step.title;
                 DESC.innerHTML = step.desc;
                 CURRENT_STEP.textContent = index + 1;
 
+                // Scroll y resaltado del elemento objetivo
                 const targetElement = document.querySelector(step.target);
                 if (targetElement) {
                     targetElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
                     targetElement.classList.add('onboarding-highlight');
                 }
 
+                // Control de botones
                 BTN_PREV.style.display = (index === 0) ? 'none' : 'inline-flex';
                 BTN_NEXT.textContent = (index === STEPS.length - 1) ? '✅ ¡Entendido!' : 'Siguiente →';
             }
 
+            // 5. EVENTOS DE BOTONES
             BTN_NEXT.addEventListener('click', function() {
                 const currentStep = STEPS[currentStepIndex];
                 
                 if (currentStepIndex < STEPS.length - 1) {
+                    // Si hay un nextPage definido y no es la misma página, navegar
                     if (currentStep.nextPage && currentStep.nextPage !== window.location.pathname) {
+                        // Guardar el progreso en sessionStorage para recordar el paso
                         sessionStorage.setItem('onboarding_next_step', currentStepIndex + 1);
                         window.location.href = currentStep.nextPage;
                     } else {
@@ -2029,15 +2117,18 @@
 
             BTN_SKIP.addEventListener('click', finishTour);
 
+            // 6. FINALIZAR EL TOUR
             function finishTour() {
                 isRunning = false;
                 OVERLAY.classList.remove('active');
                 document.querySelectorAll('.onboarding-highlight').forEach(el => el.classList.remove('onboarding-highlight'));
+                // Guardar en localStorage para no volver a mostrar
                 localStorage.setItem("omniventas_onboarding_complete", "true");
                 sessionStorage.removeItem('onboarding_next_step');
                 console.log("✅ Tutorial completado. ¡Bienvenido a OmniVentas!");
             }
 
+            // 7. SOPORTE PARA TECLADO (Flechas)
             document.addEventListener('keydown', function(e) {
                 if (!isRunning) return;
                 if (e.key === 'ArrowRight' || e.key === 'Enter') BTN_NEXT.click();
@@ -2045,7 +2136,9 @@
                 if (e.key === 'Escape') BTN_SKIP.click();
             });
 
+            // 8. EJECUTAR AL CARGAR LA PÁGINA
             document.addEventListener('DOMContentLoaded', function() {
+                // Pequeña pausa para asegurar que todo el DOM está renderizado
                 setTimeout(() => {
                     initOnboarding();
                 }, 1000);
@@ -2053,7 +2146,11 @@
 
         })();
 
+        // ============================================================
+        // INICIALIZACIÓN PRINCIPAL
+        // ============================================================
         document.addEventListener('DOMContentLoaded', function() {
+            // Fecha
             document.getElementById('today-date').textContent = new Date().toLocaleDateString('es-ES', {
                 day: '2-digit',
                 month: 'short'
@@ -2061,6 +2158,7 @@
             
             updateTimestamp();
 
+            // Botones de período
             document.querySelectorAll('[data-period]').forEach(btn => {
                 btn.addEventListener('click', function() {
                     const period = this.getAttribute('data-period');
@@ -2071,11 +2169,15 @@
                 });
             });
 
+            // Botón de actualización manual
             document.getElementById('manual-refresh').addEventListener('click', function() {
                 loadDashboardData();
                 loadSalesData(currentPeriod);
             });
 
+            // ============================================================
+            // WEBSOCKET
+            // ============================================================
             try {
                 socket = io({
                     reconnection: true,
@@ -2118,16 +2220,23 @@
                 console.warn('⚠️ WebSocket no disponible:', error);
             }
 
+            // ============================================================
+            // INTERVALO DE ACTUALIZACIÓN (15 segundos)
+            // ============================================================
             refreshInterval = setInterval(() => {
                 console.log('🔄 Actualización automática del dashboard...');
                 loadDashboardData();
                 loadSalesData(currentPeriod);
             }, 15000);
 
+            // ============================================================
+            // CARGA INICIAL
+            // ============================================================
             console.log('🚀 Cargando datos iniciales del dashboard...');
             loadDashboardData();
             loadSalesData(currentPeriod);
 
+            // Badge de ventas en sidebar desde el inicio
             setTimeout(() => {
                 const badge = document.getElementById('sidebar-ventas-count');
                 if (badge) {
@@ -2139,6 +2248,9 @@
             }, 1000);
         });
 
+        // ============================================================
+        // LIMPIEZA
+        // ============================================================
         window.addEventListener('beforeunload', function() {
             if (refreshInterval) {
                 clearInterval(refreshInterval);
