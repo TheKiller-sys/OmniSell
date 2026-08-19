@@ -41,7 +41,7 @@ def create_app():
     # Configuración de Flask-Login
     login_manager = LoginManager()
     login_manager.init_app(app)
-    login_manager.login_view = 'login'
+    login_manager.login_view = 'index'  # 🔥 CAMBIO: Redirige al index en lugar de login
 
     class User(UserMixin):
         def __init__(self, user_id, business_id, username, role='admin'):
@@ -81,21 +81,22 @@ def create_app():
             if user_data:
                 return User(user_data[0], user_data[1], user_data[2], user_data[3] if len(user_data) > 3 else 'admin')
             else:
-            # ✅ FUERZA LA LIMPIEZA DE LA SESIÓN SI EL USUARIO NO EXISTE
+                # ✅ FUERZA LA LIMPIEZA DE LA SESIÓN SI EL USUARIO NO EXISTE
                 logger.warning(f"Usuario ID {user_id} no encontrado. Limpiando sesión...")
             
-            # Importar logout_user y session desde flask_login y flask
+                # Importar logout_user y session desde flask_login y flask
                 from flask_login import logout_user
                 from flask import session
             
                 logout_user()
                 session.clear()
             
-                log_to_telegram(
-                    level='INFO',
-                    message=f"Sesión forzada a cerrar: Usuario ID {user_id} no existe",
-                    data={'user_id': user_id}
-                )
+                # 🔥 ELIMINADO: No enviamos log a Telegram para evitar spam de UptimeRobot
+                # log_to_telegram(
+                #     level='INFO',
+                #     message=f"Sesión forzada a cerrar: Usuario ID {user_id} no existe",
+                #     data={'user_id': user_id}
+                # )
                 return None
         except Exception as e:
             logger.error(f"Error loading user: {e}")
@@ -133,13 +134,14 @@ def create_app():
                             session['business_name'] = business_data[0]
             except Exception as e:
                 logger.error(f"Error in before_request: {e}")
-                log_to_telegram(
-                    level='ERROR',
-                    message=f"Error en before_request: {str(e)}",
-                    data={'error': str(e), 'traceback': traceback.format_exc()},
-                    user=current_user if current_user.is_authenticated else None,
-                    business_id=current_user.business_id if current_user.is_authenticated else None
-                )
+                # 🔥 ELIMINADO: Logs de error para evitar spam
+                # log_to_telegram(
+                #     level='ERROR',
+                #     message=f"Error en before_request: {str(e)}",
+                #     data={'error': str(e), 'traceback': traceback.format_exc()},
+                #     user=current_user if current_user.is_authenticated else None,
+                #     business_id=current_user.business_id if current_user.is_authenticated else None
+                # )
 
     # Funciones auxiliares
     def generate_random_string(length=4):
@@ -185,11 +187,12 @@ def create_app():
         
         except Exception as e:
             logger.error(f"Error en landing page: {e}")
-            log_to_telegram(
-                level='ERROR',
-                message=f"Error en landing page: {str(e)}",
-                data={'error': str(e), 'traceback': traceback.format_exc()}
-            )
+            # 🔥 ELIMINADO: Log de error para evitar spam
+            # log_to_telegram(
+            #     level='ERROR',
+            #     message=f"Error en landing page: {str(e)}",
+            #     data={'error': str(e), 'traceback': traceback.format_exc()}
+            # )
             # En caso de error, mostrar la landing sin funcionalidades extras
             return render_template('index.html')
 
@@ -538,7 +541,7 @@ def create_app():
         
         logout_user()
         session.clear()
-        return redirect(url_for('login'))
+        return redirect(url_for('index'))  # 🔥 CAMBIO: Redirige al index en lugar de login
 
     @app.route('/dashboard')
     @login_required
@@ -1025,14 +1028,15 @@ def create_app():
             logger.error(f"Error en dashboard_data: {str(e)}")
             logger.error(traceback.format_exc())
             
-            log_to_telegram(
-                level='ERROR',
-                message=f"Error en dashboard_data: {str(e)}",
-                data={'error': str(e), 'traceback': traceback.format_exc()},
-                user=current_user if current_user.is_authenticated else None,
-                business_id=current_user.business_id if current_user.is_authenticated else None,
-                request_info=request_info
-            )
+            # 🔥 ELIMINADO: Log de error para evitar spam
+            # log_to_telegram(
+            #     level='ERROR',
+            #     message=f"Error en dashboard_data: {str(e)}",
+            #     data={'error': str(e), 'traceback': traceback.format_exc()},
+            #     user=current_user if current_user.is_authenticated else None,
+            #     business_id=current_user.business_id if current_user.is_authenticated else None,
+            #     request_info=request_info
+            # )
             
             return jsonify({
                 'ingresos': 0.0,
@@ -1159,12 +1163,13 @@ def create_app():
         
         except Exception as e:
             logger.error(f"Error en sales_data: {str(e)}")
-            log_to_telegram(
-                level='ERROR',
-                message=f"Error en sales_data: {str(e)}",
-                data={'error': str(e), 'traceback': traceback.format_exc()},
-                user=current_user if current_user.is_authenticated else None
-            )
+            # 🔥 ELIMINADO: Log de error para evitar spam
+            # log_to_telegram(
+            #     level='ERROR',
+            #     message=f"Error en sales_data: {str(e)}",
+            #     data={'error': str(e), 'traceback': traceback.format_exc()},
+            #     user=current_user if current_user.is_authenticated else None
+            # )
             return jsonify({
                 'error': 'Ocurrió un error al obtener datos de ventas',
                 'details': str(e)
@@ -1264,14 +1269,15 @@ def create_app():
                     ingresos += float(row[4]) if row[4] else 0
                     ganancia += float(row[5]) if row[5] else 0
             
-            log_to_telegram(
-                level='INFO',
-                message=f"Ventas consultadas desde panel web por {current_user.username}",
-                data={'total_ventas': total_ventas, 'ingresos': ingresos},
-                user=current_user,
-                business_id=current_user.business_id,
-                request_info=request_info
-            )
+            # 🔥 ELIMINADO: Log de consulta de ventas para evitar spam
+            # log_to_telegram(
+            #     level='INFO',
+            #     message=f"Ventas consultadas desde panel web por {current_user.username}",
+            #     data={'total_ventas': total_ventas, 'ingresos': ingresos},
+            #     user=current_user,
+            #     business_id=current_user.business_id,
+            #     request_info=request_info
+            # )
             
             return jsonify({
                 'ventas': ventas,
@@ -1282,14 +1288,15 @@ def create_app():
             })
         except Exception as e:
             logger.error(f"Error en api_ventas: {str(e)}")
-            log_to_telegram(
-                level='ERROR',
-                message=f"Error en api_ventas: {str(e)}",
-                data={'error': str(e), 'traceback': traceback.format_exc()},
-                user=current_user if current_user.is_authenticated else None,
-                business_id=current_user.business_id if current_user.is_authenticated else None,
-                request_info=request_info
-            )
+            # 🔥 ELIMINADO: Log de error para evitar spam
+            # log_to_telegram(
+            #     level='ERROR',
+            #     message=f"Error en api_ventas: {str(e)}",
+            #     data={'error': str(e), 'traceback': traceback.format_exc()},
+            #     user=current_user if current_user.is_authenticated else None,
+            #     business_id=current_user.business_id if current_user.is_authenticated else None,
+            #     request_info=request_info
+            # )
             return jsonify({'error': str(e)}), 500
 
     @app.route('/api/inventario')
@@ -1371,14 +1378,15 @@ def create_app():
             })
         except Exception as e:
             logger.error(f"Error en api_inventario: {str(e)}")
-            log_to_telegram(
-                level='ERROR',
-                message=f"Error en api_inventario: {str(e)}",
-                data={'error': str(e), 'traceback': traceback.format_exc()},
-                user=current_user if current_user.is_authenticated else None,
-                business_id=current_user.business_id if current_user.is_authenticated else None,
-                request_info=request_info
-            )
+            # 🔥 ELIMINADO: Log de error para evitar spam
+            # log_to_telegram(
+            #     level='ERROR',
+            #     message=f"Error en api_inventario: {str(e)}",
+            #     data={'error': str(e), 'traceback': traceback.format_exc()},
+            #     user=current_user if current_user.is_authenticated else None,
+            #     business_id=current_user.business_id if current_user.is_authenticated else None,
+            #     request_info=request_info
+            # )
             return jsonify({'error': str(e)}), 500
 
     @app.route('/api/producto', methods=['POST'])
@@ -1451,14 +1459,15 @@ def create_app():
             
         except Exception as e:
             logger.error(f"Error en agregar_producto: {e}")
-            log_to_telegram(
-                level='ERROR',
-                message=f"Error en agregar_producto: {str(e)}",
-                data={'error': str(e), 'traceback': traceback.format_exc()},
-                user=current_user if current_user.is_authenticated else None,
-                business_id=current_user.business_id if current_user.is_authenticated else None,
-                request_info=request_info
-            )
+            # 🔥 ELIMINADO: Log de error para evitar spam
+            # log_to_telegram(
+            #     level='ERROR',
+            #     message=f"Error en agregar_producto: {str(e)}",
+            #     data={'error': str(e), 'traceback': traceback.format_exc()},
+            #     user=current_user if current_user.is_authenticated else None,
+            #     business_id=current_user.business_id if current_user.is_authenticated else None,
+            #     request_info=request_info
+            # )
             return jsonify({'success': False, 'message': str(e)}), 500
 
     @app.route('/api/producto/<int:producto_id>', methods=['PUT'])
@@ -1536,14 +1545,15 @@ def create_app():
             
         except Exception as e:
             logger.error(f"Error en actualizar_producto: {e}")
-            log_to_telegram(
-                level='ERROR',
-                message=f"Error en actualizar_producto: {str(e)}",
-                data={'error': str(e), 'traceback': traceback.format_exc()},
-                user=current_user if current_user.is_authenticated else None,
-                business_id=current_user.business_id if current_user.is_authenticated else None,
-                request_info=request_info
-            )
+            # 🔥 ELIMINADO: Log de error para evitar spam
+            # log_to_telegram(
+            #     level='ERROR',
+            #     message=f"Error en actualizar_producto: {str(e)}",
+            #     data={'error': str(e), 'traceback': traceback.format_exc()},
+            #     user=current_user if current_user.is_authenticated else None,
+            #     business_id=current_user.business_id if current_user.is_authenticated else None,
+            #     request_info=request_info
+            # )
             return jsonify({'success': False, 'message': str(e)}), 500
 
     @app.route('/api/producto/<int:producto_id>', methods=['DELETE'])
@@ -1586,14 +1596,15 @@ def create_app():
             
         except Exception as e:
             logger.error(f"Error en eliminar_producto: {e}")
-            log_to_telegram(
-                level='ERROR',
-                message=f"Error en eliminar_producto: {str(e)}",
-                data={'error': str(e), 'traceback': traceback.format_exc()},
-                user=current_user if current_user.is_authenticated else None,
-                business_id=current_user.business_id if current_user.is_authenticated else None,
-                request_info=request_info
-            )
+            # 🔥 ELIMINADO: Log de error para evitar spam
+            # log_to_telegram(
+            #     level='ERROR',
+            #     message=f"Error en eliminar_producto: {str(e)}",
+            #     data={'error': str(e), 'traceback': traceback.format_exc()},
+            #     user=current_user if current_user.is_authenticated else None,
+            #     business_id=current_user.business_id if current_user.is_authenticated else None,
+            #     request_info=request_info
+            # )
             return jsonify({'success': False, 'message': str(e)}), 500
 
     @app.route('/api/registrar-venta-web', methods=['POST'])
@@ -1678,14 +1689,15 @@ def create_app():
             
         except Exception as e:
             logger.error(f"Error en registrar_venta: {e}")
-            log_to_telegram(
-                level='ERROR',
-                message=f"Error en registrar_venta_web: {str(e)}",
-                data={'error': str(e), 'traceback': traceback.format_exc()},
-                user=current_user if current_user.is_authenticated else None,
-                business_id=current_user.business_id if current_user.is_authenticated else None,
-                request_info=request_info
-            )
+            # 🔥 ELIMINADO: Log de error para evitar spam
+            # log_to_telegram(
+            #     level='ERROR',
+            #     message=f"Error en registrar_venta_web: {str(e)}",
+            #     data={'error': str(e), 'traceback': traceback.format_exc()},
+            #     user=current_user if current_user.is_authenticated else None,
+            #     business_id=current_user.business_id if current_user.is_authenticated else None,
+            #     request_info=request_info
+            # )
             return jsonify({'success': False, 'message': str(e)}), 500
 
     @app.route('/api/finanzas')
@@ -1774,12 +1786,13 @@ def create_app():
             })
         except Exception as e:
             logger.error(f"Error en api_finanzas: {str(e)}")
-            log_to_telegram(
-                level='ERROR',
-                message=f"Error en api_finanzas: {str(e)}",
-                data={'error': str(e), 'traceback': traceback.format_exc()},
-                user=current_user if current_user.is_authenticated else None
-            )
+            # 🔥 ELIMINADO: Log de error para evitar spam
+            # log_to_telegram(
+            #     level='ERROR',
+            #     message=f"Error en api_finanzas: {str(e)}",
+            #     data={'error': str(e), 'traceback': traceback.format_exc()},
+            #     user=current_user if current_user.is_authenticated else None
+            # )
             return jsonify({'error': str(e)}), 500
 
     @app.route('/api/analisis')
@@ -1910,12 +1923,13 @@ def create_app():
             })
         except Exception as e:
             logger.error(f"Error en api_analisis: {str(e)}")
-            log_to_telegram(
-                level='ERROR',
-                message=f"Error en api_analisis: {str(e)}",
-                data={'error': str(e), 'traceback': traceback.format_exc()},
-                user=current_user if current_user.is_authenticated else None
-            )
+            # 🔥 ELIMINADO: Log de error para evitar spam
+            # log_to_telegram(
+            #     level='ERROR',
+            #     message=f"Error en api_analisis: {str(e)}",
+            #     data={'error': str(e), 'traceback': traceback.format_exc()},
+            #     user=current_user if current_user.is_authenticated else None
+            # )
             return jsonify({'error': str(e)}), 500
 
     @app.route('/api/clientes')
@@ -1931,12 +1945,13 @@ def create_app():
             })
         except Exception as e:
             logger.error(f"Error en api_clientes: {str(e)}")
-            log_to_telegram(
-                level='ERROR',
-                message=f"Error en api_clientes: {str(e)}",
-                data={'error': str(e), 'traceback': traceback.format_exc()},
-                user=current_user if current_user.is_authenticated else None
-            )
+            # 🔥 ELIMINADO: Log de error para evitar spam
+            # log_to_telegram(
+            #     level='ERROR',
+            #     message=f"Error en api_clientes: {str(e)}",
+            #     data={'error': str(e), 'traceback': traceback.format_exc()},
+            #     user=current_user if current_user.is_authenticated else None
+            # )
             return jsonify({'error': str(e)}), 500
 
     @app.route('/api/cliente', methods=['POST'])
@@ -1949,13 +1964,14 @@ def create_app():
             'ip': request.remote_addr
         }
         
-        log_to_telegram(
-            level='INFO',
-            message="Funcionalidad de cliente en desarrollo (POST)",
-            user=current_user,
-            business_id=current_user.business_id,
-            request_info=request_info
-        )
+        # 🔥 ELIMINADO: Log de desarrollo para evitar spam
+        # log_to_telegram(
+        #     level='INFO',
+        #     message="Funcionalidad de cliente en desarrollo (POST)",
+        #     user=current_user,
+        #     business_id=current_user.business_id,
+        #     request_info=request_info
+        # )
         return jsonify({'success': True, 'message': 'Cliente agregado (funcionalidad en desarrollo)'})
 
     @app.route('/api/cliente/<int:cliente_id>', methods=['DELETE'])
@@ -1968,13 +1984,14 @@ def create_app():
             'ip': request.remote_addr
         }
         
-        log_to_telegram(
-            level='INFO',
-            message=f"Funcionalidad de cliente en desarrollo (DELETE ID: {cliente_id})",
-            user=current_user,
-            business_id=current_user.business_id,
-            request_info=request_info
-        )
+        # 🔥 ELIMINADO: Log de desarrollo para evitar spam
+        # log_to_telegram(
+        #     level='INFO',
+        #     message=f"Funcionalidad de cliente en desarrollo (DELETE ID: {cliente_id})",
+        #     user=current_user,
+        #     business_id=current_user.business_id,
+        #     request_info=request_info
+        # )
         return jsonify({'success': True, 'message': 'Cliente eliminado (funcionalidad en desarrollo)'})
 
     @app.route('/api/configuracion', methods=['POST'])
@@ -2033,14 +2050,15 @@ def create_app():
             
         except Exception as e:
             logger.error(f"Error en guardar_configuracion: {e}")
-            log_to_telegram(
-                level='ERROR',
-                message=f"Error en guardar_configuracion: {str(e)}",
-                data={'error': str(e), 'traceback': traceback.format_exc()},
-                user=current_user if current_user.is_authenticated else None,
-                business_id=current_user.business_id if current_user.is_authenticated else None,
-                request_info=request_info
-            )
+            # 🔥 ELIMINADO: Log de error para evitar spam
+            # log_to_telegram(
+            #     level='ERROR',
+            #     message=f"Error en guardar_configuracion: {str(e)}",
+            #     data={'error': str(e), 'traceback': traceback.format_exc()},
+            #     user=current_user if current_user.is_authenticated else None,
+            #     business_id=current_user.business_id if current_user.is_authenticated else None,
+            #     request_info=request_info
+            # )
             return jsonify({'success': False, 'message': str(e)}), 500
 
     @app.route('/api/cambiar-password', methods=['POST'])
@@ -2090,14 +2108,15 @@ def create_app():
             
         except Exception as e:
             logger.error(f"Error en cambiar_password: {e}")
-            log_to_telegram(
-                level='ERROR',
-                message=f"Error en cambiar_password: {str(e)}",
-                data={'error': str(e), 'traceback': traceback.format_exc()},
-                user=current_user if current_user.is_authenticated else None,
-                business_id=current_user.business_id if current_user.is_authenticated else None,
-                request_info=request_info
-            )
+            # 🔥 ELIMINADO: Log de error para evitar spam
+            # log_to_telegram(
+            #     level='ERROR',
+            #     message=f"Error en cambiar_password: {str(e)}",
+            #     data={'error': str(e), 'traceback': traceback.format_exc()},
+            #     user=current_user if current_user.is_authenticated else None,
+            #     business_id=current_user.business_id if current_user.is_authenticated else None,
+            #     request_info=request_info
+            # )
             return jsonify({'success': False, 'message': str(e)}), 500
 
     @app.route('/api/eliminar-datos', methods=['POST'])
@@ -2141,14 +2160,15 @@ def create_app():
             
         except Exception as e:
             logger.error(f"Error en eliminar_datos: {e}")
-            log_to_telegram(
-                level='ERROR',
-                message=f"Error en eliminar_datos: {str(e)}",
-                data={'error': str(e), 'traceback': traceback.format_exc()},
-                user=current_user if current_user.is_authenticated else None,
-                business_id=current_user.business_id if current_user.is_authenticated else None,
-                request_info=request_info
-            )
+            # 🔥 ELIMINADO: Log de error para evitar spam
+            # log_to_telegram(
+            #     level='ERROR',
+            #     message=f"Error en eliminar_datos: {str(e)}",
+            #     data={'error': str(e), 'traceback': traceback.format_exc()},
+            #     user=current_user if current_user.is_authenticated else None,
+            #     business_id=current_user.business_id if current_user.is_authenticated else None,
+            #     request_info=request_info
+            # )
             return jsonify({'success': False, 'message': str(e)}), 500
 
     @app.route('/api/eliminar-cuenta', methods=['POST'])
@@ -2206,14 +2226,15 @@ def create_app():
             
         except Exception as e:
             logger.error(f"Error en eliminar_cuenta: {e}")
-            log_to_telegram(
-                level='ERROR',
-                message=f"Error en eliminar_cuenta: {str(e)}",
-                data={'error': str(e), 'traceback': traceback.format_exc()},
-                user=current_user if current_user.is_authenticated else None,
-                business_id=current_user.business_id if current_user.is_authenticated else None,
-                request_info=request_info
-            )
+            # 🔥 ELIMINADO: Log de error para evitar spam
+            # log_to_telegram(
+            #     level='ERROR',
+            #     message=f"Error en eliminar_cuenta: {str(e)}",
+            #     data={'error': str(e), 'traceback': traceback.format_exc()},
+            #     user=current_user if current_user.is_authenticated else None,
+            #     business_id=current_user.business_id if current_user.is_authenticated else None,
+            #     request_info=request_info
+            # )
             return jsonify({'success': False, 'message': str(e)}), 500
 
     # ==================== RUTAS ADICIONALES ====================
@@ -2236,28 +2257,12 @@ def create_app():
                 business_id = session['business_id']
                 socketio.server.enter_room(request.sid, business_id)
                 logger.info(f"Cliente conectado a sala de negocio: {business_id}")
-                
-                log_to_telegram(
-                    level='INFO',
-                    message=f"WebSocket conectado",
-                    data={'business_id': business_id, 'sid': request.sid},
-                    business_id=business_id
-                )
+     
         except Exception as e:
             logger.error(f"Error en handle_connect: {e}")
-            log_to_telegram(
-                level='ERROR',
-                message=f"Error en WebSocket connect: {str(e)}",
-                data={'error': str(e), 'traceback': traceback.format_exc()}
-            )
 
     @socketio.on('disconnect')
     def handle_disconnect():
         logger.info(f"Cliente desconectado: {request.sid}")
-        log_to_telegram(
-            level='INFO',
-            message=f"WebSocket desconectado",
-            data={'sid': request.sid}
-        )
-
+        
     return app
