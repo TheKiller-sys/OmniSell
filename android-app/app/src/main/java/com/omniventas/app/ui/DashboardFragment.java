@@ -1,5 +1,6 @@
 package com.omniventas.app.ui;
 
+import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
@@ -139,28 +140,49 @@ public class DashboardFragment extends Fragment {
         handler.removeCallbacks(actualizacionAutomatica);
     }
 
+    // ✅ CORREGIDO: Cargar datos locales en segundo plano con AsyncTask
     public void cargarDashboardLocal() {
-        try {
-            Log.d(TAG, "cargarDashboardLocal - Cargando datos locales");
-            int ventasPendientes = repository.getVentasPendientesCount();
-            int totalProductos = repository.getTotalProductos();
-            int stockBajo = repository.getStockBajo();
-            
-            if (tvLiveRevenue != null) {
-                tvLiveRevenue.setText("$" + String.format("%,.0f", (double) ventasPendientes * 100));
+        Log.d(TAG, "cargarDashboardLocal - Cargando datos locales");
+        new CargarDatosLocalesTask().execute();
+    }
+
+    // ✅ AsyncTask para cargar datos locales en segundo plano
+    private class CargarDatosLocalesTask extends AsyncTask<Void, Void, Integer> {
+        private int ventasPendientes = 0;
+        private int totalProductos = 0;
+        private int stockBajo = 0;
+
+        @Override
+        protected Integer doInBackground(Void... voids) {
+            try {
+                ventasPendientes = repository.getVentasPendientesCount();
+                totalProductos = repository.getTotalProductos();
+                stockBajo = repository.getStockBajo();
+                Log.d(TAG, "✅ Datos locales cargados en background: pendientes=" + ventasPendientes);
+                return ventasPendientes;
+            } catch (Exception e) {
+                Log.e(TAG, "❌ Error cargando datos locales: " + e.getMessage());
+                return 0;
             }
-            if (tvPendingOrders != null) {
-                tvPendingOrders.setText(String.valueOf(ventasPendientes));
+        }
+
+        @Override
+        protected void onPostExecute(Integer result) {
+            try {
+                if (tvLiveRevenue != null) {
+                    tvLiveRevenue.setText("$" + String.format("%,.0f", (double) ventasPendientes * 100));
+                }
+                if (tvPendingOrders != null) {
+                    tvPendingOrders.setText(String.valueOf(ventasPendientes));
+                }
+                if (tvOfflineStatus != null) {
+                    tvOfflineStatus.setVisibility(View.VISIBLE);
+                    tvOfflineStatus.setText("📡 Modo Offline - " + ventasPendientes + " pendientes");
+                }
+                Log.d(TAG, "✅ UI actualizada con datos locales: " + ventasPendientes + " pendientes");
+            } catch (Exception e) {
+                Log.e(TAG, "❌ Error actualizando UI: " + e.getMessage());
             }
-            
-            if (tvOfflineStatus != null) {
-                tvOfflineStatus.setVisibility(View.VISIBLE);
-                tvOfflineStatus.setText("📡 Modo Offline - " + ventasPendientes + " pendientes");
-            }
-            
-            Log.d(TAG, "✅ Datos locales cargados: " + ventasPendientes + " pendientes");
-        } catch (Exception e) {
-            Log.e(TAG, "❌ Error en cargarDashboardLocal: " + e.getMessage());
         }
     }
 
