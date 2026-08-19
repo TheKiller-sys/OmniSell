@@ -900,6 +900,153 @@
                 display: none;
             }
         }
+
+        /* ============================================
+           ONBOARDING PREMIUM - ESTILOS
+           ============================================ */
+        .onboarding-overlay {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: rgba(15, 23, 42, 0.85);
+            z-index: 9999;
+            backdrop-filter: blur(4px);
+            -webkit-backdrop-filter: blur(4px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            pointer-events: none;
+            transition: opacity 0.4s ease;
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .onboarding-overlay.active {
+            opacity: 1;
+            pointer-events: all;
+        }
+
+        .onboarding-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-radius: 24px;
+            padding: 30px 36px;
+            max-width: 480px;
+            width: 90%;
+            box-shadow: 0 25px 80px rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            position: relative;
+            animation: slideUp 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+            transform: translateY(30px) scale(0.95);
+            opacity: 0;
+        }
+
+        .onboarding-card.active {
+            transform: translateY(0) scale(1);
+            opacity: 1;
+        }
+
+        .onboarding-content {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .step-indicator {
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: var(--gray);
+            text-align: right;
+            letter-spacing: 1px;
+        }
+
+        .onboarding-card h3 {
+            font-size: 1.4rem;
+            font-weight: 800;
+            color: var(--dark);
+            margin-bottom: 4px;
+        }
+
+        .onboarding-card p {
+            font-size: 0.95rem;
+            color: var(--dark-secondary);
+            line-height: 1.6;
+            margin-bottom: 0;
+        }
+
+        .onboarding-nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 16px;
+            padding-top: 16px;
+            border-top: 1px solid var(--gray-light);
+        }
+
+        .btn-skip {
+            background: transparent;
+            border: none;
+            color: var(--gray);
+            font-weight: 500;
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn-skip:hover {
+            color: var(--danger);
+        }
+
+        .nav-buttons {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn-prev, .btn-next {
+            padding: 8px 20px;
+            border-radius: 12px;
+            font-weight: 600;
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: none;
+        }
+
+        .btn-prev {
+            background: var(--gray-light);
+            color: var(--dark-secondary);
+        }
+
+        .btn-prev:hover {
+            background: #E2E8F0;
+            transform: translateY(-2px);
+        }
+
+        .btn-next {
+            background: var(--primary-gradient);
+            color: white;
+            box-shadow: 0 4px 15px rgba(67, 97, 238, 0.3);
+        }
+
+        .btn-next:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 30px rgba(67, 97, 238, 0.4);
+        }
+
+        .onboarding-highlight {
+            position: relative;
+            z-index: 10000;
+            box-shadow: 0 0 0 4px #4361EE, 0 0 30px rgba(67, 97, 238, 0.4) !important;
+            border-radius: 16px !important;
+            transition: all 0.3s ease;
+            animation: pulse-ring 2s infinite;
+        }
+
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(30px) scale(0.95); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
+        }
     </style>
 </head>
 <body>
@@ -1203,6 +1350,34 @@
         </div>
 
     </main>
+
+    <!-- ============================================
+    ONBOARDING TUTORIAL (Guía Interactiva Multi-Página)
+    ============================================ -->
+    <div id="onboarding-overlay" class="onboarding-overlay" style="display: none;">
+        <!-- Caja de texto principal -->
+        <div class="onboarding-card" id="onboarding-card">
+            <div class="onboarding-content">
+                <!-- Indicador de paso -->
+                <div class="step-indicator" id="step-indicator">
+                    <span id="current-step-text">1</span> / <span id="total-steps-text">5</span>
+                </div>
+                <!-- Título y Descripción -->
+                <h3 id="step-title">Bienvenido a OmniVentas</h3>
+                <p id="step-description">
+                    Te guiaremos por las partes clave de tu nuevo panel de control.
+                </p>
+                <!-- Navegación -->
+                <div class="onboarding-nav">
+                    <button id="btn-skip-tour" class="btn-skip">Saltar tutorial</button>
+                    <div class="nav-buttons">
+                        <button id="btn-prev-step" class="btn-prev" style="display: none;">← Anterior</button>
+                        <button id="btn-next-step" class="btn-next">Siguiente →</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <!-- ============================================
     SCRIPTS
@@ -1561,7 +1736,226 @@
         }
 
         // ============================================================
-        // INICIALIZACIÓN
+        // ONBOARDING TUTORIAL - Lógica Multi-Página
+        // ============================================================
+        (function() {
+            'use strict';
+
+            const OVERLAY = document.getElementById('onboarding-overlay');
+            const CARD = document.getElementById('onboarding-card');
+            const TITLE = document.getElementById('step-title');
+            const DESC = document.getElementById('step-description');
+            const CURRENT_STEP = document.getElementById('current-step-text');
+            const TOTAL_STEPS = document.getElementById('total-steps-text');
+            const BTN_NEXT = document.getElementById('btn-next-step');
+            const BTN_PREV = document.getElementById('btn-prev-step');
+            const BTN_SKIP = document.getElementById('btn-skip-tour');
+
+            // 1. DEFINIR LOS PASOS DEL TOUR
+            const STEPS = [
+                {
+                    target: '.section-header-wrapper',
+                    title: '🚀 Bienvenido a tu Dashboard',
+                    desc: 'Aquí verás el resumen de tu negocio en tiempo real. Ingresos, ventas, y métricas clave siempre actualizadas.',
+                    page: '/dashboard'
+                },
+                {
+                    target: '.stats-row',
+                    title: '📈 Tus Métricas Clave',
+                    desc: 'Estas tarjetas te muestran tus ingresos totales, ganancia neta, margen promedio y número de ventas. Pasa el mouse para más detalles.',
+                    page: '/dashboard'
+                },
+                {
+                    target: '#salesChart',
+                    title: '📊 Análisis Visual de Ventas',
+                    desc: 'Visualiza la tendencia de tus ventas en diferentes periodos. Usa los botones "Mensual", "Semanal" o "Diario" para cambiar la vista.',
+                    page: '/dashboard'
+                },
+                {
+                    target: '#inventoryTable',
+                    title: '📦 Gestión de Inventario',
+                    desc: 'Controla el stock de tus productos en tiempo real. Los estados "Óptimo", "Atención" o "Crítico" te alertarán sobre reposiciones.',
+                    page: '/dashboard'
+                },
+                {
+                    target: '.header-actions',
+                    title: '🎯 Navegación y Configuración',
+                    desc: 'Desde aquí puedes ver el nombre de tu negocio y cerrar sesión. El menú lateral te permite navegar a Ventas, Finanzas, Clientes y más.',
+                    page: '/dashboard',
+                    nextPage: '/ventas' // Después de este paso, vamos a Ventas
+                },
+                {
+                    target: '.section-header-wrapper',
+                    title: '🛒 Gestión de Ventas',
+                    desc: 'En esta página puedes registrar nuevas ventas manualmente, filtrar por fechas y exportar tu historial a Excel.',
+                    page: '/ventas',
+                    nextPage: '/inventario'
+                },
+                {
+                    target: '.card-premium',
+                    title: '📦 Inventario Completo',
+                    desc: 'Gestiona todos tus productos, su stock, precios y márgenes. Puedes agregar, editar o eliminar productos desde aquí.',
+                    page: '/inventario',
+                    nextPage: '/vendedores'
+                },
+                {
+                    target: '.section-title',
+                    title: '👥 Gestión de Vendedores',
+                    desc: 'Crea y administra a tu equipo de ventas. Asigna roles, activa o desactiva vendedores y controla su rendimiento.',
+                    page: '/vendedores',
+                    nextPage: '/finanzas'
+                },
+                {
+                    target: '.section-header-wrapper',
+                    title: '💰 Análisis Financiero',
+                    desc: 'Visualiza tus ingresos, gastos y beneficios netos. Los gráficos te ayudan a entender la salud financiera de tu negocio.',
+                    page: '/finanzas',
+                    nextPage: '/analisis'
+                },
+                {
+                    target: '.section-header-wrapper',
+                    title: '🧠 Análisis Avanzado',
+                    desc: 'Descubre qué productos se venden más, la tendencia de ventas y la clasificación ABC de tus productos para optimizar tu inventario.',
+                    page: '/analisis',
+                    nextPage: '/clientes'
+                },
+                {
+                    target: '.section-header-wrapper',
+                    title: '👤 Gestión de Clientes',
+                    desc: 'Registra y gestiona la información de tus clientes. Lleva un control de sus compras y fideliza a tu base de usuarios.',
+                    page: '/clientes',
+                    nextPage: null // Último paso
+                }
+            ];
+
+            let currentStepIndex = 0;
+            let isRunning = false;
+
+            // 2. INICIALIZACIÓN (DETECCIÓN DE PRIMERA VEZ)
+            function initOnboarding() {
+                // Verificar si es primera vez y si estamos en la página correcta
+                const onboardingComplete = localStorage.getItem("omniventas_onboarding_complete");
+                const currentPage = window.location.pathname;
+                
+                // Si no está completado y estamos en /dashboard, empezar
+                if (!onboardingComplete && currentPage === '/dashboard') {
+                    setTimeout(() => {
+                        startTour();
+                    }, 1000);
+                }
+            }
+
+            // 3. INICIAR EL TOUR
+            function startTour() {
+                isRunning = true;
+                OVERLAY.classList.add('active');
+                TOTAL_STEPS.textContent = STEPS.length;
+                // Encontrar el índice correcto basado en la página actual
+                const startIndex = STEPS.findIndex(step => step.page === window.location.pathname);
+                if (startIndex !== -1) {
+                    goToStep(startIndex);
+                } else {
+                    // Si no encuentra coincidencia, empezar desde el principio
+                    goToStep(0);
+                }
+            }
+
+            // 4. NAVEGACIÓN ENTRE PASOS
+            function goToStep(index) {
+                currentStepIndex = index;
+                const step = STEPS[index];
+
+                // Limpiar resaltado anterior
+                document.querySelectorAll('.onboarding-highlight').forEach(el => el.classList.remove('onboarding-highlight'));
+
+                // Actualizar texto
+                TITLE.textContent = step.title;
+                DESC.textContent = step.desc;
+                CURRENT_STEP.textContent = index + 1;
+
+                // Scroll y resaltado del elemento objetivo
+                const targetElement = document.querySelector(step.target);
+                if (targetElement) {
+                    targetElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    targetElement.classList.add('onboarding-highlight');
+                }
+
+                // Control de botones
+                BTN_PREV.style.display = (index === 0) ? 'none' : 'inline-flex';
+                BTN_NEXT.textContent = (index === STEPS.length - 1) ? '✅ ¡Entendido!' : 'Siguiente →';
+            }
+
+            // 5. EVENTOS DE BOTONES
+            BTN_NEXT.addEventListener('click', function() {
+                const currentStep = STEPS[currentStepIndex];
+                
+                if (currentStepIndex < STEPS.length - 1) {
+                    // Si hay un nextPage definido y no es la misma página, navegar
+                    if (currentStep.nextPage && currentStep.nextPage !== window.location.pathname) {
+                        // Guardar el progreso en sessionStorage para recordar el paso
+                        sessionStorage.setItem('onboarding_next_step', currentStepIndex + 1);
+                        window.location.href = currentStep.nextPage;
+                    } else {
+                        goToStep(currentStepIndex + 1);
+                    }
+                } else {
+                    finishTour();
+                }
+            });
+
+            BTN_PREV.addEventListener('click', function() {
+                if (currentStepIndex > 0) {
+                    goToStep(currentStepIndex - 1);
+                }
+            });
+
+            BTN_SKIP.addEventListener('click', finishTour);
+
+            // 6. FINALIZAR EL TOUR
+            function finishTour() {
+                isRunning = false;
+                OVERLAY.classList.remove('active');
+                document.querySelectorAll('.onboarding-highlight').forEach(el => el.classList.remove('onboarding-highlight'));
+                // Guardar en localStorage para no volver a mostrar
+                localStorage.setItem("omniventas_onboarding_complete", "true");
+                sessionStorage.removeItem('onboarding_next_step');
+                console.log("✅ Tutorial completado");
+            }
+
+            // 7. SOPORTE PARA TECLADO (Flechas)
+            document.addEventListener('keydown', function(e) {
+                if (!isRunning) return;
+                if (e.key === 'ArrowRight' || e.key === 'Enter') BTN_NEXT.click();
+                if (e.key === 'ArrowLeft') BTN_PREV.click();
+                if (e.key === 'Escape') BTN_SKIP.click();
+            });
+
+            // 8. VERIFICAR AL CARGAR LA PÁGINA
+            document.addEventListener('DOMContentLoaded', function() {
+                // Verificar si venimos de un paso del tutorial
+                const savedStep = sessionStorage.getItem('onboarding_next_step');
+                if (savedStep !== null) {
+                    // Reanudar el tutorial en el paso guardado
+                    const stepIndex = parseInt(savedStep);
+                    if (stepIndex < STEPS.length) {
+                        // Esperar a que cargue el DOM
+                        setTimeout(() => {
+                            startTour();
+                            // Ir al paso específico
+                            goToStep(stepIndex);
+                            // Limpiar el sessionStorage
+                            sessionStorage.removeItem('onboarding_next_step');
+                        }, 500);
+                    }
+                } else {
+                    initOnboarding();
+                }
+            });
+
+        })();
+
+        // ============================================================
+        // INICIALIZACIÓN PRINCIPAL
         // ============================================================
         document.addEventListener('DOMContentLoaded', function() {
             // Fecha
