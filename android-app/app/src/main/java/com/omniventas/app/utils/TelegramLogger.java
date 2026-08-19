@@ -44,19 +44,19 @@ public class TelegramLogger {
     }
 
     public void success(String message) {
-        sendLog("SUCCESS", message);
+        sendLog("✅ SUCCESS", message);
     }
 
     public void warning(String message) {
-        sendLog("WARNING", message);
+        sendLog("⚠️ WARNING", message);
     }
 
     public void error(String message) {
-        sendLog("ERROR", message);
+        sendLog("❌ ERROR", message);
     }
 
     public void networkError(Throwable t) {
-        String errorMsg = "Error de red: ";
+        String errorMsg = "🔴 Error de red: ";
         if (t.getMessage() != null) {
             errorMsg += t.getMessage();
             if (errorMsg.length() > 200) {
@@ -65,11 +65,11 @@ public class TelegramLogger {
         } else {
             errorMsg += "Desconocido";
         }
-        sendLog("ERROR", errorMsg);
+        sendLog("🚨 NETWORK_ERROR", errorMsg);
     }
 
     public void info(String message) {
-        sendLog("INFO", message);
+        sendLog("ℹ️ INFO", message);
     }
 
     private void sendLog(String level, String message) {
@@ -88,13 +88,16 @@ public class TelegramLogger {
             jsonData.addProperty("app_version", appVersion);
             jsonData.addProperty("device_model", Build.MANUFACTURER + " " + Build.MODEL);
             jsonData.addProperty("android_version", Build.VERSION.RELEASE);
+            jsonData.addProperty("api_url", RetrofitClient.getApiUrl());
+
+            Log.d(TAG, "📤 Enviando log a Telegram: " + level + " - " + message);
 
             RetrofitClient.getInstance(context).getApiService().sendLog(jsonData)
                 .enqueue(new Callback<Void>() {
                     @Override
                     public void onResponse(Call<Void> call, Response<Void> response) {
                         if (response.isSuccessful()) {
-                            Log.d(TAG, "✅ Log enviado correctamente");
+                            Log.d(TAG, "✅ Log enviado correctamente a Telegram");
                         } else {
                             Log.w(TAG, "⚠️ Log enviado con código: " + response.code());
                         }
@@ -102,11 +105,12 @@ public class TelegramLogger {
 
                     @Override
                     public void onFailure(Call<Void> call, Throwable t) {
-                        Log.e(TAG, "❌ Error enviando log: " + t.getMessage());
+                        Log.e(TAG, "❌ Error enviando log a Telegram: " + t.getMessage());
                     }
                 });
         } catch (Exception e) {
             Log.e(TAG, "❌ Error en sendLog: " + e.getMessage());
+            e.printStackTrace();
         }
     }
 
