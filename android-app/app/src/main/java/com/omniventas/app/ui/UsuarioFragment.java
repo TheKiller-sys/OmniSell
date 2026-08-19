@@ -6,25 +6,30 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
+import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
-import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 import com.omniventas.app.LoginActivity;
 import com.omniventas.app.R;
+import com.omniventas.app.api.ApiService;
+import com.omniventas.app.api.RetrofitClient;
+import com.omniventas.app.models.DashboardResponse;
 import com.omniventas.app.repository.OmniVentasRepository;
 import com.omniventas.app.sync.SyncManager;
 import com.omniventas.app.utils.SessionManager;
 import com.omniventas.app.utils.TelegramLogger;
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.Response;
 
 public class UsuarioFragment extends Fragment {
 
-    private TextView tvVendorName, tvVendorId;
-    private TextView tvTotalVentas, tvProductosVendidos, tvVentasHoy, tvVentasMes;
+    private TextView tvVendorName, tvVendorCategory, tvMonthlyGoal;
+    private ProgressBar progressMonthlyGoal;
     private Button btnCerrarSesion, btnSyncManual;
-    private SwipeRefreshLayout swipeRefresh;
     private SessionManager sessionManager;
     private TelegramLogger logger;
     private OmniVentasRepository repository;
@@ -35,36 +40,22 @@ public class UsuarioFragment extends Fragment {
         View view = inflater.inflate(R.layout.fragment_usuario, container, false);
 
         tvVendorName = view.findViewById(R.id.tv_vendor_name);
-        tvVendorId = view.findViewById(R.id.tv_vendor_id);
-        tvTotalVentas = view.findViewById(R.id.tv_total_ventas_vendedor);
-        tvProductosVendidos = view.findViewById(R.id.tv_productos_vendidos);
-        tvVentasHoy = view.findViewById(R.id.tv_ventas_hoy_vendedor);
-        tvVentasMes = view.findViewById(R.id.tv_ventas_mes_vendedor);
+        tvVendorCategory = view.findViewById(R.id.tv_vendor_category);
+        tvMonthlyGoal = view.findViewById(R.id.tv_monthly_goal);
+        progressMonthlyGoal = view.findViewById(R.id.progress_monthly_goal);
         btnCerrarSesion = view.findViewById(R.id.btn_cerrar_sesion);
         btnSyncManual = view.findViewById(R.id.btn_sync_manual);
-        swipeRefresh = view.findViewById(R.id.swipe_refresh);
 
         sessionManager = new SessionManager(getContext());
         logger = TelegramLogger.getInstance(getContext());
         repository = new OmniVentasRepository(getContext());
 
         String nombre = sessionManager.getVendorName();
-        String id = sessionManager.getVendorId();
-
         if (nombre != null) {
             tvVendorName.setText(nombre);
         }
-        if (id != null) {
-            tvVendorId.setText("ID: " + id);
-        }
 
-        // Estadísticas locales
-        int pendientes = repository.getVentasPendientesCount();
-        tvVentasHoy.setText(String.valueOf(pendientes));
-        
-        int totalProductos = repository.getTotalProductos();
-        tvTotalVentas.setText(String.valueOf(pendientes));
-        tvProductosVendidos.setText(String.valueOf(totalProductos));
+        cargarDatosPerfil();
 
         btnSyncManual.setOnClickListener(v -> {
             Toast.makeText(getContext(), "Sincronizando...", Toast.LENGTH_SHORT).show();
@@ -82,12 +73,38 @@ public class UsuarioFragment extends Fragment {
             getActivity().finish();
         });
 
-        swipeRefresh.setOnRefreshListener(() -> {
-            SyncManager.syncNow(getContext());
-            swipeRefresh.setRefreshing(false);
-            Toast.makeText(getContext(), "Sincronización iniciada", Toast.LENGTH_SHORT).show();
-        });
-
         return view;
+    }
+
+    private void cargarDatosPerfil() {
+        String token = sessionManager.getToken();
+        if (token == null || token.isEmpty()) return;
+
+        ApiService apiService = RetrofitClient.getInstance(getContext()).getApiService();
+        apiService.getDashboard("Bearer " + token).enqueue(new Callback<DashboardResponse>() {
+            @Override
+            public void onResponse(Call<DashboardResponse> call, Response<DashboardResponse> response) {
+                if (response.isSuccessful() && response.body() != null && response.body().isSuccess()) {
+                    DashboardResponse.DashboardData data = response.body().getDashboard();
+                    
+                    String businessName = data.getBusinessName();
+                    if (businessName != null && !businessName.isEmpty()) {
+                        tvVendorCategory.setText(businessName);
+                    }
+
+                    int ventasMes = data.getVentasMes();
+                    int meta = 10000;
+                    tvMonthlyGoal.setText("$" + ventasMes + "/$" + meta);
+                    int progress = (int) ((double) ventasMes / meta * 100);
+                    if (progress > 100) progress = 100;
+                    progressMonthlyGoal.setProgress(progress);
+                }
+            }
+
+            @Override
+            public void onFailure(Call<DashboardResponse> call, Throwable t) {
+                logger.networkError(t);
+            }
+        });
     }
 }

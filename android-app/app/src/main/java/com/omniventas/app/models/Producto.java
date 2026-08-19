@@ -7,7 +7,6 @@ public class Producto {
     private double precio;
     private int stock;
     private String descripcion;
-    private boolean pendiente;
 
     public int getId() { return id; }
     public void setId(int id) { this.id = id; }
@@ -21,6 +20,4 @@ public class Producto {
     public void setStock(int stock) { this.stock = stock; }
     public String getDescripcion() { return descripcion; }
     public void setDescripcion(String descripcion) { this.descripcion = descripcion; }
-    public boolean isPendiente() { return pendiente; }
-    public void setPendiente(boolean pendiente) { this.pendiente = pendiente; }
 }

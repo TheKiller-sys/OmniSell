@@ -4,227 +4,130 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:padding="16dp"
-    android:background="@color/light_gray">
+    android:background="@color/white">
 
-    <androidx.swiperefreshlayout.widget.SwipeRefreshLayout
-        android:id="@+id/swipe_refresh"
+    <!-- Header -->
+    <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="match_parent">
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:padding="16dp"
+        android:paddingTop="20dp">
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="Inventory"
+            android:textSize="24sp"
+            android:textStyle="bold"
+            android:textColor="@color/dark" />
+
+        <ImageView
+            android:id="@+id/btn_scan"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:src="@drawable/ic_scan"
+            android:padding="8dp"
+            android:background="@drawable/bg_scan" />
+    </LinearLayout>
+
+    <!-- Stats -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:paddingHorizontal="16dp"
+        android:layout_marginBottom="12dp">
+
+        <TextView
+            android:id="@+id/tv_stats_products"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="0 Products ·"
+            android:textSize="14sp"
+            android:textColor="@color/gray" />
+
+        <TextView
+            android:id="@+id/tv_updated_now"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Updated now"
+            android:textSize="12sp"
+            android:textColor="@color/success" />
+    </LinearLayout>
+
+    <!-- Category Tabs -->
+    <HorizontalScrollView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:scrollbars="none"
+        android:paddingHorizontal="16dp"
+        android:layout_marginBottom="16dp">
 
         <LinearLayout
-            android:layout_width="match_parent"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:gravity="center_horizontal">
+            android:orientation="horizontal">
 
-            <TextView
+            <com.google.android.material.chip.Chip
+                android:id="@+id/chip_all"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="@string/inventario"
-                android:textSize="24sp"
-                android:textStyle="bold"
-                android:textColor="@color/dark"
-                android:layout_marginTop="8dp"
-                android:layout_marginBottom="8dp" />
+                android:text="All"
+                app:chipBackgroundColor="@color/primary"
+                app:chipTextColor="@color/white"
+                android:layout_marginEnd="8dp" />
 
-            <TextView
-                android:id="@+id/tv_offline_indicator"
+            <com.google.android.material.chip.Chip
+                android:id="@+id/chip_low_stock"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="📡 Datos locales"
-                android:textSize="11sp"
-                android:textColor="@color/gray"
-                android:layout_marginBottom="12dp" />
+                android:text="Low Stock"
+                app:chipBackgroundColor="@color/light_gray"
+                app:chipTextColor="@color/dark"
+                android:layout_marginEnd="8dp" />
 
-            <LinearLayout
-                android:layout_width="match_parent"
+            <com.google.android.material.chip.Chip
+                android:id="@+id/chip_electronics"
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:layout_marginBottom="12dp">
+                android:text="Electronics"
+                app:chipBackgroundColor="@color/light_gray"
+                app:chipTextColor="@color/dark"
+                android:layout_marginEnd="8dp" />
 
-                <EditText
-                    android:id="@+id/et_buscar_producto"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:hint="Buscar producto..."
-                    android:drawableStart="@drawable/ic_search"
-                    android:drawablePadding="12dp"
-                    android:padding="12dp"
-                    android:background="@drawable/bg_input_login"
-                    android:layout_marginEnd="8dp" />
-
-                <Button
-                    android:id="@+id/btn_limpiar_filtro"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Limpiar"
-                    android:backgroundTint="@color/gray"
-                    android:padding="12dp"
-                    app:cornerRadius="8dp" />
-
-            </LinearLayout>
-
-            <LinearLayout
-                android:layout_width="match_parent"
+            <com.google.android.material.chip.Chip
+                android:id="@+id/chip_clothing"
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:layout_marginBottom="16dp">
-
-                <androidx.cardview.widget.CardView
-                    android:layout_width="0dp"
-                    android:layout_height="80dp"
-                    android:layout_weight="1"
-                    android:layout_marginEnd="6dp"
-                    app:cardCornerRadius="12dp"
-                    app:cardElevation="2dp"
-                    app:cardBackgroundColor="@color/white">
-                    <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="match_parent"
-                        android:orientation="vertical"
-                        android:gravity="center"
-                        android:padding="8dp">
-                        <ImageView
-                            android:layout_width="24dp"
-                            android:layout_height="24dp"
-                            android:src="@drawable/ic_inventario"
-                            android:tint="@color/primary" />
-                        <TextView
-                            android:id="@+id/tv_total_productos"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="0"
-                            android:textSize="18sp"
-                            android:textStyle="bold"
-                            android:textColor="@color/dark" />
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="@string/productos"
-                            android:textSize="10sp"
-                            android:textColor="@color/gray" />
-                    </LinearLayout>
-                </androidx.cardview.widget.CardView>
-
-                <androidx.cardview.widget.CardView
-                    android:layout_width="0dp"
-                    android:layout_height="80dp"
-                    android:layout_weight="1"
-                    android:layout_marginStart="6dp"
-                    android:layout_marginEnd="6dp"
-                    app:cardCornerRadius="12dp"
-                    app:cardElevation="2dp"
-                    app:cardBackgroundColor="@color/warning_light">
-                    <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="match_parent"
-                        android:orientation="vertical"
-                        android:gravity="center"
-                        android:padding="8dp">
-                        <ImageView
-                            android:layout_width="24dp"
-                            android:layout_height="24dp"
-                            android:src="@drawable/ic_warning"
-                            android:tint="@color/warning" />
-                        <TextView
-                            android:id="@+id/tv_stock_bajo"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="0"
-                            android:textSize="18sp"
-                            android:textStyle="bold"
-                            android:textColor="@color/warning" />
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="@string/stock_bajo"
-                            android:textSize="10sp"
-                            android:textColor="@color/gray" />
-                    </LinearLayout>
-                </androidx.cardview.widget.CardView>
-
-                <androidx.cardview.widget.CardView
-                    android:layout_width="0dp"
-                    android:layout_height="80dp"
-                    android:layout_weight="1"
-                    android:layout_marginStart="6dp"
-                    app:cardCornerRadius="12dp"
-                    app:cardElevation="2dp"
-                    app:cardBackgroundColor="@color/danger_light">
-                    <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="match_parent"
-                        android:orientation="vertical"
-                        android:gravity="center"
-                        android:padding="8dp">
-                        <ImageView
-                            android:layout_width="24dp"
-                            android:layout_height="24dp"
-                            android:src="@drawable/ic_danger"
-                            android:tint="@color/danger" />
-                        <TextView
-                            android:id="@+id/tv_sin_stock"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="0"
-                            android:textSize="18sp"
-                            android:textStyle="bold"
-                            android:textColor="@color/danger" />
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="@string/sin_stock"
-                            android:textSize="10sp"
-                            android:textColor="@color/gray" />
-                    </LinearLayout>
-                </androidx.cardview.widget.CardView>
-
-            </LinearLayout>
-
-            <androidx.cardview.widget.CardView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                app:cardCornerRadius="12dp"
-                app:cardElevation="2dp"
-                app:cardBackgroundColor="@color/white">
-
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="vertical"
-                    android:padding="16dp">
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="Lista de Productos"
-                        android:textSize="16sp"
-                        android:textStyle="bold"
-                        android:textColor="@color/dark"
-                        android:layout_marginBottom="12dp" />
-
-                    <androidx.recyclerview.widget.RecyclerView
-                        android:id="@+id/rv_inventario"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:nestedScrollingEnabled="false" />
-
-                    <TextView
-                        android:id="@+id/tv_inventario_vacio"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:text="No hay productos en el inventario"
-                        android:textSize="14sp"
-                        android:textColor="@color/gray"
-                        android:gravity="center"
-                        android:padding="32dp"
-                        android:visibility="gone" />
-
-                </LinearLayout>
-            </androidx.cardview.widget.CardView>
-
+                android:text="Clothing"
+                app:chipBackgroundColor="@color/light_gray"
+                app:chipTextColor="@color/dark" />
         </LinearLayout>
-    </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
+    </HorizontalScrollView>
+
+    <!-- Products Grid -->
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/rv_inventario"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:paddingHorizontal="12dp"
+        android:paddingBottom="8dp"
+        android:clipToPadding="false" />
+
+    <TextView
+        android:id="@+id/tv_inventario_vacio"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:text="No hay productos en el inventario"
+        android:textSize="14sp"
+        android:textColor="@color/gray"
+        android:gravity="center"
+        android:padding="32dp"
+        android:visibility="gone" />
+
 </LinearLayout>

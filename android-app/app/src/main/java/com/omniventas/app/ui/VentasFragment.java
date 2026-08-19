@@ -1,243 +1,271 @@
 package com.omniventas.app.ui;
 
-import android.app.Dialog;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
+import android.os.Vibrator;
 import android.text.Editable;
 import android.text.TextWatcher;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.view.Window;
 import android.widget.Button;
 import android.widget.EditText;
-import android.widget.LinearLayout;
+import android.widget.ImageView;
+import android.widget.Switch;
 import android.widget.TextView;
 import android.widget.Toast;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.appcompat.app.AppCompatDelegate;
 import androidx.fragment.app.Fragment;
-import androidx.recyclerview.widget.LinearLayoutManager;
-import androidx.recyclerview.widget.RecyclerView;
-import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
+import com.google.android.material.chip.Chip;
 import com.omniventas.app.R;
-import com.omniventas.app.adapters.ProductoAdapter;
-import com.omniventas.app.adapters.VentaAdapter;
-import com.omniventas.app.local.ProductoEntity;
-import com.omniventas.app.local.VentaEntity;
 import com.omniventas.app.models.Producto;
-import com.omniventas.app.models.Venta;
+import com.omniventas.app.models.VentaRequest;
+import com.omniventas.app.models.VentaResponse;
 import com.omniventas.app.repository.OmniVentasRepository;
 import com.omniventas.app.utils.SessionManager;
 import com.omniventas.app.utils.TelegramLogger;
+import com.omniventas.app.sync.SyncManager;
 import java.util.ArrayList;
 import java.util.List;
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.Response;
 
 public class VentasFragment extends Fragment {
-    private RecyclerView rvVentasHoy;
-    private SwipeRefreshLayout swipeRefresh;
-    private Button btnRegistrarVenta;
-    private TextView tvSinVentas, tvPendientes;
-    private LinearLayout llPendientes;
+
+    private EditText etSearchProduct;
+    private TextView tvLiveTotal, tvLivePercent, tvProductName, tvProductDescription;
+    private TextView tvUnitPrice, tvQuantity, tvDiscount, tvSubtotal, tvPendientesCount;
+    private ImageView btnDecreaseQty, btnIncreaseQty;
+    private Button btnConfirmSale;
+    private Switch switchHaptic;
+    private Chip chipBlueJeans, chipRedTshirt, chipSneakers, chipHoodie;
     private SessionManager sessionManager;
     private TelegramLogger logger;
-    private VentaAdapter ventaAdapter;
     private OmniVentasRepository repository;
-    private List<Venta> ventasMostrar = new ArrayList<>();
+    private Producto selectedProduct = null;
+    private int quantity = 1;
+    private List<Producto> productos = new ArrayList<>();
 
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.fragment_ventas, container, false);
 
-        rvVentasHoy = view.findViewById(R.id.rv_ventas_hoy);
-        swipeRefresh = view.findViewById(R.id.swipe_refresh);
-        btnRegistrarVenta = view.findViewById(R.id.btn_registrar_venta);
-        tvSinVentas = view.findViewById(R.id.tv_sin_ventas);
-        tvPendientes = view.findViewById(R.id.tv_pendientes);
-        llPendientes = view.findViewById(R.id.ll_pendientes);
+        etSearchProduct = view.findViewById(R.id.et_search_product);
+        tvLiveTotal = view.findViewById(R.id.tv_live_total);
+        tvLivePercent = view.findViewById(R.id.tv_live_percent);
+        tvProductName = view.findViewById(R.id.tv_product_name);
+        tvProductDescription = view.findViewById(R.id.tv_product_description);
+        tvUnitPrice = view.findViewById(R.id.tv_unit_price);
+        tvQuantity = view.findViewById(R.id.tv_quantity);
+        tvDiscount = view.findViewById(R.id.tv_discount);
+        tvSubtotal = view.findViewById(R.id.tv_subtotal);
+        tvPendientesCount = view.findViewById(R.id.tv_pendientes_count);
+        btnDecreaseQty = view.findViewById(R.id.btn_decrease_qty);
+        btnIncreaseQty = view.findViewById(R.id.btn_increase_qty);
+        btnConfirmSale = view.findViewById(R.id.btn_confirm_sale);
+        switchHaptic = view.findViewById(R.id.switch_haptic);
+        chipBlueJeans = view.findViewById(R.id.chip_blue_jeans);
+        chipRedTshirt = view.findViewById(R.id.chip_red_tshirt);
+        chipSneakers = view.findViewById(R.id.chip_sneakers);
+        chipHoodie = view.findViewById(R.id.chip_hoodie);
 
         sessionManager = new SessionManager(getContext());
         logger = TelegramLogger.getInstance(getContext());
         repository = new OmniVentasRepository(getContext());
 
-        ventaAdapter = new VentaAdapter();
-        rvVentasHoy.setLayoutManager(new LinearLayoutManager(getContext()));
-        rvVentasHoy.setAdapter(ventaAdapter);
+        AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_NO);
 
-        swipeRefresh.setOnRefreshListener(() -> {
-            repository.trySyncVentas();
-            cargarVentasLocales();
-            swipeRefresh.setRefreshing(false);
-            Toast.makeText(getContext(), "Ventas actualizadas", Toast.LENGTH_SHORT).show();
+        // Mostrar ventas pendientes
+        int pendientes = repository.getVentasPendientesCount();
+        if (pendientes > 0) {
+            tvPendientesCount.setVisibility(View.VISIBLE);
+            tvPendientesCount.setText(pendientes + " pendientes");
+        } else {
+            tvPendientesCount.setVisibility(View.GONE);
+        }
+
+        btnDecreaseQty.setOnClickListener(v -> {
+            if (quantity > 1) {
+                quantity--;
+                updateQuantityAndPrice();
+            }
         });
 
-        btnRegistrarVenta.setOnClickListener(v -> mostrarDialogoRegistrarVenta());
-
-        cargarVentasLocales();
-
-        return view;
-    }
-
-    private void cargarVentasLocales() {
-        List<VentaEntity> pendientes = repository.getVentasPendientes();
-        ventasMostrar = new ArrayList<>();
-        
-        for (VentaEntity e : pendientes) {
-            Venta v = new Venta();
-            v.setProducto(e.getProductoNombre());
-            v.setCantidad(e.getCantidad());
-            v.setTotal(e.getTotal());
-            v.setFecha(new java.text.SimpleDateFormat("dd/MM/yyyy HH:mm").format(e.getFecha()));
-            v.setPendiente(true);
-            ventasMostrar.add(v);
-        }
-
-        int pendientesCount = repository.getVentasPendientesCount();
-        if (pendientesCount > 0) {
-            llPendientes.setVisibility(View.VISIBLE);
-            tvPendientes.setText(pendientesCount + " ventas pendientes de sincronizar");
-        } else {
-            llPendientes.setVisibility(View.GONE);
-        }
-
-        actualizarUI();
-    }
-
-    private void actualizarUI() {
-        if (ventasMostrar == null || ventasMostrar.isEmpty()) {
-            tvSinVentas.setVisibility(View.VISIBLE);
-            rvVentasHoy.setVisibility(View.GONE);
-        } else {
-            tvSinVentas.setVisibility(View.GONE);
-            rvVentasHoy.setVisibility(View.VISIBLE);
-            ventaAdapter.setShowSyncStatus(true);
-            ventaAdapter.setVentas(ventasMostrar);
-        }
-    }
-
-    private void mostrarDialogoRegistrarVenta() {
-        Dialog dialog = new Dialog(getContext());
-        dialog.requestWindowFeature(Window.FEATURE_NO_TITLE);
-        dialog.setContentView(R.layout.dialog_registrar_venta);
-
-        EditText etBuscarProducto = dialog.findViewById(R.id.et_buscar_producto);
-        RecyclerView rvProductosBusqueda = dialog.findViewById(R.id.rv_productos_busqueda);
-        EditText etCantidad = dialog.findViewById(R.id.et_cantidad);
-        TextView tvTotalVenta = dialog.findViewById(R.id.tv_total_venta);
-        TextView tvProductoSeleccionado = dialog.findViewById(R.id.tv_producto_seleccionado);
-        Button btnCancelar = dialog.findViewById(R.id.btn_cancelar_venta);
-        Button btnRegistrar = dialog.findViewById(R.id.btn_registrar_venta_dialog);
-
-        List<ProductoEntity> productosLocales = repository.getProductosLocal();
-
-        ProductoAdapter productoAdapter = new ProductoAdapter(producto -> {
-            tvProductoSeleccionado.setText("Producto seleccionado: " + producto.getNombre());
-            tvProductoSeleccionado.setVisibility(View.VISIBLE);
-            tvTotalVenta.setTag(producto);
-            double precio = producto.getPrecio();
-            int cantidad = 1;
-            try {
-                cantidad = Integer.parseInt(etCantidad.getText().toString());
-            } catch (NumberFormatException e) {}
-            tvTotalVenta.setText("Total: $" + String.format("%.2f", precio * cantidad));
+        btnIncreaseQty.setOnClickListener(v -> {
+            if (selectedProduct != null && quantity < selectedProduct.getStock()) {
+                quantity++;
+                updateQuantityAndPrice();
+            } else if (selectedProduct == null) {
+                Toast.makeText(getContext(), "Select a product first", Toast.LENGTH_SHORT).show();
+            } else {
+                Toast.makeText(getContext(), "Not enough stock", Toast.LENGTH_SHORT).show();
+            }
         });
 
-        rvProductosBusqueda.setLayoutManager(new LinearLayoutManager(getContext()));
-        rvProductosBusqueda.setAdapter(productoAdapter);
-        
-        List<Producto> productos = new ArrayList<>();
-        for (ProductoEntity entity : productosLocales) {
-            Producto p = new Producto();
-            p.setId(entity.getId());
-            p.setNombre(entity.getNombre());
-            p.setSeccion(entity.getSeccion());
-            p.setPrecio(entity.getPrecio());
-            p.setStock(entity.getStock());
-            productos.add(p);
-        }
-        productoAdapter.setProductos(productos);
-
-        etBuscarProducto.addTextChangedListener(new TextWatcher() {
+        etSearchProduct.addTextChangedListener(new TextWatcher() {
             @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
             @Override public void onTextChanged(CharSequence s, int start, int before, int count) {}
             @Override public void afterTextChanged(Editable s) {
                 String query = s.toString().toLowerCase().trim();
-                List<Producto> filtrados = new ArrayList<>();
-                for (Producto p : productos) {
-                    if (p.getNombre().toLowerCase().contains(query) ||
-                        (p.getSeccion() != null && p.getSeccion().toLowerCase().contains(query))) {
-                        filtrados.add(p);
+            }
+        });
+
+        chipBlueJeans.setOnClickListener(v -> selectProduct("Blue Jeans", "Regular Fit", 42.00, 20, 1));
+        chipRedTshirt.setOnClickListener(v -> selectProduct("Red T-Shirt", "Cotton", 25.00, 15, 2));
+        chipSneakers.setOnClickListener(v -> selectProduct("Sneakers", "Running", 89.00, 10, 3));
+        chipHoodie.setOnClickListener(v -> selectProduct("Hoodie", "Warm", 55.00, 8, 4));
+
+        btnConfirmSale.setOnClickListener(v -> confirmSale());
+
+        updateUI();
+
+        return view;
+    }
+
+    private void selectProduct(String name, String desc, double price, int stock, int id) {
+        selectedProduct = new Producto();
+        selectedProduct.setNombre(name);
+        selectedProduct.setDescripcion(desc);
+        selectedProduct.setPrecio(price);
+        selectedProduct.setStock(stock);
+        selectedProduct.setId(id);
+        quantity = 1;
+        updateUI();
+    }
+
+    private void updateUI() {
+        if (selectedProduct != null) {
+            tvProductName.setText(selectedProduct.getNombre());
+            tvProductDescription.setText(selectedProduct.getDescripcion());
+            tvUnitPrice.setText("$" + String.format("%.2f", selectedProduct.getPrecio()));
+            tvQuantity.setText(String.valueOf(quantity));
+            updateQuantityAndPrice();
+        } else {
+            tvProductName.setText("Select a product");
+            tvProductDescription.setText("");
+            tvUnitPrice.setText("$0.00");
+            tvQuantity.setText("1");
+            tvDiscount.setText("$0.00");
+            tvSubtotal.setText("$0.00");
+            tvLiveTotal.setText("$0.00");
+        }
+    }
+
+    private void updateQuantityAndPrice() {
+        tvQuantity.setText(String.valueOf(quantity));
+        if (selectedProduct != null) {
+            double subtotal = selectedProduct.getPrecio() * quantity;
+            tvDiscount.setText("$0.00");
+            tvSubtotal.setText("$" + String.format("%.2f", subtotal));
+            tvLiveTotal.setText("$" + String.format("%.2f", subtotal));
+        }
+    }
+
+    private void confirmSale() {
+        if (selectedProduct == null) {
+            Toast.makeText(getContext(), "Select a product first", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        if (quantity > selectedProduct.getStock()) {
+            Toast.makeText(getContext(), "Not enough stock", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        if (switchHaptic.isChecked()) {
+            Vibrator vibrator = (Vibrator) getContext().getSystemService(android.content.Context.VIBRATOR_SERVICE);
+            if (vibrator != null) {
+                vibrator.vibrate(50);
+            }
+        }
+
+        String token = sessionManager.getToken();
+        if (token == null || token.isEmpty()) {
+            // Modo offline: guardar localmente
+            repository.registrarVentaOffline(
+                selectedProduct.getId(),
+                selectedProduct.getNombre(),
+                quantity,
+                selectedProduct.getPrecio()
+            );
+            Toast.makeText(getContext(), "✅ Venta guardada OFFLINE: " + selectedProduct.getNombre() + " x" + quantity, Toast.LENGTH_LONG).show();
+            
+            selectedProduct.setStock(selectedProduct.getStock() - quantity);
+            quantity = 1;
+            updateUI();
+            
+            int pendientes = repository.getVentasPendientesCount();
+            if (pendientes > 0) {
+                tvPendientesCount.setVisibility(View.VISIBLE);
+                tvPendientesCount.setText(pendientes + " pendientes");
+            }
+            return;
+        }
+
+        VentaRequest request = new VentaRequest(
+            selectedProduct.getId(),
+            quantity,
+            selectedProduct.getPrecio()
+        );
+
+        com.omniventas.app.api.ApiService apiService = 
+            com.omniventas.app.api.RetrofitClient.getInstance(getContext()).getApiService();
+        
+        apiService.registrarVenta("Bearer " + token, request).enqueue(new Callback<VentaResponse>() {
+            @Override
+            public void onResponse(Call<VentaResponse> call, Response<VentaResponse> response) {
+                if (response.isSuccessful() && response.body() != null && response.body().isSuccess()) {
+                    Toast.makeText(getContext(), "✅ Sale confirmed!", Toast.LENGTH_SHORT).show();
+                    logger.success("Venta registrada: " + selectedProduct.getNombre() + " x" + quantity);
+                    
+                    selectedProduct.setStock(selectedProduct.getStock() - quantity);
+                    quantity = 1;
+                    updateUI();
+                    
+                    // Actualizar Dashboard
+                    if (getActivity() != null) {
+                        DashboardFragment dashboard = (DashboardFragment) getActivity()
+                            .getSupportFragmentManager()
+                            .findFragmentByTag("dashboard");
+                        if (dashboard != null) {
+                            dashboard.actualizarDashboard();
+                        }
                     }
-                }
-                productoAdapter.setProductos(filtrados);
-            }
-        });
-
-        etCantidad.addTextChangedListener(new TextWatcher() {
-            @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
-            @Override public void onTextChanged(CharSequence s, int start, int before, int count) {}
-            @Override public void afterTextChanged(Editable s) {
-                Object tag = tvTotalVenta.getTag();
-                if (tag instanceof Producto) {
-                    Producto p = (Producto) tag;
-                    int cantidad = 1;
-                    try {
-                        cantidad = Integer.parseInt(s.toString());
-                    } catch (NumberFormatException e) {}
-                    tvTotalVenta.setText("Total: $" + String.format("%.2f", p.getPrecio() * cantidad));
+                } else {
+                    // Fallback a modo offline
+                    repository.registrarVentaOffline(
+                        selectedProduct.getId(),
+                        selectedProduct.getNombre(),
+                        quantity,
+                        selectedProduct.getPrecio()
+                    );
+                    Toast.makeText(getContext(), "✅ Venta guardada OFFLINE: " + selectedProduct.getNombre() + " x" + quantity, Toast.LENGTH_LONG).show();
+                    selectedProduct.setStock(selectedProduct.getStock() - quantity);
+                    quantity = 1;
+                    updateUI();
                 }
             }
-        });
 
-        btnCancelar.setOnClickListener(v -> dialog.dismiss());
-
-        btnRegistrar.setOnClickListener(v -> {
-            Object tag = tvTotalVenta.getTag();
-            if (tag instanceof Producto) {
-                final Producto productoSeleccionado = (Producto) tag;
-                int cantidad = 1;
-                try {
-                    cantidad = Integer.parseInt(etCantidad.getText().toString());
-                } catch (NumberFormatException e) {}
-
-                ProductoEntity localProducto = repository.getProductosLocal().stream()
-                    .filter(p -> p.getId() == productoSeleccionado.getId())
-                    .findFirst()
-                    .orElse(null);
-
-                if (localProducto == null || localProducto.getStock() < cantidad) {
-                    Toast.makeText(getContext(), "❌ Stock insuficiente", Toast.LENGTH_SHORT).show();
-                    return;
-                }
-
+            @Override
+            public void onFailure(Call<VentaResponse> call, Throwable t) {
+                // Modo offline
                 repository.registrarVentaOffline(
-                    productoSeleccionado.getId(),
-                    productoSeleccionado.getNombre(),
-                    cantidad,
-                    productoSeleccionado.getPrecio()
+                    selectedProduct.getId(),
+                    selectedProduct.getNombre(),
+                    quantity,
+                    selectedProduct.getPrecio()
                 );
-
-                Toast.makeText(getContext(), 
-                    "✅ Venta registrada OFFLINE: " + productoSeleccionado.getNombre() + " x" + cantidad, 
-                    Toast.LENGTH_LONG).show();
-
-                dialog.dismiss();
-                cargarVentasLocales();
-
-                if (getActivity() != null) {
-                    DashboardFragment dashboard = (DashboardFragment) getActivity()
-                        .getSupportFragmentManager()
-                        .findFragmentByTag("dashboard");
-                    if (dashboard != null) {
-                        dashboard.cargarDashboardLocal();
-                    }
-                }
-            } else {
-                Toast.makeText(getContext(), "Selecciona un producto", Toast.LENGTH_SHORT).show();
+                Toast.makeText(getContext(), "✅ Venta guardada OFFLINE: " + selectedProduct.getNombre() + " x" + quantity, Toast.LENGTH_LONG).show();
+                selectedProduct.setStock(selectedProduct.getStock() - quantity);
+                quantity = 1;
+                updateUI();
+                logger.networkError(t);
             }
         });
-
-        dialog.show();
     }
 }

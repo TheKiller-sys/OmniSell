@@ -135,7 +135,6 @@ public class SyncWorker extends Worker {
             }
         }
 
-        // Limpiar ventas ya sincronizadas
         database.ventaDao().deleteSincronizadas();
     }
 }

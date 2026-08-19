@@ -34,10 +34,7 @@ public class OmniVentasRepository {
         this.logger = TelegramLogger.getInstance(context);
     }
 
-    // ============================================================
     // PRODUCTOS
-    // ============================================================
-
     public List<ProductoEntity> getProductosLocal() {
         return database.productoDao().getAll();
     }
@@ -90,10 +87,7 @@ public class OmniVentasRepository {
         });
     }
 
-    // ============================================================
-    // VENTAS (OFFLINE FIRST)
-    // ============================================================
-
+    // VENTAS OFFLINE
     public void registrarVentaOffline(int productoId, String productoNombre, int cantidad, double precioUnitario) {
         VentaEntity venta = new VentaEntity();
         venta.setProductoId(productoId);
@@ -137,10 +131,7 @@ public class OmniVentasRepository {
         return database.ventaDao().getPendientesCount();
     }
 
-    // ============================================================
     // ESTADÍSTICAS
-    // ============================================================
-
     public int getTotalProductos() {
         return database.productoDao().getAll().size();
     }

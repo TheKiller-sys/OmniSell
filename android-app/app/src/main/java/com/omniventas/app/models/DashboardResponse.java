@@ -30,8 +30,8 @@ public class DashboardResponse {
         public void setVentasRecientes(List<Venta> ventas_recientes) { this.ventas_recientes = ventas_recientes; }
         public String getFecha() { return fecha; }
         public void setFecha(String fecha) { this.fecha = fecha; }
-        public String getBusiness_name() { return business_name; }
-        public void setBusiness_name(String business_name) { this.business_name = business_name; }
+        public String getBusinessName() { return business_name; }
+        public void setBusinessName(String business_name) { this.business_name = business_name; }
     }
 
     public boolean isSuccess() { return success; }

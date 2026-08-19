@@ -40,7 +40,6 @@ public class MainActivity extends AppCompatActivity {
 
         llOfflineIndicator = findViewById(R.id.ll_offline_indicator);
         
-        // Verificar conectividad
         checkConnectivity();
 
         bottomNav = findViewById(R.id.bottom_navigation);
@@ -48,44 +47,43 @@ public class MainActivity extends AppCompatActivity {
 
         if (savedInstanceState == null) {
             getSupportFragmentManager().beginTransaction()
-                .replace(R.id.fragment_container, new DashboardFragment())
+                .replace(R.id.fragment_container, new DashboardFragment(), "dashboard")
                 .commit();
         }
 
-        // Programar sincronización periódica
         SyncManager.scheduleSync(this);
     }
 
     private void checkConnectivity() {
-        // Mostrar indicador offline por defecto (se ocultará cuando haya conexión)
         llOfflineIndicator.setVisibility(View.VISIBLE);
-        
-        // Intentar sincronizar para verificar conexión
         SyncManager.syncNow(this);
         
-        // Ocultar después de 3 segundos si hay conexión (se ocultará cuando se sincronice)
         android.os.Handler handler = new android.os.Handler();
         handler.postDelayed(() -> {
-            // Si no se ocultó, asumir que hay conexión
             llOfflineIndicator.setVisibility(View.GONE);
         }, 3000);
     }
 
     private boolean onNavigationItemSelected(@NonNull MenuItem item) {
         Fragment selectedFragment = null;
+        String tag = "";
         if (item.getItemId() == R.id.nav_dashboard) {
             selectedFragment = new DashboardFragment();
+            tag = "dashboard";
         } else if (item.getItemId() == R.id.nav_ventas) {
             selectedFragment = new VentasFragment();
+            tag = "ventas";
         } else if (item.getItemId() == R.id.nav_inventario) {
             selectedFragment = new InventarioFragment();
+            tag = "inventario";
         } else if (item.getItemId() == R.id.nav_usuario) {
             selectedFragment = new UsuarioFragment();
+            tag = "usuario";
         }
 
         if (selectedFragment != null) {
             getSupportFragmentManager().beginTransaction()
-                .replace(R.id.fragment_container, selectedFragment)
+                .replace(R.id.fragment_container, selectedFragment, tag)
                 .commit();
             return true;
         }

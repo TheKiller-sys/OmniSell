@@ -1,41 +1,45 @@
 package com.omniventas.app.ui;
 
 import android.os.Bundle;
-import android.text.Editable;
-import android.text.TextWatcher;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.Button;
-import android.widget.EditText;
+import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
-import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.GridLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
-import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
+import com.google.android.material.chip.Chip;
 import com.omniventas.app.R;
 import com.omniventas.app.adapters.InventarioAdapter;
-import com.omniventas.app.local.ProductoEntity;
+import com.omniventas.app.api.ApiService;
+import com.omniventas.app.api.RetrofitClient;
+import com.omniventas.app.models.Producto;
+import com.omniventas.app.models.RespuestaProductos;
 import com.omniventas.app.repository.OmniVentasRepository;
 import com.omniventas.app.utils.SessionManager;
 import com.omniventas.app.utils.TelegramLogger;
 import java.util.ArrayList;
 import java.util.List;
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.Response;
 
 public class InventarioFragment extends Fragment {
+
     private RecyclerView rvInventario;
-    private SwipeRefreshLayout swipeRefresh;
-    private TextView tvTotalProductos, tvStockBajo, tvSinStock, tvInventarioVacio, tvOfflineIndicator;
-    private EditText etBuscarProducto;
-    private Button btnLimpiarFiltro;
+    private TextView tvStatsProducts, tvUpdatedNow, tvInventarioVacio;
+    private ImageView btnScan;
+    private Chip chipAll, chipLowStock, chipElectronics, chipClothing;
     private SessionManager sessionManager;
     private TelegramLogger logger;
-    private InventarioAdapter inventarioAdapter;
     private OmniVentasRepository repository;
-    private List<ProductoEntity> productosFiltrados = new ArrayList<>();
+    private InventarioAdapter adapter;
+    private List<Producto> productos = new ArrayList<>();
+    private List<Producto> filteredProducts = new ArrayList<>();
 
     @Nullable
     @Override
@@ -43,78 +47,121 @@ public class InventarioFragment extends Fragment {
         View view = inflater.inflate(R.layout.fragment_inventario, container, false);
 
         rvInventario = view.findViewById(R.id.rv_inventario);
-        swipeRefresh = view.findViewById(R.id.swipe_refresh);
-        tvTotalProductos = view.findViewById(R.id.tv_total_productos);
-        tvStockBajo = view.findViewById(R.id.tv_stock_bajo);
-        tvSinStock = view.findViewById(R.id.tv_sin_stock);
+        tvStatsProducts = view.findViewById(R.id.tv_stats_products);
+        tvUpdatedNow = view.findViewById(R.id.tv_updated_now);
         tvInventarioVacio = view.findViewById(R.id.tv_inventario_vacio);
-        tvOfflineIndicator = view.findViewById(R.id.tv_offline_indicator);
-        etBuscarProducto = view.findViewById(R.id.et_buscar_producto);
-        btnLimpiarFiltro = view.findViewById(R.id.btn_limpiar_filtro);
+        btnScan = view.findViewById(R.id.btn_scan);
+        chipAll = view.findViewById(R.id.chip_all);
+        chipLowStock = view.findViewById(R.id.chip_low_stock);
+        chipElectronics = view.findViewById(R.id.chip_electronics);
+        chipClothing = view.findViewById(R.id.chip_clothing);
 
         sessionManager = new SessionManager(getContext());
         logger = TelegramLogger.getInstance(getContext());
         repository = new OmniVentasRepository(getContext());
 
-        inventarioAdapter = new InventarioAdapter();
-        rvInventario.setLayoutManager(new LinearLayoutManager(getContext()));
-        rvInventario.setAdapter(inventarioAdapter);
+        adapter = new InventarioAdapter();
+        rvInventario.setLayoutManager(new GridLayoutManager(getContext(), 2));
+        rvInventario.setAdapter(adapter);
 
-        swipeRefresh.setOnRefreshListener(() -> {
-            repository.syncProductosFromServer();
-            cargarInventarioLocal();
-            swipeRefresh.setRefreshing(false);
-            Toast.makeText(getContext(), "Inventario actualizado", Toast.LENGTH_SHORT).show();
-        });
+        btnScan.setOnClickListener(v -> 
+            Toast.makeText(getContext(), "Escáner disponible en próxima versión", Toast.LENGTH_SHORT).show()
+        );
 
-        btnLimpiarFiltro.setOnClickListener(v -> {
-            etBuscarProducto.setText("");
-            aplicarFiltros();
-        });
+        chipAll.setOnClickListener(v -> filterProducts("all"));
+        chipLowStock.setOnClickListener(v -> filterProducts("low_stock"));
+        chipElectronics.setOnClickListener(v -> filterProducts("electronics"));
+        chipClothing.setOnClickListener(v -> filterProducts("clothing"));
 
-        etBuscarProducto.addTextChangedListener(new TextWatcher() {
-            @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
-            @Override public void onTextChanged(CharSequence s, int start, int before, int count) {}
-            @Override public void afterTextChanged(Editable s) { aplicarFiltros(); }
-        });
-
-        cargarInventarioLocal();
-
-        // Intentar sincronizar en segundo plano
-        repository.syncProductosFromServer();
+        cargarInventario();
 
         return view;
     }
 
-    private void cargarInventarioLocal() {
-        List<ProductoEntity> productos = repository.getProductosLocal();
-        productosFiltrados = new ArrayList<>(productos);
-        actualizarUI();
-        
-        tvOfflineIndicator.setText("📡 Datos locales (" + productos.size() + " productos)");
-    }
-
-    private void aplicarFiltros() {
-        String query = etBuscarProducto.getText().toString().toLowerCase().trim();
-        productosFiltrados = repository.buscarProductosLocal(query);
-        actualizarUI();
-    }
-
-    private void actualizarUI() {
-        inventarioAdapter.setProductos(productosFiltrados);
-
-        int total = productosFiltrados.size();
-        int bajo = 0, sinStock = 0;
-        for (ProductoEntity p : productosFiltrados) {
-            if (p.getStock() == 0) sinStock++;
-            else if (p.getStock() <= 3) bajo++;
+    private void cargarInventario() {
+        // Primero mostrar datos locales
+        List<com.omniventas.app.local.ProductoEntity> locales = repository.getProductosLocal();
+        productos = new ArrayList<>();
+        for (com.omniventas.app.local.ProductoEntity entity : locales) {
+            Producto p = new Producto();
+            p.setId(entity.getId());
+            p.setNombre(entity.getNombre());
+            p.setSeccion(entity.getSeccion());
+            p.setPrecio(entity.getPrecio());
+            p.setStock(entity.getStock());
+            p.setDescripcion(entity.getDescripcion());
+            productos.add(p);
         }
+        filteredProducts = new ArrayList<>(productos);
+        adapter.setProductos(filteredProducts);
+        updateStats();
 
-        tvTotalProductos.setText(String.valueOf(total));
-        tvStockBajo.setText(String.valueOf(bajo));
-        tvSinStock.setText(String.valueOf(sinStock));
+        // Luego sincronizar desde servidor
+        String token = sessionManager.getToken();
+        if (token == null || token.isEmpty()) return;
 
-        if (productosFiltrados.isEmpty()) {
+        ApiService apiService = RetrofitClient.getInstance(getContext()).getApiService();
+        apiService.getProductos("Bearer " + token).enqueue(new Callback<RespuestaProductos>() {
+            @Override
+            public void onResponse(Call<RespuestaProductos> call, Response<RespuestaProductos> response) {
+                if (response.isSuccessful() && response.body() != null && response.body().isSuccess()) {
+                    productos = response.body().getProductos();
+                    filteredProducts = new ArrayList<>(productos);
+                    adapter.setProductos(filteredProducts);
+                    updateStats();
+                    tvUpdatedNow.setText("Actualizado ahora");
+                    
+                    // Guardar en Room
+                    repository.syncProductosFromServer();
+                }
+            }
+
+            @Override
+            public void onFailure(Call<RespuestaProductos> call, Throwable t) {
+                logger.networkError(t);
+                tvUpdatedNow.setText("Datos locales");
+            }
+        });
+    }
+
+    private void filterProducts(String filter) {
+        filteredProducts.clear();
+        for (Producto p : productos) {
+            switch (filter) {
+                case "all":
+                    filteredProducts.add(p);
+                    break;
+                case "low_stock":
+                    if (p.getStock() <= 3 && p.getStock() > 0) filteredProducts.add(p);
+                    break;
+                case "electronics":
+                    if (p.getSeccion() != null && p.getSeccion().toLowerCase().contains("electron")) {
+                        filteredProducts.add(p);
+                    }
+                    break;
+                case "clothing":
+                    if (p.getSeccion() != null && p.getSeccion().toLowerCase().contains("cloth")) {
+                        filteredProducts.add(p);
+                    }
+                    break;
+            }
+        }
+        adapter.setProductos(filteredProducts);
+        updateStats();
+        
+        chipAll.setChipBackgroundColorResource(filter.equals("all") ? R.color.primary : R.color.light_gray);
+        chipAll.setTextColor(getResources().getColor(filter.equals("all") ? R.color.white : R.color.dark));
+        chipLowStock.setChipBackgroundColorResource(filter.equals("low_stock") ? R.color.primary : R.color.light_gray);
+        chipLowStock.setTextColor(getResources().getColor(filter.equals("low_stock") ? R.color.white : R.color.dark));
+        chipElectronics.setChipBackgroundColorResource(filter.equals("electronics") ? R.color.primary : R.color.light_gray);
+        chipElectronics.setTextColor(getResources().getColor(filter.equals("electronics") ? R.color.white : R.color.dark));
+        chipClothing.setChipBackgroundColorResource(filter.equals("clothing") ? R.color.primary : R.color.light_gray);
+        chipClothing.setTextColor(getResources().getColor(filter.equals("clothing") ? R.color.white : R.color.dark));
+    }
+
+    private void updateStats() {
+        tvStatsProducts.setText(filteredProducts.size() + " Productos ·");
+        if (filteredProducts.isEmpty()) {
             tvInventarioVacio.setVisibility(View.VISIBLE);
             rvInventario.setVisibility(View.GONE);
         } else {

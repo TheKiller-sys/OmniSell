@@ -119,7 +119,6 @@ public class LoginActivity extends AppCompatActivity {
                             );
                             logger.success("Login exitoso: " + vendor.getName());
                             
-                            // Iniciar sincronización programada
                             SyncManager.scheduleSync(getApplicationContext());
                             
                             irAlDashboard();

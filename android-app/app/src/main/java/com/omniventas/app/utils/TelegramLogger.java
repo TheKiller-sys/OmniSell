@@ -23,7 +23,7 @@ public class TelegramLogger {
     private static TelegramLogger instance;
     private Context context;
     private SessionManager sessionManager;
-    private String appVersion = "8.0.7";
+    private String appVersion = "9.0.0";
 
     private TelegramLogger(Context context) {
         this.context = context.getApplicationContext();
