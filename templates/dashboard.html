@@ -207,7 +207,7 @@
         .header .header-actions {
             display: flex;
             align-items: center;
-            gap: 16px;
+            gap: 12px;
             margin-left: auto;
         }
 
@@ -220,14 +220,55 @@
             border-radius: 50px;
         }
 
+        .header .header-actions .online-dot {
+            width: 10px;
+            height: 10px;
+            background: var(--success);
+            border-radius: 50%;
+            display: inline-block;
+            animation: pulse-ring 2s infinite;
+            margin-right: 4px;
+        }
+
+        /* ============================================
+           BOTÓN DE TUTORIAL EN EL HEADER
+           ============================================ */
+        .btn-tutorial-header {
+            border-radius: var(--radius-sm);
+            font-weight: 600;
+            font-size: 0.8rem;
+            padding: 5px 14px;
+            border: 2px solid var(--primary);
+            color: var(--primary);
+            background: transparent;
+            transition: var(--transition);
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+
+        .btn-tutorial-header:hover {
+            background: var(--primary-gradient);
+            color: white;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(67, 97, 238, 0.3);
+            border-color: transparent;
+        }
+
+        .btn-tutorial-header i {
+            font-size: 0.9rem;
+        }
+
         .header .header-actions .btn-logout {
             background: transparent;
             border: 2px solid #FEE2E2;
             color: var(--danger);
-            padding: 8px 18px;
+            padding: 6px 16px;
             border-radius: var(--radius-sm);
             font-weight: 600;
-            font-size: 0.85rem;
+            font-size: 0.8rem;
             transition: var(--transition);
         }
 
@@ -237,16 +278,6 @@
             border-color: var(--danger);
             transform: translateY(-2px);
             box-shadow: 0 4px 15px rgba(239, 68, 68, 0.3);
-        }
-
-        .header .header-actions .online-dot {
-            width: 10px;
-            height: 10px;
-            background: var(--success);
-            border-radius: 50%;
-            display: inline-block;
-            animation: pulse-ring 2s infinite;
-            margin-right: 4px;
         }
 
         /* ============================================
@@ -490,36 +521,6 @@
 
         .section-header-wrapper .last-update i {
             margin-right: 6px;
-        }
-
-        /* ============================================
-           BOTÓN DE TUTORIAL
-           ============================================ */
-        .btn-tutorial {
-            border-radius: var(--radius-sm);
-            font-weight: 600;
-            font-size: 0.85rem;
-            padding: 6px 16px;
-            border: 2px solid var(--primary);
-            color: var(--primary);
-            background: transparent;
-            transition: var(--transition);
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            cursor: pointer;
-        }
-
-        .btn-tutorial:hover {
-            background: var(--primary-gradient);
-            color: white;
-            transform: translateY(-2px);
-            box-shadow: 0 4px 15px rgba(67, 97, 238, 0.3);
-            border-color: transparent;
-        }
-
-        .btn-tutorial i {
-            font-size: 1rem;
         }
 
         /* ============================================
@@ -865,15 +866,37 @@
             .section-header-wrapper .section-title {
                 font-size: 1.3rem;
             }
+            
+            .btn-tutorial-header {
+                font-size: 0.7rem;
+                padding: 4px 10px;
+            }
         }
 
         @media (max-width: 768px) {
             .header {
-                padding: 0 16px;
+                padding: 0 12px;
             }
 
             .header .business-name {
                 display: none;
+            }
+
+            .header .header-actions .btn-logout {
+                padding: 4px 12px;
+                font-size: 0.7rem;
+            }
+
+            .btn-tutorial-header {
+                font-size: 0.65rem;
+                padding: 3px 8px;
+            }
+
+            .btn-tutorial-header span {
+                display: none;
+            }
+            .btn-tutorial-header i {
+                font-size: 0.9rem;
             }
 
             .main-content {
@@ -911,11 +934,6 @@
             .table-premium tbody td {
                 padding: 8px 10px;
             }
-
-            .btn-tutorial {
-                font-size: 0.75rem;
-                padding: 4px 12px;
-            }
         }
 
         @media (max-width: 576px) {
@@ -937,36 +955,34 @@
                 font-size: 0.65rem;
                 padding: 2px 10px;
             }
-
-            .btn-tutorial {
-                font-size: 0.7rem;
-                padding: 3px 10px;
-            }
         }
 
         /* ============================================
-           ONBOARDING PREMIUM - ESTILOS
+           ONBOARDING PREMIUM - ESTILOS CORREGIDOS
            ============================================ */
         .onboarding-overlay {
             position: fixed;
-            top: 0; left: 0;
-            width: 100%; height: 100%;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
             background: rgba(15, 23, 42, 0.85);
-            z-index: 9999;
+            z-index: 99999;
             backdrop-filter: blur(4px);
             -webkit-backdrop-filter: blur(4px);
-            display: flex;
+            display: flex !important;
             align-items: center;
             justify-content: center;
             pointer-events: none;
             transition: opacity 0.4s ease;
             opacity: 0;
-            pointer-events: none;
+            visibility: hidden;
         }
 
         .onboarding-overlay.active {
             opacity: 1;
             pointer-events: all;
+            visibility: visible;
         }
 
         .onboarding-card {
@@ -980,9 +996,9 @@
             box-shadow: 0 25px 80px rgba(0, 0, 0, 0.3);
             border: 1px solid rgba(255, 255, 255, 0.3);
             position: relative;
-            animation: slideUp 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
             transform: translateY(30px) scale(0.95);
             opacity: 0;
+            transition: all 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
         }
 
         .onboarding-card.active {
@@ -1016,6 +1032,16 @@
             color: var(--dark-secondary);
             line-height: 1.6;
             margin-bottom: 0;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .onboarding-card p::-webkit-scrollbar {
+            width: 4px;
+        }
+        .onboarding-card p::-webkit-scrollbar-thumb {
+            background: var(--primary);
+            border-radius: 10px;
         }
 
         .onboarding-nav {
@@ -1079,7 +1105,7 @@
 
         .onboarding-highlight {
             position: relative;
-            z-index: 10000;
+            z-index: 100000;
             box-shadow: 0 0 0 4px #4361EE, 0 0 30px rgba(67, 97, 238, 0.4) !important;
             border-radius: 16px !important;
             transition: all 0.3s ease;
@@ -1110,6 +1136,11 @@
             <i class="fas fa-chart-line"></i>OmniVentas
         </h1>
         <div class="header-actions">
+            <!-- BOTÓN DE TUTORIAL EN EL HEADER (ARRIBA A LA DERECHA) -->
+            <button class="btn-tutorial-header" onclick="forzarInicioTutorial()" title="Ver tutorial nuevamente">
+                <i class="fas fa-play-circle"></i>
+                <span>Ver Tutorial</span>
+            </button>
             <span class="business-name">
                 <span class="online-dot"></span>
                 {{ business_name }}
@@ -1199,15 +1230,9 @@
                 <i class="fas fa-chart-line"></i>
                 Resumen General
             </h2>
-            <div class="d-flex gap-2 align-items-center">
-                <!-- Botón para reiniciar el tutorial -->
-                <button class="btn-tutorial" onclick="reiniciarOnboarding()" title="Ver tutorial nuevamente">
-                    <i class="fas fa-play-circle"></i> Ver Tutorial
-                </button>
-                <button class="refresh-btn" id="manual-refresh" title="Actualizar datos">
-                    <i class="fas fa-sync-alt"></i>
-                </button>
-            </div>
+            <button class="refresh-btn" id="manual-refresh" title="Actualizar datos">
+                <i class="fas fa-sync-alt"></i>
+            </button>
             <span class="last-update">
                 <i class="fas fa-clock"></i>
                 Última actualización: <span id="update-time">--:--:--</span>
@@ -1403,7 +1428,7 @@
     <!-- ============================================
     ONBOARDING TUTORIAL (Guía Interactiva Multi-Página)
     ============================================ -->
-    <div id="onboarding-overlay" class="onboarding-overlay" style="display: none;">
+    <div id="onboarding-overlay" class="onboarding-overlay">
         <!-- Caja de texto principal -->
         <div class="onboarding-card" id="onboarding-card">
             <div class="onboarding-content">
@@ -1486,18 +1511,38 @@
         });
 
         // ============================================================
-        // REINICIAR ONBOARDING (TUTORIAL)
+        // FUNCIÓN PARA FORZAR EL INICIO DEL TUTORIAL (BOTÓN)
         // ============================================================
-        function reiniciarOnboarding() {
+        function forzarInicioTutorial() {
             // Limpiar las variables que impiden mostrar el tutorial
             localStorage.removeItem("omniventas_onboarding_complete");
             sessionStorage.removeItem('onboarding_next_step');
             
-            // Mostrar mensaje de confirmación
-            const btn = document.querySelector('.btn-tutorial');
+            // Obtener referencias
+            const overlay = document.getElementById('onboarding-overlay');
+            const card = document.getElementById('onboarding-card');
+            
+            // Mostrar overlay
+            overlay.classList.add('active');
+            setTimeout(() => {
+                card.classList.add('active');
+            }, 100);
+            
+            // Iniciar el tour en el paso 0
+            if (window._onboardingInstance) {
+                window._onboardingInstance.startTour();
+            } else {
+                // Si la instancia no está disponible, reiniciar la página
+                setTimeout(() => {
+                    location.reload();
+                }, 500);
+            }
+            
+            // Feedback visual en el botón
+            const btn = document.querySelector('.btn-tutorial-header');
             if (btn) {
                 const originalHTML = btn.innerHTML;
-                btn.innerHTML = '<i class="fas fa-check-circle"></i> ¡Tutorial Reiniciado!';
+                btn.innerHTML = '<i class="fas fa-check-circle"></i> ¡Tutorial Iniciado!';
                 btn.style.borderColor = 'var(--success)';
                 btn.style.color = 'var(--success)';
                 
@@ -1507,11 +1552,6 @@
                     btn.style.color = '';
                 }, 2000);
             }
-            
-            // Recargar la página para iniciar el tutorial
-            setTimeout(() => {
-                location.reload();
-            }, 800);
         }
 
         // ============================================================
@@ -1814,7 +1854,7 @@
         }
 
         // ============================================================
-        // ONBOARDING TUTORIAL - Lógica Multi-Página (PROFESIONAL Y EXTENDIDA)
+        // ONBOARDING TUTORIAL - Lógica Multi-Página (CORREGIDA)
         // ============================================================
         (function() {
             'use strict';
@@ -1829,191 +1869,123 @@
             const BTN_PREV = document.getElementById('btn-prev-step');
             const BTN_SKIP = document.getElementById('btn-skip-tour');
 
-            // 1. DEFINIR LOS PASOS DEL TOUR (TEXTOS HUMANIZADOS, DETALLADOS Y EXTENDIDOS)
+            // 1. DEFINIR LOS PASOS DEL TOUR
             const STEPS = [
                 {
                     target: '.section-header-wrapper',
-                    title: '🚀 ¡Bienvenido a tu Centro de Control Financiero!',
-                    desc: `<strong>Este es el corazón de OmniVentas.</strong><br><br>
-                    El <strong>Dashboard</strong> es tu tablero de instrumentos. Piensa en él como el panel de un avión: 
-                    aquí es donde ves todos los indicadores vitales de tu negocio en tiempo real.<br><br>
+                    title: '🚀 ¡Bienvenido a tu Centro de Control!',
+                    desc: `<strong>Este es el Dashboard de OmniVentas.</strong><br><br>
+                    Aquí ves todos los indicadores vitales de tu negocio en tiempo real.<br><br>
                     <strong>¿Qué encontrarás aquí?</strong><br>
                     • <strong>Métricas clave:</strong> Dinero que entra, dinero que ganas, y cuánto vendes.<br>
-                    • <strong>Gráficos intuitivos:</strong> Visualiza tus tendencias de ventas de un solo vistazo.<br>
-                    • <strong>Alertas inteligentes:</strong> Te avisamos cuando algo necesita tu atención.<br><br>
-                    <em>Consejo de experto:</em> No te abrumes con los números. Tómate 5 minutos cada mañana para mirar este panel y entender el pulso de tu negocio. Con el tiempo, leerás estas métricas como un profesional.`,
+                    • <strong>Gráficos intuitivos:</strong> Visualiza tus tendencias de ventas.<br>
+                    • <strong>Alertas inteligentes:</strong> Te avisamos cuando algo necesita atención.`,
                     page: '/dashboard'
                 },
                 {
                     target: '.stats-row',
-                    title: '📈 Tus Métricas Vitales (El Pulso de tu Negocio)',
-                    desc: `<strong>Estas 4 tarjetas son tu termómetro financiero.</strong> Son los indicadores más importantes que debes monitorear a diario.<br><br>
-                    <strong>Desglose detallado:</strong><br>
-                    • <span style="color: #4361EE;"><strong>Ingresos Totales ($):</strong></span> El dinero total que ha entrado a tu caja. 
-                    Es tu <em>bruto</em>. Te dice cuánto facturaste.<br>
-                    • <span style="color: #10B981;"><strong>Ganancia Neta ($):</strong></span> El dinero real que te queda después de pagar 
-                    costos de productos, transporte y otros gastos. Es tu <em>beneficio real</em>. Este número es el que realmente importa.<br>
-                    • <span style="color: #7C3AED;"><strong>Margen Promedio (%):</strong></span> El porcentaje de ganancia que obtienes 
-                    por cada venta. Si es bajo, necesitas ajustar precios o reducir costos. Si es alto, ¡felicidades! Estás optimizando bien.<br>
-                    • <span style="color: #F59E0B;"><strong>Total Ventas (unidades):</strong></span> La cantidad de transacciones realizadas. 
-                    Te dice qué tan activo está tu equipo y tu negocio.<br><br>
-                    <em>Consejo:</em> Pasa el mouse sobre cualquiera de ellas para ver detalles adicionales y tendencias comparativas con el mes anterior.`,
+                    title: '📈 Tus Métricas Vitales',
+                    desc: `<strong>Estas 4 tarjetas son tu termómetro financiero.</strong><br><br>
+                    • <span style="color: #4361EE;"><strong>Ingresos Totales:</strong></span> Dinero que ha entrado a tu caja.<br>
+                    • <span style="color: #10B981;"><strong>Ganancia Neta:</strong></span> El beneficio real después de costos.<br>
+                    • <span style="color: #7C3AED;"><strong>Margen Promedio:</strong></span> Porcentaje de ganancia por venta.<br>
+                    • <span style="color: #F59E0B;"><strong>Total Ventas:</strong></span> Cantidad de transacciones realizadas.`,
                     page: '/dashboard'
                 },
                 {
                     target: '#salesChart',
-                    title: '📊 Análisis Visual de Ventas (Tu Radar de Negocio)',
-                    desc: `<strong>Este gráfico es tu mejor aliado para entender el comportamiento de tus ventas.</strong><br><br>
-                    <strong>¿Qué puedes hacer con él?</strong><br>
-                    • <strong>Mensual:</strong> Ve la evolución mes a mes. ¿Hay meses que venden más que otros? 
-                    Eso te ayuda a planificar tus compras y promociones.<br>
-                    • <strong>Semanal:</strong> Detecta semanas buenas y malas. Si una semana fue mala, 
-                    puedes investigar qué pasó (¿fue un feriado? ¿hubo problemas de stock?).<br>
-                    • <strong>Diario:</strong> Identifica qué días de la semana venden más. 
-                    Esto es oro puro para lanzar promociones los días más lentos y maximizar ingresos.<br><br>
-                    <em>Importante:</em> Si ves una tendencia a la baja, no entres en pánico. 
-                    Usa el gráfico para identificar el patrón y actuar a tiempo. A veces es solo estacionalidad.`,
+                    title: '📊 Análisis Visual de Ventas',
+                    desc: `<strong>Este gráfico es tu mejor aliado.</strong><br><br>
+                    <strong>Filtros disponibles:</strong><br>
+                    • <strong>Mensual:</strong> Evolución mes a mes.<br>
+                    • <strong>Semanal:</strong> Detecta semanas buenas y malas.<br>
+                    • <strong>Diario:</strong> Identifica qué días venden más.`,
                     page: '/dashboard'
                 },
                 {
                     target: '#inventoryTable',
-                    title: '📦 Gestión de Inventario (Tu Almacén Inteligente)',
-                    desc: `<strong>Aquí tienes el control total de tu stock. Olvídate de los cuadernos y el Excel.</strong><br><br>
-                    <strong>El sistema clasifica automáticamente tus productos en 3 categorías:</strong><br>
-                    • <span style="color: #10B981;">🟢 Óptimo:</span> Stock saludable. No necesitas hacer nada. 
-                    Puedes seguir vendiendo con tranquilidad.<br>
-                    • <span style="color: #F59E0B;">🟡 Atención:</span> Quedan 3 o menos unidades. 
-                    <strong>¡Es hora de reabastecer!</strong> Si esperas demasiado, podrías quedarte sin stock y perder una venta.<br>
-                    • <span style="color: #EF4444;">🔴 Crítico:</span> Producto agotado. 
-                    Has perdido una venta potencial. <strong>Actúa ahora</strong> para evitar que esto se repita.<br><br>
-                    <em>Objetivo:</em> Mantén todos tus productos en verde (Óptimo) y nunca pierdas una venta por falta de stock. 
-                    Revisa esta tabla al menos una vez al día.`,
+                    title: '📦 Gestión de Inventario',
+                    desc: `<strong>Control total de tu stock.</strong><br><br>
+                    <strong>Clasificación automática:</strong><br>
+                    • <span style="color: #10B981;">🟢 Óptimo:</span> Stock saludable.<br>
+                    • <span style="color: #F59E0B;">🟡 Atención:</span> Quedan 3 o menos unidades.<br>
+                    • <span style="color: #EF4444;">🔴 Crítico:</span> Producto agotado.`,
                     page: '/dashboard'
                 },
                 {
                     target: '.header-actions',
-                    title: '🎯 Navegación y Seguridad (Tu Panel de Control)',
-                    desc: `<strong>En la esquina superior derecha siempre verás:</strong><br>
-                    • <strong>El nombre de tu negocio:</strong> Para que siempre sepas en qué cuenta estás trabajando.<br>
-                    • <strong>Botón de Salir:</strong> Para cerrar tu sesión de forma segura cuando termines.<br><br>
-                    <strong>Pero lo más importante está a tu izquierda:</strong> El menú lateral es tu puerta a todas las herramientas de gestión.<br><br>
-                    <strong>Explora cada sección:</strong><br>
-                    • <strong>📋 Ventas:</strong> Registra nuevas transacciones y revisa tu historial de ventas.<br>
-                    • <strong>📦 Inventario:</strong> Gestiona tus productos, su stock y precios.<br>
-                    • <strong>👥 Vendedores:</strong> Crea y administra a tu equipo de ventas.<br>
-                    • <strong>💰 Finanzas:</strong> Analiza tus ingresos, gastos y beneficios netos.<br>
-                    • <strong>🧠 Análisis:</strong> Descubre cuáles son tus productos estrella (los que más ganancia dejan).<br>
-                    • <strong>👤 Clientes:</strong> Construye una base de datos de tus compradores.<br>
-                    • <strong>⚙️ Configuración:</strong> Cambia la contraseña y los datos de tu negocio.<br><br>
-                    <em>Importante:</em> Tómate el tiempo de explorar cada sección. Cuanto más familiarizado estés con el sistema, más eficiente serás gestionando tu negocio.`,
+                    title: '🎯 Navegación y Seguridad',
+                    desc: `<strong>Panel de control completo.</strong><br><br>
+                    • <strong>Menú lateral:</strong> Acceso a todas las herramientas.<br>
+                    • <strong>Ventas:</strong> Registra y revisa transacciones.<br>
+                    • <strong>Inventario:</strong> Gestiona productos y stock.<br>
+                    • <strong>Vendedores:</strong> Administra tu equipo.<br>
+                    • <strong>Finanzas:</strong> Analiza ingresos y gastos.<br>
+                    • <strong>Análisis:</strong> Descubre productos estrella.`,
                     page: '/dashboard',
                     nextPage: '/ventas'
                 },
                 {
                     target: '.section-header-wrapper',
-                    title: '🛒 Gestión de Ventas (Tu Caja Registradora Digital)',
-                    desc: `<strong>Esta es tu herramienta de facturación y registro de ingresos.</strong> 
-                    Aquí ocurre la magia de convertir productos en dinero.<br><br>
-                    <strong>Funcionalidades clave:</strong><br>
-                    • <strong>📝 Registrar Venta:</strong> Selecciona un producto del inventario, ingresa la cantidad y el sistema 
-                    calcula el total automáticamente. No más errores de cálculo.<br>
-                    • <strong>📅 Filtros de Fecha:</strong> Puedes ver las ventas de "hoy", "esta semana" o "este mes" 
-                    para tener un control temporal preciso. Ideal para hacer balances rápidos.<br>
-                    • <strong>📊 Exportar a Excel (CSV):</strong> Genera un archivo con tu historial de ventas 
-                    para llevar tus contabilidades externas o compartir con tu contador.<br><br>
-                    <em>Tip:</em> Las ventas registradas aquí se reflejan <strong>instantáneamente</strong> en tu Dashboard 
-                    y reducen el stock automáticamente. Es un sistema en tiempo real.`,
+                    title: '🛒 Gestión de Ventas',
+                    desc: `<strong>Tu caja registradora digital.</strong><br><br>
+                    <strong>Funcionalidades:</strong><br>
+                    • <strong>📝 Registrar Venta:</strong> Selecciona producto y cantidad.<br>
+                    • <strong>📅 Filtros de Fecha:</strong> Control temporal preciso.<br>
+                    • <strong>📊 Exportar a Excel:</strong> Descarga tu historial.`,
                     page: '/ventas',
                     nextPage: '/inventario'
                 },
                 {
                     target: '.card-premium',
-                    title: '📦 Inventario Completo (El Corazón de tu Negocio)',
-                    desc: `<strong>Esta es la base de datos central de tus productos.</strong> 
-                    Sin un inventario preciso, no puedes vender con confianza.<br><br>
-                    <strong>¿Qué puedes hacer aquí?</strong><br>
-                    • <strong>➕ Agregar Productos:</strong> Da de alta nuevos artículos con su precio de venta, 
-                    costo de compra y stock inicial. Cuanto más completo sea tu inventario, más preciso será tu análisis.<br>
-                    • <strong>✏️ Editar:</strong> Si cambia el precio de un producto, actualízalo aquí. 
-                    Las ventas futuras usarán el nuevo valor automáticamente.<br>
-                    • <strong>🗑️ Eliminar:</strong> Si un producto ya no se vende, puedes darlo de baja del sistema.<br><br>
-                    <strong>📊 El Margen:</strong> La columna "Margen" te muestra el porcentaje de ganancia de cada producto. 
-                    <strong>A mayor margen, más saludable es tu negocio.</strong> 
-                    Si un producto tiene un margen negativo, estás perdiendo dinero con cada venta.<br><br>
-                    <em>Consejo de oro:</em> Revisa regularmente los productos con mayor margen y promuévelos. 
-                    Son tus mejores aliados financieros.`,
+                    title: '📦 Inventario Completo',
+                    desc: `<strong>La base de datos de tus productos.</strong><br><br>
+                    <strong>Acciones disponibles:</strong><br>
+                    • <strong>➕ Agregar:</strong> Nuevos productos con precio y stock.<br>
+                    • <strong>✏️ Editar:</strong> Actualiza precios y stock.<br>
+                    • <strong>🗑️ Eliminar:</strong> Da de baja productos.<br><br>
+                    <em>El margen te muestra la rentabilidad de cada producto.</em>`,
                     page: '/inventario',
                     nextPage: '/vendedores'
                 },
                 {
                     target: '.section-title',
-                    title: '👥 Gestión de Vendedores (Tu Equipo en Acción)',
-                    desc: `<strong>Aquí es donde creas y administras a tu fuerza de ventas.</strong><br><br>
-                    <strong>¿Cómo funciona?</strong><br>
-                    • <strong>➕ Crear Vendedor:</strong> Escribe el nombre del vendedor y el sistema genera automáticamente 
-                    un <strong>ID único de 8 caracteres</strong> (ej: AAAA0000).<br>
-                    • <strong>🔑 Ese ID es su llave de acceso:</strong> Con él, el vendedor puede iniciar sesión 
-                    en la <strong>App Android</strong> de OmniVentas y registrar ventas desde su teléfono, esté donde esté.<br>
-                    • <strong>🔄 Estado:</strong> Puedes activar o desactivar vendedores. 
-                    Si un vendedor ya no trabaja contigo, <strong>desactívalo, no lo borres</strong>. 
-                    Así conservas el historial de sus ventas para análisis futuros.<br><br>
-                    <em>Importante:</em> Solo los administradores pueden gestionar vendedores. 
-                    Es una función exclusiva para dueños y gerentes. 
-                    Si necesitas que otro usuario gestione vendedores, cambia su rol en la base de datos.`,
+                    title: '👥 Gestión de Vendedores',
+                    desc: `<strong>Administra tu fuerza de ventas.</strong><br><br>
+                    • <strong>➕ Crear Vendedor:</strong> Genera un ID único de 8 caracteres.<br>
+                    • <strong>🔑 ID de acceso:</strong> El vendedor lo usa en la App Android.<br>
+                    • <strong>🔄 Estado:</strong> Activa o desactiva vendedores.`,
                     page: '/vendedores',
                     nextPage: '/finanzas'
                 },
                 {
                     target: '.section-header-wrapper',
-                    title: '💰 Análisis Financiero (Tu Contador Personal)',
-                    desc: `<strong>Esta sección es tu brújula económica.</strong> Aquí no adivinas, sabes con certeza cómo está tu dinero.<br><br>
-                    <strong>¿Qué te enseña esta sección?</strong><br>
-                    • <strong>📊 Ingresos vs Gastos:</strong> El gráfico de barras te muestra si estás ganando más de lo que gastas. 
-                    Si la barra de gastos es más alta, tienes un problema grave y necesitas ajustar tus costos.<br>
-                    • <strong>🥧 Distribución de Gastos:</strong> El gráfico de torta te dice exactamente en qué se va tu dinero: 
-                    ¿Productos? ¿Transporte? ¿Publicidad? Si ves que la publicidad se come tus ganancias, puedes ajustar tu estrategia.<br>
-                    • <strong>📅 Resumen Mensual:</strong> La tabla te da un vistazo rápido de cómo fue cada mes. 
-                    Te ayuda a detectar estacionalidad (ej: en diciembre se vende más, en febrero menos).<br><br>
-                    <em>Objetivo:</em> Que siempre sepas si estás ganando o perdiendo dinero. 
-                    <strong>Nunca tomes decisiones financieras sin consultar esta sección.</strong>`,
+                    title: '💰 Análisis Financiero',
+                    desc: `<strong>Tu brújula económica.</strong><br><br>
+                    • <strong>📊 Ingresos vs Gastos:</strong> ¿Estás ganando más de lo que gastas?<br>
+                    • <strong>🥧 Distribución de Gastos:</strong> ¿En qué se va tu dinero?<br>
+                    • <strong>📅 Resumen Mensual:</strong> Visualiza el rendimiento mes a mes.`,
                     page: '/finanzas',
                     nextPage: '/analisis'
                 },
                 {
                     target: '.section-header-wrapper',
-                    title: '🧠 Análisis Avanzado (Tu Inteligencia de Negocio)',
-                    desc: `<strong>Esta es la sección para tomar decisiones estratégicas.</strong> 
-                    Los datos crudos están bien, pero aquí los convertimos en <strong>información accionable</strong>.<br><br>
-                    <strong>Herramientas clave:</strong><br>
-                    • <strong>🏆 Top 10 Productos:</strong> Descubre cuáles son tus "vacas sagradas". 
-                    Son los productos que más unidades venden y más ganancia dejan. Invierte más en promocionarlos.<br>
-                    • <strong>📈 Tendencia de Ventas:</strong> Un gráfico de línea que te muestra si tu negocio 
-                    está creciendo, estancado o en declive. Si ves una tendencia a la baja, actúa rápido.<br>
-                    • <strong>🏷️ Clasificación ABC:</strong> Un método profesional de gestión de inventario que clasifica tus productos en:<br>
-                    &nbsp;&nbsp;&nbsp; - <span style="color: #10B981;"><strong>A (80%):</strong></span> Tus productos estrella. 
-                    El 20% de tus productos generan el 80% de tu ganancia. Cuídalos como oro.<br>
-                    &nbsp;&nbsp;&nbsp; - <span style="color: #F59E0B;"><strong>B (15%):</strong></span> Productos de rendimiento medio. 
-                    Mantenlos, pero no inviertas demasiado en promocionarlos.<br>
-                    &nbsp;&nbsp;&nbsp; - <span style="color: #EF4444;"><strong>C (5%):</strong></span> Productos de bajo rendimiento. 
-                    Analiza si vale la pena mantenerlos en tu inventario.<br><br>
-                    <em>Consejo de experto:</em> Invierte tu tiempo, dinero y esfuerzo en los productos de categoría A. 
-                    Son los que realmente hacen crecer tu negocio.`,
+                    title: '🧠 Análisis Avanzado',
+                    desc: `<strong>Decisiones basadas en datos.</strong><br><br>
+                    • <strong>🏆 Top 10 Productos:</strong> Tus "vacas sagradas".<br>
+                    • <strong>📈 Tendencia de Ventas:</strong> ¿Tu negocio está creciendo?<br>
+                    • <strong>🏷️ Clasificación ABC:</strong> Prioriza tus productos.`,
                     page: '/analisis',
                     nextPage: '/clientes'
                 },
                 {
                     target: '.section-header-wrapper',
-                    title: '👤 Gestión de Clientes (Tu Base de Datos de Oro)',
-                    desc: `<strong>Esta sección está en desarrollo, pero te explicamos su potencial porque es VITAL para tu éxito.</strong><br><br>
-                    En futuras versiones, podrás:<br>
-                    • <strong>📇 Registrar Clientes:</strong> Guardar el nombre, email y teléfono de todos los que te compran.<br>
-                    • <strong>🛍️ Historial de Compras:</strong> Ver exactamente qué compró cada cliente, cuánto gastó y cuándo.<br>
-                    • <strong>🎁 Fidelización:</strong> Con estos datos, podrás identificar a tus mejores clientes y ofrecerles promociones especiales. 
-                    Un cliente feliz y bien tratado es la mejor publicidad que puedes tener.<br><br>
-                    <strong>Mientras tanto, empieza a recolectar la información de tus clientes en una libreta.</strong> 
-                    Cuando la funcionalidad esté lista, podrás importar todos esos datos de una sola vez.<br><br>
-                    <em>No subestimes esta sección:</em> Un cliente fidelizado gasta hasta un 30% más que uno nuevo. 
-                    Invierte en conocer a tus clientes.`,
+                    title: '👤 Gestión de Clientes',
+                    desc: `<strong>Tu base de datos de oro.</strong><br><br>
+                    <strong>Próximamente podrás:</strong><br>
+                    • <strong>📇 Registrar Clientes:</strong> Guarda contactos.<br>
+                    • <strong>🛍️ Historial de Compras:</strong> Seguimiento de compras.<br>
+                    • <strong>🎁 Fidelización:</strong> Identifica a tus mejores clientes.`,
                     page: '/clientes',
                     nextPage: null
                 }
@@ -2022,23 +1994,30 @@
             let currentStepIndex = 0;
             let isRunning = false;
 
-            // 2. INICIALIZACIÓN (DETECCIÓN DE PRIMERA VEZ - MODO PRODUCCIÓN)
+            // Función pública para iniciar el tour desde el botón
+            window._onboardingInstance = {
+                startTour: function() {
+                    startTour();
+                },
+                goToStep: function(index) {
+                    goToStep(index);
+                },
+                finishTour: function() {
+                    finishTour();
+                }
+            };
+
+            // 2. INICIALIZACIÓN
             function initOnboarding() {
-                // 🔥 MODO PRODUCCIÓN: Solo se muestra si es la primera visita
                 const onboardingComplete = localStorage.getItem("omniventas_onboarding_complete");
                 const currentPage = window.location.pathname;
-                
-                // Verificar si venimos de un paso guardado en sessionStorage
                 const savedStep = sessionStorage.getItem('onboarding_next_step');
                 
-                // Lógica de visualización en producción:
                 if (!onboardingComplete && currentPage === '/dashboard') {
-                    // Es la primera visita y estamos en /dashboard
                     setTimeout(() => {
                         startTour();
                     }, 800);
                 } else if (savedStep !== null) {
-                    // Reanudar el tutorial en el paso guardado
                     const stepIndex = parseInt(savedStep);
                     if (stepIndex < STEPS.length) {
                         setTimeout(() => {
@@ -2056,12 +2035,15 @@
                 OVERLAY.classList.add('active');
                 TOTAL_STEPS.textContent = STEPS.length;
                 
-                // Encontrar el índice correcto basado en la página actual
+                // Mostrar la card con animación
+                setTimeout(() => {
+                    CARD.classList.add('active');
+                }, 150);
+                
                 const startIndex = STEPS.findIndex(step => step.page === window.location.pathname);
                 if (startIndex !== -1) {
                     goToStep(startIndex);
                 } else {
-                    // Si no encuentra coincidencia, empezar desde el principio
                     goToStep(0);
                 }
             }
@@ -2071,22 +2053,18 @@
                 currentStepIndex = index;
                 const step = STEPS[index];
 
-                // Limpiar resaltado anterior
                 document.querySelectorAll('.onboarding-highlight').forEach(el => el.classList.remove('onboarding-highlight'));
 
-                // Actualizar texto con HTML (permitimos etiquetas <strong>, <em>, <span>, <br>)
                 TITLE.innerHTML = step.title;
                 DESC.innerHTML = step.desc;
                 CURRENT_STEP.textContent = index + 1;
 
-                // Scroll y resaltado del elemento objetivo
                 const targetElement = document.querySelector(step.target);
                 if (targetElement) {
                     targetElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
                     targetElement.classList.add('onboarding-highlight');
                 }
 
-                // Control de botones
                 BTN_PREV.style.display = (index === 0) ? 'none' : 'inline-flex';
                 BTN_NEXT.textContent = (index === STEPS.length - 1) ? '✅ ¡Entendido!' : 'Siguiente →';
             }
@@ -2096,9 +2074,7 @@
                 const currentStep = STEPS[currentStepIndex];
                 
                 if (currentStepIndex < STEPS.length - 1) {
-                    // Si hay un nextPage definido y no es la misma página, navegar
                     if (currentStep.nextPage && currentStep.nextPage !== window.location.pathname) {
-                        // Guardar el progreso en sessionStorage para recordar el paso
                         sessionStorage.setItem('onboarding_next_step', currentStepIndex + 1);
                         window.location.href = currentStep.nextPage;
                     } else {
@@ -2120,15 +2096,17 @@
             // 6. FINALIZAR EL TOUR
             function finishTour() {
                 isRunning = false;
-                OVERLAY.classList.remove('active');
+                CARD.classList.remove('active');
+                setTimeout(() => {
+                    OVERLAY.classList.remove('active');
+                }, 400);
                 document.querySelectorAll('.onboarding-highlight').forEach(el => el.classList.remove('onboarding-highlight'));
-                // Guardar en localStorage para no volver a mostrar
                 localStorage.setItem("omniventas_onboarding_complete", "true");
                 sessionStorage.removeItem('onboarding_next_step');
-                console.log("✅ Tutorial completado. ¡Bienvenido a OmniVentas!");
+                console.log("✅ Tutorial completado.");
             }
 
-            // 7. SOPORTE PARA TECLADO (Flechas)
+            // 7. SOPORTE PARA TECLADO
             document.addEventListener('keydown', function(e) {
                 if (!isRunning) return;
                 if (e.key === 'ArrowRight' || e.key === 'Enter') BTN_NEXT.click();
@@ -2136,12 +2114,11 @@
                 if (e.key === 'Escape') BTN_SKIP.click();
             });
 
-            // 8. EJECUTAR AL CARGAR LA PÁGINA
+            // 8. EJECUTAR AL CARGAR
             document.addEventListener('DOMContentLoaded', function() {
-                // Pequeña pausa para asegurar que todo el DOM está renderizado
                 setTimeout(() => {
                     initOnboarding();
-                }, 1000);
+                }, 500);
             });
 
         })();
@@ -2150,7 +2127,6 @@
         // INICIALIZACIÓN PRINCIPAL
         // ============================================================
         document.addEventListener('DOMContentLoaded', function() {
-            // Fecha
             document.getElementById('today-date').textContent = new Date().toLocaleDateString('es-ES', {
                 day: '2-digit',
                 month: 'short'
@@ -2158,7 +2134,6 @@
             
             updateTimestamp();
 
-            // Botones de período
             document.querySelectorAll('[data-period]').forEach(btn => {
                 btn.addEventListener('click', function() {
                     const period = this.getAttribute('data-period');
@@ -2169,15 +2144,12 @@
                 });
             });
 
-            // Botón de actualización manual
             document.getElementById('manual-refresh').addEventListener('click', function() {
                 loadDashboardData();
                 loadSalesData(currentPeriod);
             });
 
-            // ============================================================
             // WEBSOCKET
-            // ============================================================
             try {
                 socket = io({
                     reconnection: true,
@@ -2220,23 +2192,17 @@
                 console.warn('⚠️ WebSocket no disponible:', error);
             }
 
-            // ============================================================
             // INTERVALO DE ACTUALIZACIÓN (15 segundos)
-            // ============================================================
             refreshInterval = setInterval(() => {
                 console.log('🔄 Actualización automática del dashboard...');
                 loadDashboardData();
                 loadSalesData(currentPeriod);
             }, 15000);
 
-            // ============================================================
-            // CARGA INICIAL
-            // ============================================================
             console.log('🚀 Cargando datos iniciales del dashboard...');
             loadDashboardData();
             loadSalesData(currentPeriod);
 
-            // Badge de ventas en sidebar desde el inicio
             setTimeout(() => {
                 const badge = document.getElementById('sidebar-ventas-count');
                 if (badge) {
@@ -2248,9 +2214,7 @@
             }, 1000);
         });
 
-        // ============================================================
         // LIMPIEZA
-        // ============================================================
         window.addEventListener('beforeunload', function() {
             if (refreshInterval) {
                 clearInterval(refreshInterval);
