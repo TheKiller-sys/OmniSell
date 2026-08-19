@@ -70,7 +70,7 @@ public class SyncWorker extends Worker {
             if (response.isSuccessful() && response.body() != null && response.body().isSuccess()) {
                 List<Producto> productos = response.body().getProductos();
                 
-                // ← CORREGIDO: Ejecutar en hilo secundario
+                // Ejecutar en hilo secundario
                 executorService.execute(() -> {
                     try {
                         List<ProductoEntity> entities = new ArrayList<>();
@@ -130,7 +130,7 @@ public class SyncWorker extends Worker {
                 Response<VentaResponse> response = call.execute();
 
                 if (response.isSuccessful() && response.body() != null && response.body().isSuccess()) {
-                    // ← CORREGIDO: Ejecutar en hilo secundario
+                    // Ejecutar en hilo secundario
                     executorService.execute(() -> {
                         try {
                             database.ventaDao().marcarSincronizada(venta.getId());
@@ -145,7 +145,7 @@ public class SyncWorker extends Worker {
                     if (response.errorBody() != null) {
                         errorMsg = response.errorBody().string();
                     }
-                    // ← CORREGIDO: Ejecutar en hilo secundario
+                    // Ejecutar en hilo secundario
                     executorService.execute(() -> {
                         try {
                             database.ventaDao().setError(venta.getId(), errorMsg);
@@ -176,13 +176,5 @@ public class SyncWorker extends Worker {
                 Log.e(TAG, "❌ Error eliminando ventas sincronizadas: " + e.getMessage());
             }
         });
-    }
-
-    @Override
-    public void onStopped() {
-        super.onStopped();
-        if (executorService != null) {
-            executorService.shutdown();
-        }
     }
 }
