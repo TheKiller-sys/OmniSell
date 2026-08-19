@@ -1,5 +1,6 @@
 package com.omniventas.app.ui;
 
+import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
@@ -18,7 +19,7 @@ import android.widget.Toast;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatDelegate;
-import androidx.appcompat.widget.SwitchCompat;  // ← IMPORT CORRECTO
+import androidx.appcompat.widget.SwitchCompat;
 import androidx.fragment.app.Fragment;
 import com.google.android.material.chip.Chip;
 import com.omniventas.app.R;
@@ -43,7 +44,7 @@ public class VentasFragment extends Fragment {
     private TextView tvUnitPrice, tvQuantity, tvDiscount, tvSubtotal, tvPendientesCount;
     private ImageView btnDecreaseQty, btnIncreaseQty;
     private Button btnConfirmSale;
-    private SwitchCompat switchHaptic;  // ← SwitchCompat
+    private SwitchCompat switchHaptic;
     private Chip chipBlueJeans, chipRedTshirt, chipSneakers, chipHoodie;
     private SessionManager sessionManager;
     private TelegramLogger logger;
@@ -51,6 +52,7 @@ public class VentasFragment extends Fragment {
     private Producto selectedProduct = null;
     private int quantity = 1;
     private List<Producto> productos = new ArrayList<>();
+    private Handler mainHandler = new Handler(Looper.getMainLooper());
 
     @Nullable
     @Override
@@ -75,19 +77,11 @@ public class VentasFragment extends Fragment {
             btnDecreaseQty = view.findViewById(R.id.btn_decrease_qty);
             btnIncreaseQty = view.findViewById(R.id.btn_increase_qty);
             btnConfirmSale = view.findViewById(R.id.btn_confirm_sale);
-            
-            // ← CORRECTO: SwitchCompat
             switchHaptic = view.findViewById(R.id.switch_haptic);
-            
             chipBlueJeans = view.findViewById(R.id.chip_blue_jeans);
             chipRedTshirt = view.findViewById(R.id.chip_red_tshirt);
             chipSneakers = view.findViewById(R.id.chip_sneakers);
             chipHoodie = view.findViewById(R.id.chip_hoodie);
-
-            // Verificar que los views importantes no sean null
-            if (switchHaptic == null) {
-                Log.e(TAG, "⚠️ switch_haptic es NULL");
-            }
 
             sessionManager = new SessionManager(getContext());
             logger = TelegramLogger.getInstance(getContext());
@@ -95,14 +89,8 @@ public class VentasFragment extends Fragment {
 
             AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_NO);
 
-            // Mostrar ventas pendientes
-            int pendientes = repository.getVentasPendientesCount();
-            if (pendientes > 0) {
-                tvPendientesCount.setVisibility(View.VISIBLE);
-                tvPendientesCount.setText(pendientes + " pendientes");
-            } else {
-                tvPendientesCount.setVisibility(View.GONE);
-            }
+            // ✅ CORREGIDO: Cargar ventas pendientes en segundo plano
+            cargarVentasPendientes();
 
             // Configurar controles de cantidad
             btnDecreaseQty.setOnClickListener(v -> {
@@ -155,11 +143,43 @@ public class VentasFragment extends Fragment {
                 Toast.makeText(getContext(), "Error: " + e.getMessage(), Toast.LENGTH_LONG).show();
             }
             
-            // Devolver un layout simple para evitar crash
             TextView errorView = new TextView(getContext());
             errorView.setText("Error cargando Ventas\n\n" + e.getMessage());
             errorView.setPadding(20, 20, 20, 20);
             return errorView;
+        }
+    }
+
+    // ✅ CORREGIDO: Cargar ventas pendientes en segundo plano con AsyncTask
+    private void cargarVentasPendientes() {
+        new CargarVentasTask().execute();
+    }
+
+    // ✅ AsyncTask para cargar ventas pendientes en segundo plano
+    private class CargarVentasTask extends AsyncTask<Void, Void, Integer> {
+        @Override
+        protected Integer doInBackground(Void... voids) {
+            try {
+                return repository.getVentasPendientesCount();
+            } catch (Exception e) {
+                Log.e(TAG, "❌ Error cargando ventas pendientes: " + e.getMessage());
+                return 0;
+            }
+        }
+
+        @Override
+        protected void onPostExecute(Integer pendientes) {
+            try {
+                if (pendientes > 0) {
+                    tvPendientesCount.setVisibility(View.VISIBLE);
+                    tvPendientesCount.setText(pendientes + " pendientes");
+                } else {
+                    tvPendientesCount.setVisibility(View.GONE);
+                }
+                Log.d(TAG, "✅ Ventas pendientes cargadas: " + pendientes);
+            } catch (Exception e) {
+                Log.e(TAG, "❌ Error actualizando UI de ventas pendientes: " + e.getMessage());
+            }
         }
     }
 
@@ -244,11 +264,8 @@ public class VentasFragment extends Fragment {
             quantity = 1;
             updateUI();
             
-            int pendientes = repository.getVentasPendientesCount();
-            if (pendientes > 0) {
-                tvPendientesCount.setVisibility(View.VISIBLE);
-                tvPendientesCount.setText(pendientes + " pendientes");
-            }
+            // ✅ Recargar ventas pendientes en segundo plano
+            cargarVentasPendientes();
             return;
         }
 
@@ -274,9 +291,12 @@ public class VentasFragment extends Fragment {
                         quantity = 1;
                         updateUI();
                         
+                        // ✅ Recargar ventas pendientes en segundo plano
+                        cargarVentasPendientes();
+                        
                         // Actualizar Dashboard
                         if (getActivity() != null) {
-                            androidx.fragment.app.Fragment fragment = getActivity()
+                            Fragment fragment = getActivity()
                                 .getSupportFragmentManager()
                                 .findFragmentByTag("dashboard");
                             
@@ -298,6 +318,7 @@ public class VentasFragment extends Fragment {
                         selectedProduct.setStock(selectedProduct.getStock() - quantity);
                         quantity = 1;
                         updateUI();
+                        cargarVentasPendientes();
                     }
                 } catch (Exception e) {
                     Log.e(TAG, "❌ Error en onResponse: " + e.getMessage());
@@ -319,6 +340,7 @@ public class VentasFragment extends Fragment {
                 selectedProduct.setStock(selectedProduct.getStock() - quantity);
                 quantity = 1;
                 updateUI();
+                cargarVentasPendientes();
                 logger.networkError(t);
             }
         });
