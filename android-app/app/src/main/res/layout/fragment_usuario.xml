@@ -24,7 +24,7 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:text="Seller Profile"
+                android:text="@string/usuario_titulo"
                 android:textSize="24sp"
                 android:textStyle="bold"
                 android:textColor="@color/dark" />
@@ -37,7 +37,7 @@
                 android:background="?attr/selectableItemBackgroundBorderless" />
         </LinearLayout>
 
-        <!-- Profile Card -->
+        <!-- Tarjeta de Perfil -->
         <com.google.android.material.card.MaterialCardView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -77,7 +77,7 @@
                             android:id="@+id/tv_vendor_name"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="Vendor"
+                            android:text="@string/usuario_vendedor"
                             android:textColor="@color/white"
                             android:textSize="20sp"
                             android:textStyle="bold" />
@@ -85,7 +85,7 @@
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="Top Seller"
+                            android:text="@string/usuario_top"
                             android:textColor="@color/white_alpha_80"
                             android:textSize="14sp" />
                     </LinearLayout>
@@ -101,12 +101,12 @@
                     android:id="@+id/tv_vendor_category"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Electronics"
+                    android:text="Electrónica"
                     android:textColor="@color/white_alpha_80"
                     android:textSize="14sp"
                     android:layout_marginTop="8dp" />
 
-                <!-- Monthly Goal -->
+                <!-- Meta Mensual -->
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
@@ -122,7 +122,7 @@
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
-                            android:text="Monthly Goal"
+                            android:text="@string/usuario_meta_mensual"
                             android:textColor="@color/white_alpha_80"
                             android:textSize="12sp" />
 
@@ -149,11 +149,11 @@
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 
-        <!-- Achievements -->
+        <!-- Logros -->
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Achievements"
+            android:text="@string/usuario_logros"
             android:textSize="16sp"
             android:textStyle="bold"
             android:textColor="@color/dark"
@@ -191,7 +191,7 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="PERFORMER"
+                        android:text="@string/usuario_top_performer"
                         android:textSize="8sp"
                         android:textColor="@color/primary" />
                 </LinearLayout>
@@ -223,7 +223,7 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="CONVERTER"
+                        android:text="@string/usuario_high_converter"
                         android:textSize="8sp"
                         android:textColor="@color/warning" />
                 </LinearLayout>
@@ -247,7 +247,7 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="FASTEST"
+                        android:text="FAST"
                         android:textSize="20sp"
                         android:textStyle="bold"
                         android:textColor="@color/success" />
@@ -255,90 +255,14 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="SALE"
+                        android:text="@string/usuario_fastest_sale"
                         android:textSize="8sp"
                         android:textColor="@color/success" />
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
         </LinearLayout>
 
-        <!-- Achievements Row 2 -->
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:layout_marginBottom="16dp">
-
-            <com.google.android.material.card.MaterialCardView
-                android:layout_width="0dp"
-                android:layout_height="60dp"
-                android:layout_weight="1"
-                android:layout_marginEnd="6dp"
-                app:cardCornerRadius="12dp"
-                app:cardElevation="2dp"
-                app:cardBackgroundColor="@color/info_light">
-
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="match_parent"
-                    android:orientation="horizontal"
-                    android:gravity="center"
-                    android:padding="8dp">
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="MAY"
-                        android:textSize="16sp"
-                        android:textStyle="bold"
-                        android:textColor="@color/info" />
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="15%+"
-                        android:textSize="12sp"
-                        android:textColor="@color/info"
-                        android:layout_marginStart="4dp" />
-                </LinearLayout>
-            </com.google.android.material.card.MaterialCardView>
-
-            <com.google.android.material.card.MaterialCardView
-                android:layout_width="0dp"
-                android:layout_height="60dp"
-                android:layout_weight="1"
-                android:layout_marginStart="6dp"
-                app:cardCornerRadius="12dp"
-                app:cardElevation="2dp"
-                app:cardBackgroundColor="@color/danger_light">
-
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="match_parent"
-                    android:orientation="horizontal"
-                    android:gravity="center"
-                    android:padding="8dp">
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="10X"
-                        android:textSize="16sp"
-                        android:textStyle="bold"
-                        android:textColor="@color/danger" />
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="TING"
-                        android:textSize="10sp"
-                        android:textColor="@color/danger"
-                        android:layout_marginStart="4dp" />
-                </LinearLayout>
-            </com.google.android.material.card.MaterialCardView>
-        </LinearLayout>
-
-        <!-- Quote -->
+        <!-- Cita -->
         <com.google.android.material.card.MaterialCardView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -350,7 +274,7 @@
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="Discipline today,\nFreedom tomorrow."
+                android:text="@string/usuario_disciplina"
                 android:textSize="16sp"
                 android:textStyle="italic"
                 android:textColor="@color/dark"
@@ -358,207 +282,12 @@
                 android:padding="20dp" />
         </com.google.android.material.card.MaterialCardView>
 
-        <!-- Mood Tracker -->
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Mood Tracker"
-            android:textSize="16sp"
-            android:textStyle="bold"
-            android:textColor="@color/dark"
-            android:layout_marginBottom="12dp" />
-
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:gravity="center"
-            android:layout_marginBottom="16dp">
-
-            <TextView
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="Mon"
-                android:textSize="12sp"
-                android:textColor="@color/gray"
-                android:gravity="center" />
-
-            <TextView
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="Tue"
-                android:textSize="12sp"
-                android:textColor="@color/gray"
-                android:gravity="center" />
-
-            <TextView
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="Wed"
-                android:textSize="12sp"
-                android:textColor="@color/gray"
-                android:gravity="center" />
-
-            <TextView
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="Thu"
-                android:textSize="12sp"
-                android:textColor="@color/gray"
-                android:gravity="center" />
-
-            <TextView
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="Fri"
-                android:textSize="12sp"
-                android:textColor="@color/gray"
-                android:gravity="center" />
-
-            <TextView
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="Sat"
-                android:textSize="12sp"
-                android:textColor="@color/gray"
-                android:gravity="center" />
-
-            <TextView
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="Sun"
-                android:textSize="12sp"
-                android:textColor="@color/gray"
-                android:gravity="center" />
-        </LinearLayout>
-
-        <!-- Mood Emojis -->
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:gravity="center"
-            android:layout_marginBottom="16dp">
-
-            <ImageView
-                android:layout_width="0dp"
-                android:layout_height="40dp"
-                android:layout_weight="1"
-                android:src="@drawable/ic_emotion_sleep"
-                android:scaleType="centerInside" />
-
-            <ImageView
-                android:layout_width="0dp"
-                android:layout_height="40dp"
-                android:layout_weight="1"
-                android:src="@drawable/ic_emotion_happy"
-                android:scaleType="centerInside" />
-
-            <ImageView
-                android:layout_width="0dp"
-                android:layout_height="40dp"
-                android:layout_weight="1"
-                android:src="@drawable/ic_emotion_excited"
-                android:scaleType="centerInside" />
-
-            <ImageView
-                android:layout_width="0dp"
-                android:layout_height="40dp"
-                android:layout_weight="1"
-                android:src="@drawable/ic_emotion_happy"
-                android:scaleType="centerInside" />
-
-            <ImageView
-                android:layout_width="0dp"
-                android:layout_height="40dp"
-                android:layout_weight="1"
-                android:src="@drawable/ic_emotion_neutral"
-                android:scaleType="centerInside" />
-
-            <ImageView
-                android:layout_width="0dp"
-                android:layout_height="40dp"
-                android:layout_weight="1"
-                android:src="@drawable/ic_emotion_happy"
-                android:scaleType="centerInside" />
-
-            <ImageView
-                android:layout_width="0dp"
-                android:layout_height="40dp"
-                android:layout_weight="1"
-                android:src="@drawable/ic_emotion_sleep"
-                android:scaleType="centerInside" />
-        </LinearLayout>
-
-        <!-- Haptic Touch Bar -->
-        <com.google.android.material.card.MaterialCardView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            app:cardCornerRadius="12dp"
-            app:cardElevation="2dp"
-            app:cardBackgroundColor="@color/primary"
-            android:layout_marginBottom="16dp">
-
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:gravity="center"
-                android:padding="16dp">
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="HAPTIC"
-                    android:textColor="@color/white"
-                    android:textSize="12sp"
-                    android:letterSpacing="0.2" />
-
-                <View
-                    android:layout_width="0dp"
-                    android:layout_height="1dp"
-                    android:layout_weight="1"
-                    android:background="@color/white_alpha_30"
-                    android:layout_marginHorizontal="8dp" />
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="TOUCH"
-                    android:textColor="@color/white"
-                    android:textSize="12sp"
-                    android:letterSpacing="0.2" />
-
-                <View
-                    android:layout_width="0dp"
-                    android:layout_height="1dp"
-                    android:layout_weight="1"
-                    android:background="@color/white_alpha_30"
-                    android:layout_marginHorizontal="8dp" />
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="BAR"
-                    android:textColor="@color/white"
-                    android:textSize="12sp"
-                    android:letterSpacing="0.2" />
-            </LinearLayout>
-        </com.google.android.material.card.MaterialCardView>
-
         <!-- Botones -->
         <Button
             android:id="@+id/btn_sync_manual"
             android:layout_width="match_parent"
             android:layout_height="48dp"
-            android:text="Sincronizar Ahora"
+            android:text="@string/usuario_sincronizar"
             android:textSize="14sp"
             android:textStyle="bold"
             android:textColor="@color/white"
@@ -570,7 +299,7 @@
             android:id="@+id/btn_cerrar_sesion"
             android:layout_width="match_parent"
             android:layout_height="48dp"
-            android:text="Cerrar Sesión"
+            android:text="@string/usuario_cerrar_sesion"
             android:textSize="14sp"
             android:textStyle="bold"
             android:textColor="@color/white"
