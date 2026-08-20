@@ -78,7 +78,7 @@
         android:id="@+id/tv_total_venta"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="@string/modal_total $0.00"
+        android:text="Total: $0.00"
         android:textSize="18sp"
         android:textStyle="bold"
         android:textColor="@color/primary"
