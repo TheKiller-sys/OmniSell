@@ -29,7 +29,6 @@
             android:text="Fecha"
             android:textSize="12sp"
             android:textColor="@color/gray" />
-
     </LinearLayout>
 
     <TextView
@@ -58,5 +57,4 @@
         android:tint="@color/warning"
         android:visibility="gone"
         android:layout_marginStart="8dp" />
-
 </LinearLayout>
