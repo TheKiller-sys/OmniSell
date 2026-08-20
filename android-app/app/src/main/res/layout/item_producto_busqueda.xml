@@ -28,7 +28,6 @@
             android:text="Sección"
             android:textSize="12sp"
             android:textColor="@color/gray" />
-
     </LinearLayout>
 
     <TextView
@@ -39,5 +38,4 @@
         android:textSize="16sp"
         android:textStyle="bold"
         android:textColor="@color/primary" />
-
 </LinearLayout>
