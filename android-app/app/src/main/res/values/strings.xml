@@ -1,33 +1,101 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <!-- Nombre de la app -->
     <string name="app_name">OmniVentas</string>
+    
+    <!-- Login -->
     <string name="login_title">OmniVentas</string>
     <string name="login_subtitle">Acceso para Vendedores</string>
     <string name="login_hint">ID de Vendedor</string>
     <string name="login_button">Ingresar</string>
     <string name="login_help">Contacta al administrador para obtener tu ID</string>
-    <string name="registrar_venta">Registrar Venta</string>
-    <string name="buscar_producto">Buscar producto...</string>
-    <string name="cantidad">Cantidad</string>
-    <string name="total">Total</string>
-    <string name="cancelar">Cancelar</string>
-    <string name="registrar">Registrar</string>
-    <string name="ventas_hoy">Ventas de Hoy</string>
-    <string name="sin_ventas_hoy">No hay ventas registradas hoy</string>
-    <string name="inventario">Inventario</string>
-    <string name="productos">Productos</string>
-    <string name="stock_bajo">Stock Bajo</string>
-    <string name="sin_stock">Sin Stock</string>
+    <string name="login_verificando">Verificando...</string>
+    <string name="login_error_id_vacio">Ingresa tu ID de vendedor</string>
+    <string name="login_error_id_longitud">El ID debe tener 8 caracteres</string>
+    <string name="login_error_id_formato">Solo letras y números</string>
+    <string name="login_error_servidor">Error del servidor</string>
+    <string name="login_error_conexion">Error de conexión</string>
+    
+    <!-- Dashboard -->
+    <string name="dashboard_titulo">Panel de Control</string>
+    <string name="dashboard_saludo_manana">Buenos días</string>
+    <string name="dashboard_saludo_tarde">Buenas tardes</string>
+    <string name="dashboard_saludo_noche">Buenas noches</string>
+    <string name="dashboard_vivo">En Vivo</string>
+    <string name="dashboard_hoy">Hoy</string>
+    <string name="dashboard_meta_diaria">Meta Diaria</string>
+    <string name="dashboard_producto_destacado">Producto Destacado Hoy</string>
+    <string name="dashboard_sin_ventas">Sin ventas aún</string>
+    <string name="dashboard_pedidos_pendientes">Pedidos Pendientes</string>
+    <string name="dashboard_tasa_conversion">Tasa de Conversión</string>
+    <string name="dashboard_bueno">Bueno</string>
+    <string name="dashboard_ver_todos">Ver todos →</string>
+    <string name="dashboard_cargando">Cargando datos...</string>
+    <string name="dashboard_offline">📡 Sin conexión - Mostrando datos locales</string>
+    <string name="dashboard_actualizado">Actualizado ahora</string>
+    
+    <!-- Ventas -->
+    <string name="ventas_titulo">Nueva Venta</string>
+    <string name="ventas_buscar">Buscar producto...</string>
+    <string name="ventas_sugerencias">Sugerencias populares</string>
+    <string name="ventas_total_vivo">TOTAL EN VIVO</string>
+    <string name="ventas_vs_ultima">vs última venta</string>
+    <string name="ventas_seleccionar">Selecciona un producto</string>
+    <string name="ventas_precio_unitario">Precio Unitario</string>
+    <string name="ventas_cantidad">Cantidad</string>
+    <string name="ventas_descuento">Descuento</string>
+    <string name="ventas_subtotal">Subtotal</string>
+    <string name="ventas_feedback_haptico">Feedback Háptico</string>
+    <string name="ventas_confirmar">Confirmar Venta</string>
+    <string name="ventas_confirmada">✅ Venta confirmada</string>
+    <string name="ventas_offline">💾 Venta guardada OFFLINE</string>
+    <string name="ventas_pendientes">pendientes</string>
+    <string name="ventas_sin_stock">Sin stock suficiente</string>
+    <string name="ventas_selecciona_primero">Selecciona un producto primero</string>
+    
+    <!-- Inventario -->
+    <string name="inventario_titulo">Inventario</string>
+    <string name="inventario_productos">Productos</string>
+    <string name="inventario_actualizado">Actualizado ahora</string>
+    <string name="inventario_todos">Todos</string>
+    <string name="inventario_stock_bajo">Stock Bajo</string>
+    <string name="inventario_electronica">Electrónica</string>
+    <string name="inventario_ropa">Ropa</string>
+    <string name="inventario_vacio">No hay productos en el inventario</string>
+    <string name="inventario_escanear">Escáner disponible en próxima versión</string>
+    
+    <!-- Usuario -->
+    <string name="usuario_titulo">Perfil de Vendedor</string>
+    <string name="usuario_vendedor">Vendedor</string>
+    <string name="usuario_top">Top Seller</string>
+    <string name="usuario_meta_mensual">Meta Mensual</string>
+    <string name="usuario_logros">Logros</string>
+    <string name="usuario_top_performer">TOP PERFORMER</string>
+    <string name="usuario_high_converter">HIGH CONVERTER</string>
+    <string name="usuario_fastest_sale">FASTEST SALE</string>
+    <string name="usuario_disciplina">Disciplina hoy,\nLibertad mañana.</string>
+    <string name="usuario_sincronizar">Sincronizar Ahora</string>
+    <string name="usuario_cerrar_sesion">Cerrar Sesión</string>
+    <string name="usuario_sincronizando">Sincronizando...</button>
+    <string name="usuario_sesion_cerrada">Sesión cerrada</string>
+    <string name="usuario_sincronizacion_iniciada">Sincronización iniciada</string>
+    
+    <!-- Modal de venta -->
+    <string name="modal_registrar_venta">Registrar Venta</string>
+    <string name="modal_buscar_producto">Buscar producto...</string>
+    <string name="modal_cantidad">Cantidad</string>
+    <string name="modal_total">Total</string>
+    <string name="modal_cancelar">Cancelar</string>
+    <string name="modal_registrar">Registrar</string>
+    <string name="modal_offline">💾 Modo Offline - Se sincronizará automáticamente</string>
+    
+    <!-- General -->
     <string name="cargando">Cargando...</string>
     <string name="error_conexion">Error de conexión</string>
-    <string name="usuario">Usuario</string>
-    <string name="cerrar_sesion">Cerrar Sesión</string>
-    <string name="mis_estadisticas">Mis Estadísticas</string>
-    <string name="ventas_totales">Ventas Totales</string>
-    <string name="productos_vendidos">Productos Vendidos</string>
-    <string name="principal">Principal</string>
-    <string name="ventas">Ventas</string>
-    <string name="sincronizando">Sincronizando...</string>
     <string name="sin_conexion">Sin conexión - Modo Offline</string>
     <string name="offline_mode">Modo Offline</string>
+    <string name="principal">Principal</string>
+    <string name="ventas">Ventas</string>
+    <string name="inventario">Inventario</string>
+    <string name="usuario">Usuario</string>
 </resources>
