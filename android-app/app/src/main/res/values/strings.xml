@@ -76,7 +76,7 @@
     <string name="usuario_disciplina">Disciplina hoy,\nLibertad mañana.</string>
     <string name="usuario_sincronizar">Sincronizar Ahora</string>
     <string name="usuario_cerrar_sesion">Cerrar Sesión</string>
-    <string name="usuario_sincronizando">Sincronizando...</button>
+    <string name="usuario_sincronizando">Sincronizando...</string>
     <string name="usuario_sesion_cerrada">Sesión cerrada</string>
     <string name="usuario_sincronizacion_iniciada">Sincronización iniciada</string>
     
