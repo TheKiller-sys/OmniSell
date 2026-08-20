@@ -19,7 +19,7 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="New Sale"
+            android:text="@string/ventas_titulo"
             android:textSize="24sp"
             android:textStyle="bold"
             android:textColor="@color/dark" />
@@ -37,7 +37,7 @@
             android:visibility="gone" />
     </LinearLayout>
 
-    <!-- Search Bar -->
+    <!-- Barra de búsqueda -->
     <com.google.android.material.card.MaterialCardView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -64,7 +64,7 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:hint="Search product..."
+                android:hint="@string/ventas_buscar"
                 android:background="@android:color/transparent"
                 android:padding="8dp"
                 android:textSize="16sp" />
@@ -77,11 +77,11 @@
         </LinearLayout>
     </com.google.android.material.card.MaterialCardView>
 
-    <!-- Popular Suggestions -->
+    <!-- Sugerencias populares -->
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Popular suggestions"
+        android:text="@string/ventas_sugerencias"
         android:textSize="14sp"
         android:textColor="@color/gray"
         android:layout_marginBottom="12dp" />
@@ -101,7 +101,7 @@
                 android:id="@+id/chip_blue_jeans"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Blue Jeans"
+                android:text="Jeans Azul"
                 app:chipBackgroundColor="@color/primary"
                 android:textColor="@color/white"
                 android:layout_marginEnd="8dp" />
@@ -110,7 +110,7 @@
                 android:id="@+id/chip_red_tshirt"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Red T-Shirt"
+                android:text="Camiseta Roja"
                 app:chipBackgroundColor="@color/light_gray"
                 android:textColor="@color/dark"
                 android:layout_marginEnd="8dp" />
@@ -119,7 +119,7 @@
                 android:id="@+id/chip_sneakers"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Sneakers"
+                android:text="Zapatillas"
                 app:chipBackgroundColor="@color/light_gray"
                 android:textColor="@color/dark"
                 android:layout_marginEnd="8dp" />
@@ -128,13 +128,13 @@
                 android:id="@+id/chip_hoodie"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Hoodie"
+                android:text="Buzo"
                 app:chipBackgroundColor="@color/light_gray"
                 android:textColor="@color/dark" />
         </LinearLayout>
     </HorizontalScrollView>
 
-    <!-- Live Total Card -->
+    <!-- Tarjeta Total en Vivo -->
     <com.google.android.material.card.MaterialCardView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -159,7 +159,7 @@
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
-                    android:text="LIVE TOTAL"
+                    android:text="@string/ventas_total_vivo"
                     android:textColor="@color/white_alpha_80"
                     android:textSize="12sp"
                     android:letterSpacing="0.1" />
@@ -191,7 +191,7 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="vs last sale"
+                        android:text="@string/ventas_vs_ultima"
                         android:textColor="@color/white_alpha_80"
                         android:textSize="10sp" />
                 </LinearLayout>
@@ -209,7 +209,7 @@
         </LinearLayout>
     </com.google.android.material.card.MaterialCardView>
 
-    <!-- Product Details -->
+    <!-- Detalles del Producto -->
     <com.google.android.material.card.MaterialCardView
         android:layout_width="match_parent"
         android:layout_height="0dp"
@@ -230,19 +230,19 @@
                 android:orientation="vertical"
                 android:padding="16dp">
 
-                <!-- Product Image Placeholder -->
+                <!-- Placeholder de imagen -->
                 <View
                     android:layout_width="match_parent"
                     android:layout_height="120dp"
                     android:background="@color/primary_light"
                     android:layout_marginBottom="12dp" />
 
-                <!-- Product Name -->
+                <!-- Nombre del producto -->
                 <TextView
                     android:id="@+id/tv_product_name"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Select a product"
+                    android:text="@string/ventas_seleccionar"
                     android:textSize="20sp"
                     android:textStyle="bold"
                     android:textColor="@color/dark" />
@@ -256,7 +256,7 @@
                     android:textColor="@color/gray"
                     android:layout_marginBottom="12dp" />
 
-                <!-- Price and Quantity Row -->
+                <!-- Precio y Cantidad -->
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
@@ -272,7 +272,7 @@
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="Unit Price"
+                            android:text="@string/ventas_precio_unitario"
                             android:textSize="12sp"
                             android:textColor="@color/gray" />
 
@@ -295,7 +295,7 @@
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="Quantity"
+                            android:text="@string/ventas_cantidad"
                             android:textSize="12sp"
                             android:textColor="@color/gray" />
 
@@ -337,7 +337,7 @@
                     </LinearLayout>
                 </LinearLayout>
 
-                <!-- Discount and Subtotal -->
+                <!-- Descuento y Subtotal -->
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
@@ -348,7 +348,7 @@
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
-                        android:text="Discount"
+                        android:text="@string/ventas_descuento"
                         android:textSize="14sp"
                         android:textColor="@color/gray" />
 
@@ -372,7 +372,7 @@
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
-                        android:text="Subtotal"
+                        android:text="@string/ventas_subtotal"
                         android:textSize="14sp"
                         android:textColor="@color/gray" />
 
@@ -386,7 +386,7 @@
                         android:textStyle="bold" />
                 </LinearLayout>
 
-                <!-- Haptic Feedback -->
+                <!-- Feedback Háptico -->
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
@@ -399,11 +399,10 @@
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
-                        android:text="Haptic Feedback"
+                        android:text="@string/ventas_feedback_haptico"
                         android:textSize="14sp"
                         android:textColor="@color/dark" />
 
-                    <!-- ← CORREGIDO: Usar SwitchCompat en lugar de Switch -->
                     <androidx.appcompat.widget.SwitchCompat
                         android:id="@+id/switch_haptic"
                         android:layout_width="wrap_content"
@@ -411,12 +410,12 @@
                         android:checked="true" />
                 </LinearLayout>
 
-                <!-- Confirm Sale Button -->
+                <!-- Botón Confirmar Venta -->
                 <Button
                     android:id="@+id/btn_confirm_sale"
                     android:layout_width="match_parent"
                     android:layout_height="56dp"
-                    android:text="Confirm Sale"
+                    android:text="@string/ventas_confirmar"
                     android:textSize="16sp"
                     android:textStyle="bold"
                     android:textColor="@color/white"
