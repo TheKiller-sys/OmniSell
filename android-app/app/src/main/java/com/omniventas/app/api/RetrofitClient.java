@@ -4,6 +4,8 @@ import android.content.Context;
 import android.content.SharedPreferences;
 import android.util.Log;
 
+import com.omniventas.app.BuildConfig;
+
 import java.io.IOException;
 import java.util.concurrent.TimeUnit;
 
@@ -20,15 +22,33 @@ public class RetrofitClient {
     private static final String TAG = "RetrofitClient";
     private static RetrofitClient instance;
     private ApiService apiService;
-    private static final String API_URL = "https://prueba-1-omni.onrender.com/";
+    private String apiUrl;
     private Context context;
 
     private RetrofitClient(Context context) {
         this.context = context.getApplicationContext();
+        
+        // 🔥 OBTENER URL DESDE BUILDCONFIG
+        this.apiUrl = BuildConfig.API_URL;
+        
+        // 🔥 SI LA URL ESTÁ VACÍA, USAR POR DEFECTO
+        if (this.apiUrl == null || this.apiUrl.isEmpty()) {
+            this.apiUrl = "https://omnisell-x19d.onrender.com/";
+            Log.w(TAG, "⚠️ API_URL vacía, usando default: " + apiUrl);
+        }
+        
+        // 🔥 ASEGURAR TRAILING SLASH
+        if (!this.apiUrl.endsWith("/")) {
+            this.apiUrl = this.apiUrl + "/";
+        }
+        
+        Log.d(TAG, "🚀 Inicializando RetrofitClient");
+        Log.d(TAG, "📍 URL: " + apiUrl);
 
         HttpLoggingInterceptor logging = new HttpLoggingInterceptor();
-        logging.setLevel(HttpLoggingInterceptor.Level.BODY);
+        logging.setLevel(BuildConfig.DEBUG ? HttpLoggingInterceptor.Level.BODY : HttpLoggingInterceptor.Level.NONE);
 
+        // Interceptor de autenticación
         Interceptor authInterceptor = chain -> {
             Request original = chain.request();
             SharedPreferences prefs = context.getSharedPreferences("OmniVentasSession", Context.MODE_PRIVATE);
@@ -43,26 +63,26 @@ public class RetrofitClient {
             return chain.proceed(original);
         };
 
+        // Interceptor de logging de respuestas
         Interceptor responseInterceptor = chain -> {
             Request request = chain.request();
             Response response = chain.proceed(request);
             
             Log.d(TAG, "📡 Código de respuesta: " + response.code());
+            Log.d(TAG, "📡 URL: " + request.url());
+            Log.d(TAG, "📡 Método: " + request.method());
             
-            try {
-                String bodyString = response.body().string();
-                Log.d(TAG, "📡 Cuerpo de la respuesta: " + bodyString);
-                
-                okhttp3.MediaType contentType = response.body().contentType();
-                okhttp3.ResponseBody newBody = okhttp3.ResponseBody.create(contentType, bodyString);
-                
-                return response.newBuilder()
-                    .body(newBody)
-                    .build();
-            } catch (Exception e) {
-                Log.e(TAG, "❌ Error leyendo respuesta: " + e.getMessage());
-                return response;
+            // 🔥 LOG DEL ERROR BODY SI EXISTE
+            if (!response.isSuccessful()) {
+                try {
+                    String errorBody = response.body() != null ? response.body().string() : "null";
+                    Log.e(TAG, "❌ Error Body: " + errorBody);
+                } catch (Exception e) {
+                    Log.e(TAG, "❌ Error leyendo errorBody: " + e.getMessage());
+                }
             }
+            
+            return response;
         };
 
         OkHttpClient client = new OkHttpClient.Builder()
@@ -72,6 +92,7 @@ public class RetrofitClient {
             .connectTimeout(30, TimeUnit.SECONDS)
             .readTimeout(30, TimeUnit.SECONDS)
             .writeTimeout(30, TimeUnit.SECONDS)
+            .retryOnConnectionFailure(true)
             .build();
 
         com.google.gson.Gson gson = new com.google.gson.GsonBuilder()
@@ -79,14 +100,15 @@ public class RetrofitClient {
             .create();
 
         Retrofit retrofit = new Retrofit.Builder()
-            .baseUrl(API_URL)
+            .baseUrl(apiUrl)
             .addConverterFactory(ScalarsConverterFactory.create())
             .addConverterFactory(GsonConverterFactory.create(gson))
             .client(client)
             .build();
 
         apiService = retrofit.create(ApiService.class);
-        Log.d(TAG, "✅ API URL: " + API_URL);
+        Log.d(TAG, "✅ RetrofitClient inicializado correctamente");
+        Log.d(TAG, "✅ URL final: " + apiUrl);
     }
 
     public static synchronized RetrofitClient getInstance(Context context) {
@@ -101,6 +123,9 @@ public class RetrofitClient {
     }
 
     public static String getApiUrl() {
-        return API_URL;
+        if (instance != null) {
+            return instance.apiUrl;
+        }
+        return BuildConfig.API_URL != null ? BuildConfig.API_URL : "https://omnisell-x19d.onrender.com/";
     }
-}
+            }
