@@ -7,15 +7,17 @@
     android:background="@drawable/bg_modal"
     android:padding="24dp">
 
+    <!-- Título -->
     <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Registrar Venta"
+        android:text="@string/modal_registrar_venta"
         android:textSize="20sp"
         android:textStyle="bold"
         android:textColor="@color/dark"
         android:layout_marginBottom="16dp" />
 
+    <!-- Buscar producto -->
     <com.google.android.material.textfield.TextInputLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -27,18 +29,20 @@
             android:id="@+id/et_buscar_producto"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:hint="@string/buscar_producto"
+            android:hint="@string/modal_buscar_producto"
             android:drawableStart="@drawable/ic_search"
             android:drawablePadding="12dp"
             android:textSize="16sp" />
     </com.google.android.material.textfield.TextInputLayout>
 
+    <!-- Lista de productos -->
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/rv_productos_busqueda"
         android:layout_width="match_parent"
         android:layout_height="200dp"
         android:layout_marginBottom="12dp" />
 
+    <!-- Producto seleccionado -->
     <TextView
         android:id="@+id/tv_producto_seleccionado"
         android:layout_width="match_parent"
@@ -51,6 +55,7 @@
         android:visibility="gone"
         android:layout_marginBottom="8dp" />
 
+    <!-- Cantidad -->
     <com.google.android.material.textfield.TextInputLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -62,17 +67,18 @@
             android:id="@+id/et_cantidad"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:hint="@string/cantidad"
+            android:hint="@string/modal_cantidad"
             android:inputType="number"
             android:text="1"
             android:textSize="16sp" />
     </com.google.android.material.textfield.TextInputLayout>
 
+    <!-- Total -->
     <TextView
         android:id="@+id/tv_total_venta"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Total: $0.00"
+        android:text="@string/modal_total $0.00"
         android:textSize="18sp"
         android:textStyle="bold"
         android:textColor="@color/primary"
@@ -80,6 +86,7 @@
         android:padding="12dp"
         android:layout_marginBottom="16dp" />
 
+    <!-- Botones -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -90,7 +97,7 @@
             android:layout_width="0dp"
             android:layout_height="48dp"
             android:layout_weight="1"
-            android:text="@string/cancelar"
+            android:text="@string/modal_cancelar"
             android:textSize="14sp"
             android:backgroundTint="@color/gray"
             android:layout_marginEnd="8dp"
@@ -101,19 +108,19 @@
             android:layout_width="0dp"
             android:layout_height="48dp"
             android:layout_weight="1"
-            android:text="@string/registrar"
+            android:text="@string/modal_registrar"
             android:textSize="14sp"
             android:textStyle="bold"
             android:backgroundTint="@color/primary"
             android:layout_marginStart="8dp"
             app:cornerRadius="12dp" />
-
     </LinearLayout>
 
+    <!-- Indicador offline -->
     <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="💾 Modo Offline - Se sincronizará automáticamente"
+        android:text="@string/modal_offline"
         android:textSize="11sp"
         android:textColor="@color/gray"
         android:gravity="center"
