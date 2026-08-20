@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <!-- Tema principal de la aplicación -->
     <style name="Theme.OmniVentas" parent="Theme.MaterialComponents.DayNight.NoActionBar">
         <item name="colorPrimary">@color/primary</item>
         <item name="colorPrimaryVariant">@color/primary_dark</item>
@@ -8,10 +9,19 @@
         <item name="colorOnSecondary">@color/white</item>
         <item name="android:statusBarColor">@color/primary_dark</item>
         <item name="android:windowBackground">@color/light_gray</item>
+        <item name="android:windowAnimationStyle">@style/Animation.Activity</item>
     </style>
 
+    <!-- Tema para Login -->
     <style name="Theme.OmniVentas.Login" parent="Theme.OmniVentas">
         <item name="android:statusBarColor">@color/primary_dark</item>
         <item name="android:windowBackground">@color/white</item>
+        <item name="android:windowAnimationStyle">@null</item>
+    </style>
+
+    <!-- Animación de actividad -->
+    <style name="Animation.Activity" parent="@android:style/Animation.Activity">
+        <item name="android:activityOpenEnterAnimation">@anim/fade_in</item>
+        <item name="android:activityCloseExitAnimation">@anim/fade_out</item>
     </style>
 </resources>
