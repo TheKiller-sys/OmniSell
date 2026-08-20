@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.swiperefreshlayout.widget.SwipeRefreshLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.swiperefreshlayout.widget.SwipeRefreshLayout 
+    xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:id="@+id/swipe_refresh"
     android:layout_width="match_parent"
@@ -34,7 +35,7 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Dashboard"
+                        android:text="@string/dashboard_titulo"
                         android:textSize="24sp"
                         android:textStyle="bold"
                         android:textColor="@color/dark" />
@@ -43,7 +44,7 @@
                         android:id="@+id/tv_greeting"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Good morning, Vendor"
+                        android:text="Buenos días, Vendedor"
                         android:textSize="14sp"
                         android:textColor="@color/gray" />
                 </LinearLayout>
@@ -71,7 +72,7 @@
                 android:layout_marginBottom="12dp"
                 android:visibility="gone" />
 
-            <!-- Live Now Card -->
+            <!-- Tarjeta En Vivo -->
             <androidx.cardview.widget.CardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -101,7 +102,7 @@
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="Live Now"
+                            android:text="@string/dashboard_vivo"
                             android:textColor="@color/white"
                             android:textSize="14sp"
                             android:fontFamily="sans-serif-medium" />
@@ -114,7 +115,7 @@
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="Today"
+                            android:text="@string/dashboard_hoy"
                             android:textColor="@color/white_alpha_80"
                             android:textSize="12sp" />
                     </LinearLayout>
@@ -148,7 +149,7 @@
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text=" of daily goal"
+                            android:text=" de la meta diaria"
                             android:textColor="@color/white_alpha_80"
                             android:textSize="14sp"
                             android:layout_marginStart="4dp" />
@@ -162,7 +163,7 @@
                             android:id="@+id/tv_daily_goal"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="Daily Goal $32,000"
+                            android:text="Meta $32,000"
                             android:textColor="@color/white_alpha_80"
                             android:textSize="12sp" />
                     </LinearLayout>
@@ -179,7 +180,7 @@
                 </LinearLayout>
             </androidx.cardview.widget.CardView>
 
-            <!-- Emotion Timeline -->
+            <!-- Timeline de Emociones -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -189,7 +190,7 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Emotion Timeline"
+                    android:text="Línea de Emociones"
                     android:textSize="16sp"
                     android:textStyle="bold"
                     android:textColor="@color/dark"
@@ -257,7 +258,6 @@
                         android:layout_height="1dp"
                         android:layout_weight="1"
                         android:background="@color/gray_light" />
-
                 </LinearLayout>
 
                 <LinearLayout
@@ -331,7 +331,7 @@
                 </LinearLayout>
             </LinearLayout>
 
-            <!-- Top Product Today -->
+            <!-- Producto Destacado -->
             <androidx.cardview.widget.CardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -356,7 +356,7 @@
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="Top Product Today"
+                            android:text="@string/dashboard_producto_destacado"
                             android:textSize="14sp"
                             android:textColor="@color/gray"
                             android:fontFamily="sans-serif-medium" />
@@ -365,7 +365,7 @@
                             android:id="@+id/tv_top_product_name"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="No sales yet"
+                            android:text="@string/dashboard_sin_ventas"
                             android:textSize="18sp"
                             android:textStyle="bold"
                             android:textColor="@color/dark"
@@ -390,7 +390,7 @@
                                 android:id="@+id/tv_top_product_quantity"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:text="0 sold"
+                                android:text="0 vendidos"
                                 android:textSize="14sp"
                                 android:textColor="@color/gray"
                                 android:layout_marginStart="8dp" />
@@ -407,7 +407,7 @@
                 </LinearLayout>
             </androidx.cardview.widget.CardView>
 
-            <!-- Pending Orders + Conversion Rate -->
+            <!-- Pedidos Pendientes + Tasa de Conversión -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -433,7 +433,7 @@
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="Pending Orders"
+                            android:text="@string/dashboard_pedidos_pendientes"
                             android:textSize="12sp"
                             android:textColor="@color/gray" />
 
@@ -449,14 +449,14 @@
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="Orders"
+                            android:text="Pedidos"
                             android:textSize="10sp"
                             android:textColor="@color/gray" />
 
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="View all →"
+                            android:text="@string/dashboard_ver_todos"
                             android:textSize="10sp"
                             android:textColor="@color/primary"
                             android:layout_marginTop="4dp" />
@@ -489,7 +489,7 @@
                                 android:layout_width="0dp"
                                 android:layout_height="wrap_content"
                                 android:layout_weight="1"
-                                android:text="Conversion Rate"
+                                android:text="@string/dashboard_tasa_conversion"
                                 android:textSize="12sp"
                                 android:textColor="@color/gray" />
 
@@ -518,7 +518,7 @@
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="Good"
+                            android:text="@string/dashboard_bueno"
                             android:textSize="12sp"
                             android:textColor="@color/success"
                             android:fontFamily="sans-serif-medium" />
