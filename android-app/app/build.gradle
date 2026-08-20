@@ -13,16 +13,25 @@ android {
         versionCode 15
         versionName "9.0.0"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+        
+        // URL de API desde gradle.properties o variable de entorno
+        buildConfigField "String", "API_URL", "\"${project.properties.getOrDefault('API_URL', 'https://omnisell-x19d.onrender.com/')}\""
     }
 
     buildTypes {
         release {
             minifyEnabled true
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            buildConfigField "String", "API_URL", "\"${project.properties.getOrDefault('API_URL', 'https://omnisell-x19d.onrender.com/')}\""
+            debuggable false
+            jniDebuggable false
+            renderscriptDebuggable false
+            zipAlignEnabled true
         }
         debug {
             minifyEnabled false
             debuggable true
+            buildConfigField "String", "API_URL", "\"${System.getenv('API_URL') ?: project.properties.getOrDefault('API_URL', 'https://omnisell-x19d.onrender.com/')}\""
         }
     }
 
@@ -30,9 +39,14 @@ android {
         sourceCompatibility JavaVersion.VERSION_1_8
         targetCompatibility JavaVersion.VERSION_1_8
     }
+    
+    buildFeatures {
+        buildConfig true
+    }
 }
 
 dependencies {
+    // AndroidX Core
     implementation 'androidx.appcompat:appcompat:1.6.1'
     implementation 'com.google.android.material:material:1.10.0'
     implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
@@ -58,6 +72,7 @@ dependencies {
     implementation 'com.google.code.gson:gson:2.10.1'
     implementation 'com.github.bumptech.glide:glide:4.16.0'
     
+    // Tests
     testImplementation 'junit:junit:4.13.2'
     androidTestImplementation 'androidx.test.ext:junit:1.1.5'
     androidTestImplementation 'androidx.test.espresso:espresso-core:3.5.1'
