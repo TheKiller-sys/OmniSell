@@ -3,7 +3,7 @@
     <domain-config cleartextTrafficPermitted="true">
         <domain includeSubdomains="true">10.0.2.2</domain>
         <domain includeSubdomains="true">localhost</domain>
-        <domain includeSubdomains="true">prueba-1-omni.onrender.com</domain>
+        <domain includeSubdomains="true">omnisell-x19d.onrender.com</domain>
         <domain includeSubdomains="true">onrender.com</domain>
     </domain-config>
 </network-security-config>
