@@ -19,7 +19,7 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="Inventory"
+            android:text="@string/inventario_titulo"
             android:textSize="24sp"
             android:textStyle="bold"
             android:textColor="@color/dark" />
@@ -33,7 +33,7 @@
             android:background="@drawable/bg_scan" />
     </LinearLayout>
 
-    <!-- Stats -->
+    <!-- Estadísticas -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -46,7 +46,7 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="0 Products ·"
+            android:text="0 Productos ·"
             android:textSize="14sp"
             android:textColor="@color/gray" />
 
@@ -54,12 +54,12 @@
             android:id="@+id/tv_updated_now"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Updated now"
+            android:text="@string/inventario_actualizado"
             android:textSize="12sp"
             android:textColor="@color/success" />
     </LinearLayout>
 
-    <!-- Category Tabs -->
+    <!-- Filtros por categoría -->
     <HorizontalScrollView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -76,7 +76,7 @@
                 android:id="@+id/chip_all"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="All"
+                android:text="@string/inventario_todos"
                 app:chipBackgroundColor="@color/primary"
                 android:textColor="@color/white"
                 android:layout_marginEnd="8dp" />
@@ -85,7 +85,7 @@
                 android:id="@+id/chip_low_stock"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Low Stock"
+                android:text="@string/inventario_stock_bajo"
                 app:chipBackgroundColor="@color/light_gray"
                 android:textColor="@color/dark"
                 android:layout_marginEnd="8dp" />
@@ -94,7 +94,7 @@
                 android:id="@+id/chip_electronics"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Electronics"
+                android:text="@string/inventario_electronica"
                 app:chipBackgroundColor="@color/light_gray"
                 android:textColor="@color/dark"
                 android:layout_marginEnd="8dp" />
@@ -103,13 +103,13 @@
                 android:id="@+id/chip_clothing"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Clothing"
+                android:text="@string/inventario_ropa"
                 app:chipBackgroundColor="@color/light_gray"
                 android:textColor="@color/dark" />
         </LinearLayout>
     </HorizontalScrollView>
 
-    <!-- Products Grid -->
+    <!-- Grid de productos -->
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/rv_inventario"
         android:layout_width="match_parent"
@@ -119,11 +119,12 @@
         android:paddingBottom="8dp"
         android:clipToPadding="false" />
 
+    <!-- Mensaje de inventario vacío -->
     <TextView
         android:id="@+id/tv_inventario_vacio"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:text="No hay productos en el inventario"
+        android:text="@string/inventario_vacio"
         android:textSize="14sp"
         android:textColor="@color/gray"
         android:gravity="center"
