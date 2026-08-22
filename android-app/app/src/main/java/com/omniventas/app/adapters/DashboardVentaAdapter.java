@@ -23,6 +23,8 @@ public class DashboardVentaAdapter extends RecyclerView.Adapter<DashboardVentaAd
     public ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
         View view = LayoutInflater.from(parent.getContext())
             .inflate(R.layout.item_dashboard_venta, parent, false);
+        // ✅ Forzar fondo blanco en la vista inflada
+        view.setBackgroundColor(android.graphics.Color.WHITE);
         return new ViewHolder(view);
     }
 
@@ -30,26 +32,14 @@ public class DashboardVentaAdapter extends RecyclerView.Adapter<DashboardVentaAd
     public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
         Venta v = ventas.get(position);
         
-        // Posición (número de venta)
         holder.tvPosicion.setText("#" + (position + 1));
-        
-        // Nombre del producto
         holder.tvProducto.setText(v.getProducto() != null ? v.getProducto() : "Producto");
-        
-        // Cantidad
         holder.tvCantidad.setText("×" + v.getCantidad());
-        
-        // Total
         holder.tvTotal.setText("$" + String.format("%.2f", v.getTotal()));
         
-        // Fecha
-        try {
-            if (v.getFecha() != null && !v.getFecha().isEmpty()) {
-                holder.tvFecha.setText(v.getFecha());
-            } else {
-                holder.tvFecha.setText("--:--");
-            }
-        } catch (Exception e) {
+        if (v.getFecha() != null && !v.getFecha().isEmpty()) {
+            holder.tvFecha.setText(v.getFecha());
+        } else {
             holder.tvFecha.setText("--:--");
         }
     }
