@@ -242,86 +242,78 @@
                 android:layout_marginBottom="12dp"
                 android:fontFamily="sans-serif" />
 
-            <androidx.cardview.widget.CardView
+            <!-- SIN CARDVIEW - SOLO LINEARLAYOUT CON FONDO BLANCO -->
+            <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                app:cardCornerRadius="12dp"
-                app:cardElevation="0dp"
-                app:cardBackgroundColor="@color/white"
+                android:orientation="vertical"
+                android:padding="4dp"
                 android:background="@color/white">
 
+                <!-- RecyclerView para ventas -->
+                <androidx.recyclerview.widget.RecyclerView
+                    android:id="@+id/rv_ventas_diarias"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:nestedScrollingEnabled="false"
+                    android:divider="@null"
+                    android:background="@color/white" />
+
+                <!-- Paginación -->
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:orientation="vertical"
-                    android:padding="4dp"
+                    android:orientation="horizontal"
+                    android:gravity="center"
+                    android:layout_marginTop="8dp"
+                    android:padding="8dp"
                     android:background="@color/white">
 
-                    <!-- RecyclerView para ventas -->
-                    <androidx.recyclerview.widget.RecyclerView
-                        android:id="@+id/rv_ventas_diarias"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:nestedScrollingEnabled="false"
-                        android:divider="@null"
-                        android:background="@color/white" />
-
-                    <!-- Paginación -->
-                    <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:orientation="horizontal"
-                        android:gravity="center"
-                        android:layout_marginTop="8dp"
-                        android:padding="8dp"
-                        android:background="@color/white">
-
-                        <Button
-                            android:id="@+id/btn_prev_page"
-                            android:layout_width="wrap_content"
-                            android:layout_height="32dp"
-                            android:text="◀"
-                            android:textSize="14sp"
-                            android:backgroundTint="@color/primary"
-                            app:cornerRadius="8dp"
-                            android:paddingHorizontal="16dp"
-                            android:visibility="gone" />
-
-                        <TextView
-                            android:id="@+id/tv_page_info"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="Página 1"
-                            android:textSize="12sp"
-                            android:textColor="@color/gray"
-                            android:layout_marginHorizontal="16dp" />
-
-                        <Button
-                            android:id="@+id/btn_next_page"
-                            android:layout_width="wrap_content"
-                            android:layout_height="32dp"
-                            android:text="▶"
-                            android:textSize="14sp"
-                            android:backgroundTint="@color/primary"
-                            app:cornerRadius="8dp"
-                            android:paddingHorizontal="16dp"
-                            android:visibility="gone" />
-                    </LinearLayout>
-
-                    <!-- Mensaje sin ventas -->
-                    <TextView
-                        android:id="@+id/tv_sin_ventas"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:text="No hay ventas registradas hoy"
+                    <Button
+                        android:id="@+id/btn_prev_page"
+                        android:layout_width="wrap_content"
+                        android:layout_height="32dp"
+                        android:text="◀"
                         android:textSize="14sp"
+                        android:backgroundTint="@color/primary"
+                        app:cornerRadius="8dp"
+                        android:paddingHorizontal="16dp"
+                        android:visibility="gone" />
+
+                    <TextView
+                        android:id="@+id/tv_page_info"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Página 1"
+                        android:textSize="12sp"
                         android:textColor="@color/gray"
-                        android:gravity="center"
-                        android:padding="24dp"
-                        android:visibility="gone"
-                        android:background="@color/white" />
+                        android:layout_marginHorizontal="16dp" />
+
+                    <Button
+                        android:id="@+id/btn_next_page"
+                        android:layout_width="wrap_content"
+                        android:layout_height="32dp"
+                        android:text="▶"
+                        android:textSize="14sp"
+                        android:backgroundTint="@color/primary"
+                        app:cornerRadius="8dp"
+                        android:paddingHorizontal="16dp"
+                        android:visibility="gone" />
                 </LinearLayout>
-            </androidx.cardview.widget.CardView>
+
+                <!-- Mensaje sin ventas -->
+                <TextView
+                    android:id="@+id/tv_sin_ventas"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="No hay ventas registradas hoy"
+                    android:textSize="14sp"
+                    android:textColor="@color/gray"
+                    android:gravity="center"
+                    android:padding="24dp"
+                    android:visibility="gone"
+                    android:background="@color/white" />
+            </LinearLayout>
 
         </LinearLayout>
     </ScrollView>
