@@ -132,7 +132,7 @@ public class OmniVentasRepository {
         new InsertVentaTask().execute(productoId, productoNombre, cantidad, precioUnitario);
     }
 
-    // ✅ AsyncTask para insertar venta en segundo plano
+    // 🔥 CORREGIDO: InsertVentaTask con verificación de duplicados
     private class InsertVentaTask extends AsyncTask<Object, Void, Void> {
         @Override
         protected Void doInBackground(Object... params) {
@@ -141,6 +141,20 @@ public class OmniVentasRepository {
                 String productoNombre = (String) params[1];
                 int cantidad = (int) params[2];
                 double precioUnitario = (double) params[3];
+
+                // 🔥 Verificar si ya existe una venta pendiente para este producto en los últimos 5 segundos
+                // Esto evita duplicados cuando el usuario toca confirmar dos veces
+                long currentTime = System.currentTimeMillis();
+                List<VentaEntity> pendientes = database.ventaDao().getPendientes();
+                
+                for (VentaEntity v : pendientes) {
+                    if (v.getProductoId() == productoId && 
+                        v.getCantidad() == cantidad && 
+                        Math.abs(currentTime - v.getFecha()) < 5000) {
+                        Log.w(TAG, "⚠️ Venta duplicada detectada, omitiendo: " + productoNombre);
+                        return null;
+                    }
+                }
 
                 VentaEntity venta = new VentaEntity();
                 venta.setProductoId(productoId);
@@ -203,4 +217,4 @@ public class OmniVentasRepository {
         }
         return count;
     }
-}
+            }
