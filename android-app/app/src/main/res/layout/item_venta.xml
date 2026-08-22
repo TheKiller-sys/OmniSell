@@ -1,77 +1,70 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.cardview.widget.CardView xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:layout_marginVertical="4dp"
-    android:layout_marginHorizontal="8dp"
-    app:cardCornerRadius="12dp"
-    app:cardElevation="2dp"
-    app:cardBackgroundColor="@color/white">
+    android:orientation="horizontal"
+    android:padding="12dp"
+    android:background="@color/white"
+    android:layout_marginBottom="2dp">
 
+    <!-- Producto -->
     <LinearLayout
-        android:layout_width="match_parent"
+        android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:padding="14dp"
-        android:gravity="center_vertical"
-        android:background="@color/white">
-
-        <LinearLayout
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:orientation="vertical">
-
-            <TextView
-                android:id="@+id/tv_producto"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="Producto"
-                android:textSize="16sp"
-                android:textStyle="bold"
-                android:textColor="@color/dark"
-                android:maxLines="1"
-                android:ellipsize="end" />
-
-            <TextView
-                android:id="@+id/tv_fecha"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="Fecha"
-                android:textSize="12sp"
-                android:textColor="@color/gray"
-                android:layout_marginTop="2dp" />
-        </LinearLayout>
+        android:layout_weight="1"
+        android:orientation="vertical">
 
         <TextView
-            android:id="@+id/tv_cantidad"
-            android:layout_width="wrap_content"
+            android:id="@+id/tv_producto"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="1x"
-            android:textSize="16sp"
-            android:textColor="@color/dark"
-            android:layout_marginEnd="16dp"
-            android:textStyle="bold" />
-
-        <TextView
-            android:id="@+id/tv_total"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="$0.00"
-            android:textSize="16sp"
+            android:text="Producto"
+            android:textSize="15sp"
             android:textStyle="bold"
-            android:textColor="@color/primary" />
+            android:textColor="@color/dark"
+            android:maxLines="1"
+            android:ellipsize="end" />
 
-        <ImageView
-            android:id="@+id/iv_sync_status"
-            android:layout_width="18dp"
-            android:layout_height="18dp"
-            android:src="@drawable/ic_sync"
-            android:tint="@color/warning"
-            android:visibility="gone"
-            android:layout_marginStart="8dp" />
-
+        <TextView
+            android:id="@+id/tv_fecha"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Fecha"
+            android:textSize="11sp"
+            android:textColor="@color/gray" />
     </LinearLayout>
 
-</androidx.cardview.widget.CardView>
+    <!-- Cantidad -->
+    <TextView
+        android:id="@+id/tv_cantidad"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="1x"
+        android:textSize="14sp"
+        android:textColor="@color/dark_secondary"
+        android:layout_marginEnd="12dp"
+        android:layout_gravity="center_vertical" />
+
+    <!-- Total -->
+    <TextView
+        android:id="@+id/tv_total"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="$0.00"
+        android:textSize="16sp"
+        android:textStyle="bold"
+        android:textColor="@color/success"
+        android:layout_gravity="center_vertical" />
+
+    <!-- Icono de sincronización -->
+    <ImageView
+        android:id="@+id/iv_sync_status"
+        android:layout_width="16dp"
+        android:layout_height="16dp"
+        android:src="@drawable/ic_sync"
+        android:tint="@color/warning"
+        android:visibility="gone"
+        android:layout_marginStart="8dp"
+        android:layout_gravity="center_vertical" />
+
+</LinearLayout>
