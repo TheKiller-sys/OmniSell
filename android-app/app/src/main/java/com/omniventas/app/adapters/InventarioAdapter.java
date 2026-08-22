@@ -29,29 +29,29 @@ public class InventarioAdapter extends RecyclerView.Adapter<InventarioAdapter.Vi
     public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
         Producto p = productos.get(position);
         
-        // Nombre del producto (arriba)
+        // NOMBRE (arriba, legible)
         holder.tvNombre.setText(p.getNombre());
         
-        // Sección/categoría
+        // SECCIÓN/CATEGORÍA
         holder.tvSeccion.setText(p.getSeccion() != null ? p.getSeccion() : "Sin categoría");
         
-        // Precio (abajo izquierda)
+        // PRECIO (abajo izquierda)
         holder.tvPrecio.setText("$" + String.format("%.2f", p.getPrecio()));
         
-        // Stock (abajo derecha)
+        // STOCK (abajo derecha)
         holder.tvStock.setText(String.valueOf(p.getStock()));
 
-        // Colores según stock
+        // Colores según stock (solo el texto del stock)
         if (p.getStock() == 0) {
             holder.tvStock.setTextColor(ContextCompat.getColor(holder.itemView.getContext(), R.color.danger));
-            holder.cardView.setCardBackgroundColor(ContextCompat.getColor(holder.itemView.getContext(), R.color.danger_light));
         } else if (p.getStock() <= 3) {
             holder.tvStock.setTextColor(ContextCompat.getColor(holder.itemView.getContext(), R.color.warning));
-            holder.cardView.setCardBackgroundColor(ContextCompat.getColor(holder.itemView.getContext(), R.color.warning_light));
         } else {
             holder.tvStock.setTextColor(ContextCompat.getColor(holder.itemView.getContext(), R.color.success));
-            holder.cardView.setCardBackgroundColor(ContextCompat.getColor(holder.itemView.getContext(), R.color.white));
         }
+        
+        // Fondo de la tarjeta siempre blanco
+        holder.cardView.setCardBackgroundColor(ContextCompat.getColor(holder.itemView.getContext(), R.color.white));
     }
 
     @Override
@@ -82,4 +82,4 @@ public class InventarioAdapter extends RecyclerView.Adapter<InventarioAdapter.Vi
             cardView = (CardView) itemView;
         }
     }
-            }
+                                                               }
