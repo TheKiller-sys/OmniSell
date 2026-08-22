@@ -29,7 +29,7 @@ public class InventarioAdapter extends RecyclerView.Adapter<InventarioAdapter.Vi
     public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
         Producto p = productos.get(position);
         
-        // NOMBRE (arriba, legible)
+        // NOMBRE (arriba, legible, sin dividir)
         holder.tvNombre.setText(p.getNombre());
         
         // SECCIÓN/CATEGORÍA
@@ -82,4 +82,4 @@ public class InventarioAdapter extends RecyclerView.Adapter<InventarioAdapter.Vi
             cardView = (CardView) itemView;
         }
     }
-                                                               }
+}
