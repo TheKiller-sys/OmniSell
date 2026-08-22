@@ -61,7 +61,6 @@ public class VentasFragment extends Fragment {
     private ProductoAdapter productoAdapter;
     private boolean isSearching = false;
     private Vibrator vibrator;
-    private ViewGroup rootView;
 
     @Nullable
     @Override
@@ -71,9 +70,6 @@ public class VentasFragment extends Fragment {
         try {
             View view = inflater.inflate(R.layout.fragment_ventas, container, false);
             Log.d(TAG, "Layout inflado correctamente");
-
-            // Guardar rootView para overlay
-            rootView = (ViewGroup) getActivity().findViewById(android.R.id.content);
 
             // Inicializar vistas
             etSearchProduct = view.findViewById(R.id.et_search_product);
@@ -453,14 +449,19 @@ public class VentasFragment extends Fragment {
         Log.d(TAG, "🎉 Mostrando overlay de éxito");
         
         try {
-            if (rootView == null) {
-                rootView = (ViewGroup) getActivity().findViewById(android.R.id.content);
+            if (getActivity() == null) {
+                Log.e(TAG, "❌ getActivity() es null");
+                Toast.makeText(getContext(), "✅ Venta: " + producto.getNombre() + " x" + cantidad, Toast.LENGTH_SHORT).show();
+                resetUIAfterSale();
+                return;
             }
+
+            ViewGroup rootView = (ViewGroup) getActivity().findViewById(android.R.id.content);
             
             if (rootView == null) {
-                Log.e(TAG, "❌ rootView es null, no se puede mostrar overlay");
-                // Fallback: mostrar Toast
-                Toast.makeText(getContext(), "✅ Venta: " + producto.getNombre() + " x" + cantidad + " - $" + String.format("%.2f", total), Toast.LENGTH_LONG).show();
+                Log.e(TAG, "❌ rootView es null");
+                Toast.makeText(getContext(), "✅ Venta: " + producto.getNombre() + " x" + cantidad, Toast.LENGTH_SHORT).show();
+                resetUIAfterSale();
                 return;
             }
             
@@ -495,14 +496,12 @@ public class VentasFragment extends Fragment {
             
             // Botón cerrar
             btnCerrar.setOnClickListener(v -> {
-                // Animar salida
                 overlay.animate()
                     .alpha(0f)
                     .setDuration(300)
                     .withEndAction(() -> rootView.removeView(overlay))
                     .start();
                 
-                // Resetear UI
                 resetUIAfterSale();
             });
             
@@ -521,8 +520,8 @@ public class VentasFragment extends Fragment {
         } catch (Exception e) {
             Log.e(TAG, "❌ Error mostrando overlay: " + e.getMessage());
             e.printStackTrace();
-            // Fallback: mostrar Toast
-            Toast.makeText(getContext(), "✅ Venta: " + producto.getNombre() + " x" + cantidad + " - $" + String.format("%.2f", total), Toast.LENGTH_LONG).show();
+            // Fallback: Toast
+            Toast.makeText(getContext(), "✅ Venta registrada: " + producto.getNombre() + " x" + cantidad, Toast.LENGTH_LONG).show();
             resetUIAfterSale();
         }
     }
