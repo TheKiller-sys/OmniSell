@@ -1,0 +1,123 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#80000000"
+    android:visibility="gone"
+    android:clickable="true">
+
+    <LinearLayout
+        android:layout_width="300dp"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:orientation="vertical"
+        android:gravity="center"
+        android:background="@drawable/bg_modal"
+        android:padding="24dp"
+        android:elevation="16dp">
+
+        <!-- Círculo de éxito animado -->
+        <FrameLayout
+            android:layout_width="120dp"
+            android:layout_height="120dp"
+            android:layout_gravity="center"
+            android:layout_marginBottom="16dp">
+
+            <!-- Círculo exterior (animación de pulso) -->
+            <View
+                android:id="@+id/v_circulo_exterior"
+                android:layout_width="120dp"
+                android:layout_height="120dp"
+                android:background="@drawable/bg_pulse"
+                android:alpha="0.3" />
+
+            <!-- Círculo interior -->
+            <View
+                android:id="@+id/v_circulo_interior"
+                android:layout_width="80dp"
+                android:layout_height="80dp"
+                android:layout_gravity="center"
+                android:background="@drawable/bg_avatar"
+                android:elevation="4dp" />
+
+            <!-- Icono de check -->
+            <ImageView
+                android:id="@+id/iv_check"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:layout_gravity="center"
+                android:src="@drawable/ic_check_circle"
+                android:tint="@color/success"
+                android:scaleType="fitCenter" />
+        </FrameLayout>
+
+        <!-- Título -->
+        <TextView
+            android:id="@+id/tv_titulo_venta"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="¡Venta Registrada!"
+            android:textSize="24sp"
+            android:textStyle="bold"
+            android:textColor="@color/dark"
+            android:gravity="center" />
+
+        <!-- Producto -->
+        <TextView
+            android:id="@+id/tv_producto_venta"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Producto"
+            android:textSize="16sp"
+            android:textColor="@color/gray"
+            android:gravity="center"
+            android:layout_marginTop="8dp" />
+
+        <!-- Cantidad y Total -->
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center"
+            android:layout_marginTop="8dp">
+
+            <TextView
+                android:id="@+id/tv_cantidad_venta"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="× 2"
+                android:textSize="18sp"
+                android:textStyle="bold"
+                android:textColor="@color/primary" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="  •  "
+                android:textSize="18sp"
+                android:textColor="@color/gray" />
+
+            <TextView
+                android:id="@+id/tv_total_venta"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="$10.00"
+                android:textSize="18sp"
+                android:textStyle="bold"
+                android:textColor="@color/success" />
+        </LinearLayout>
+
+        <!-- Botón cerrar -->
+        <Button
+            android:id="@+id/btn_cerrar_venta"
+            android:layout_width="wrap_content"
+            android:layout_height="48dp"
+            android:text="OK"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            android:textColor="@color/white"
+            android:background="@drawable/bg_button_login"
+            android:layout_marginTop="20dp"
+            android:paddingHorizontal="48dp" />
+    </LinearLayout>
+</FrameLayout>
