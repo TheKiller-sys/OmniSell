@@ -35,10 +35,17 @@ public class ProductoAdapter extends RecyclerView.Adapter<ProductoAdapter.ViewHo
     @Override
     public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
         Producto p = productos.get(position);
+        
+        // Mostrar nombre del producto
         holder.tvNombre.setText(p.getNombre());
+        
+        // Mostrar categoría/sección
         holder.tvSeccion.setText(p.getSeccion() != null ? p.getSeccion() : "Sin categoría");
+        
+        // Mostrar precio
         holder.tvPrecio.setText("$" + String.format("%.2f", p.getPrecio()));
         
+        // Click listener
         holder.itemView.setOnClickListener(v -> {
             if (listener != null) listener.onProductoClick(p);
         });
@@ -57,6 +64,7 @@ public class ProductoAdapter extends RecyclerView.Adapter<ProductoAdapter.ViewHo
 
     static class ViewHolder extends RecyclerView.ViewHolder {
         TextView tvNombre, tvSeccion, tvPrecio;
+        
         ViewHolder(@NonNull View itemView) {
             super(itemView);
             tvNombre = itemView.findViewById(R.id.tv_nombre_busqueda);
@@ -64,4 +72,4 @@ public class ProductoAdapter extends RecyclerView.Adapter<ProductoAdapter.ViewHo
             tvPrecio = itemView.findViewById(R.id.tv_precio_busqueda);
         }
     }
-}
+            }
