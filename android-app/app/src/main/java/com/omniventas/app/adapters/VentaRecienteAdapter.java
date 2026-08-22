@@ -7,15 +7,17 @@ import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 import com.omniventas.app.R;
-import com.omniventas.app.models.VentaReciente;
+import com.omniventas.app.models.Venta;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 
 public class VentaRecienteAdapter extends RecyclerView.Adapter<VentaRecienteAdapter.ViewHolder> {
+    private List<Venta> ventas = new ArrayList<>();
+    private SimpleDateFormat dateFormat = new SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault());
 
-    private List<VentaReciente> ventas;
-
-    public VentaRecienteAdapter(List<VentaReciente> ventas) {
+    public VentaRecienteAdapter(List<Venta> ventas) {
         this.ventas = ventas != null ? ventas : new ArrayList<>();
     }
 
@@ -29,10 +31,26 @@ public class VentaRecienteAdapter extends RecyclerView.Adapter<VentaRecienteAdap
 
     @Override
     public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
-        VentaReciente v = ventas.get(position);
-        holder.tvProducto.setText(v.getProducto());
-        holder.tvFecha.setText(v.getFecha());
+        Venta v = ventas.get(position);
+        
+        // Nombre del producto
+        holder.tvProducto.setText(v.getProducto() != null ? v.getProducto() : "Producto sin nombre");
+        
+        // Fecha formateada
+        try {
+            if (v.getFecha() != null && !v.getFecha().isEmpty()) {
+                holder.tvFecha.setText(v.getFecha());
+            } else {
+                holder.tvFecha.setText("Fecha no disponible");
+            }
+        } catch (Exception e) {
+            holder.tvFecha.setText("Fecha no disponible");
+        }
+        
+        // Cantidad
         holder.tvCantidad.setText(v.getCantidad() + "x");
+        
+        // Total
         holder.tvTotal.setText("$" + String.format("%.2f", v.getTotal()));
     }
 
@@ -41,7 +59,7 @@ public class VentaRecienteAdapter extends RecyclerView.Adapter<VentaRecienteAdap
         return ventas.size();
     }
 
-    public void updateData(List<VentaReciente> newData) {
+    public void updateData(List<Venta> newData) {
         this.ventas = newData != null ? newData : new ArrayList<>();
         notifyDataSetChanged();
     }
@@ -57,4 +75,4 @@ public class VentaRecienteAdapter extends RecyclerView.Adapter<VentaRecienteAdap
             tvTotal = itemView.findViewById(R.id.tv_total);
         }
     }
-}
+                                  }
