@@ -22,7 +22,7 @@
             android:layout_weight="1"
             android:orientation="vertical">
 
-            <!-- Nombre del producto (arriba, legible) -->
+            <!-- Nombre del producto (arriba, sin dividir) -->
             <TextView
                 android:id="@+id/tv_nombre"
                 android:layout_width="match_parent"
