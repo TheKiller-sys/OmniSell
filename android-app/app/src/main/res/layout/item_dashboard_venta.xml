@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="horizontal"
+    android:padding="12dp"
+    android:background="?android:attr/selectableItemBackground"
+    android:layout_marginBottom="2dp">
+
+    <!-- Posición -->
+    <TextView
+        android:id="@+id/tv_posicion"
+        android:layout_width="40dp"
+        android:layout_height="wrap_content"
+        android:text="#1"
+        android:textSize="12sp"
+        android:textColor="@color/gray"
+        android:gravity="center"
+        android:layout_gravity="center_vertical" />
+
+    <!-- Producto -->
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:orientation="vertical"
+        android:layout_marginStart="8dp">
+
+        <TextView
+            android:id="@+id/tv_producto"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Producto"
+            android:textSize="14sp"
+            android:textStyle="bold"
+            android:textColor="@color/dark"
+            android:maxLines="1"
+            android:ellipsize="end" />
+
+        <TextView
+            android:id="@+id/tv_fecha"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Fecha"
+            android:textSize="11sp"
+            android:textColor="@color/gray" />
+    </LinearLayout>
+
+    <!-- Cantidad -->
+    <TextView
+        android:id="@+id/tv_cantidad"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="×1"
+        android:textSize="13sp"
+        android:textColor="@color/gray"
+        android:layout_marginEnd="12dp"
+        android:layout_gravity="center_vertical" />
+
+    <!-- Total -->
+    <TextView
+        android:id="@+id/tv_total"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="$0.00"
+        android:textSize="15sp"
+        android:textStyle="bold"
+        android:textColor="@color/success"
+        android:layout_gravity="center_vertical" />
+
+</LinearLayout>
