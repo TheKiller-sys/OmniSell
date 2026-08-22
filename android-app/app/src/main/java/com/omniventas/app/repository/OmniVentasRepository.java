@@ -103,6 +103,30 @@ public class OmniVentasRepository {
         }
     }
 
+    // 🔥 NUEVO: Actualizar stock local
+    public void actualizarStockLocal(int productoId, int nuevoStock) {
+        new AsyncTask<Void, Void, Void>() {
+            @Override
+            protected Void doInBackground(Void... voids) {
+                try {
+                    ProductoEntity producto = database.productoDao().getById(productoId);
+                    if (producto != null) {
+                        producto.setStock(nuevoStock);
+                        producto.setLastSync(System.currentTimeMillis());
+                        database.productoDao().update(producto);
+                        Log.d(TAG, "✅ Stock actualizado en BD local: " + producto.getNombre() + " → " + nuevoStock);
+                    } else {
+                        Log.w(TAG, "⚠️ Producto no encontrado en BD local: " + productoId);
+                    }
+                } catch (Exception e) {
+                    Log.e(TAG, "❌ Error actualizando stock local: " + e.getMessage());
+                    e.printStackTrace();
+                }
+                return null;
+            }
+        }.execute();
+    }
+
     // VENTAS OFFLINE
     public void registrarVentaOffline(int productoId, String productoNombre, int cantidad, double precioUnitario) {
         new InsertVentaTask().execute(productoId, productoNombre, cantidad, precioUnitario);
@@ -132,14 +156,6 @@ public class OmniVentasRepository {
                 long id = database.ventaDao().insert(venta);
                 Log.d(TAG, "✅ Venta guardada localmente (ID: " + id + ")");
                 logger.success("Venta registrada offline: " + productoNombre + " x" + cantidad);
-
-                // Reducir stock local
-                ProductoEntity producto = database.productoDao().getById(productoId);
-                if (producto != null) {
-                    producto.setStock(producto.getStock() - cantidad);
-                    database.productoDao().update(producto);
-                    Log.d(TAG, "✅ Stock actualizado para: " + productoNombre);
-                }
 
                 // Intentar sincronizar inmediatamente si hay conexión
                 SyncManager.syncNow(context);
@@ -187,4 +203,4 @@ public class OmniVentasRepository {
         }
         return count;
     }
-            }
+}
