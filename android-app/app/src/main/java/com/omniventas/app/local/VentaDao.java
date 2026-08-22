@@ -14,6 +14,9 @@ public interface VentaDao {
     @Update
     void update(VentaEntity venta);
 
+    @Query("SELECT * FROM ventas_pendientes WHERE id = :id")
+    VentaEntity getById(long id);
+
     @Query("SELECT * FROM ventas_pendientes WHERE sincronizado = 0 ORDER BY fecha ASC")
     List<VentaEntity> getPendientes();
 
