@@ -28,6 +28,7 @@ public class SyncWorker extends Worker {
     private AppDatabase database;
     private TelegramLogger logger;
     private ExecutorService executor;
+    private boolean isSyncing = false;
 
     public SyncWorker(@NonNull Context context, @NonNull WorkerParameters params) {
         super(context, params);
@@ -45,13 +46,25 @@ public class SyncWorker extends Worker {
             return Result.success();
         }
 
+        // Evitar sincronización simultánea
+        if (isSyncing) {
+            Log.d(TAG, "Sincronización ya en curso, omitiendo");
+            return Result.success();
+        }
+
+        isSyncing = true;
         Log.d(TAG, "Iniciando sincronización en segundo plano...");
 
-        // 1. Sincronizar productos
-        syncProductos();
+        try {
+            // 1. Sincronizar productos
+            syncProductos();
 
-        // 2. Enviar ventas pendientes
-        syncVentasPendientes();
+            // 2. Enviar ventas pendientes
+            syncVentasPendientes();
+
+        } finally {
+            isSyncing = false;
+        }
 
         return Result.success();
     }
@@ -116,6 +129,13 @@ public class SyncWorker extends Worker {
 
         for (VentaEntity venta : pendientes) {
             try {
+                // 🔥 IMPORTANTE: Verificar que la venta no haya sido ya sincronizada
+                VentaEntity ventaActualizada = database.ventaDao().getById(venta.getId());
+                if (ventaActualizada == null || ventaActualizada.isSincronizado()) {
+                    Log.d(TAG, "Venta ya sincronizada, omitiendo: " + venta.getId());
+                    continue;
+                }
+
                 VentaRequest request = new VentaRequest(
                     venta.getProductoId(),
                     venta.getCantidad(),
@@ -128,6 +148,7 @@ public class SyncWorker extends Worker {
                 Response<VentaResponse> response = call.execute();
 
                 if (response.isSuccessful() && response.body() != null && response.body().isSuccess()) {
+                    // ✅ Marcar como sincronizada
                     executor.execute(() -> {
                         try {
                             database.ventaDao().marcarSincronizada(venta.getId());
@@ -174,4 +195,4 @@ public class SyncWorker extends Worker {
             }
         });
     }
-    }
+                }
