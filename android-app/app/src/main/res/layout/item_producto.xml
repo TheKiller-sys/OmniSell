@@ -3,7 +3,8 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:layout_marginBottom="8dp"
+    android:layout_marginVertical="4dp"
+    android:layout_marginHorizontal="8dp"
     app:cardCornerRadius="12dp"
     app:cardElevation="2dp"
     app:cardBackgroundColor="@color/white">
@@ -13,42 +14,35 @@
         android:layout_height="wrap_content"
         android:orientation="horizontal"
         android:padding="16dp"
-        android:gravity="center_vertical">
+        android:gravity="center_vertical"
+        android:background="@color/white">
 
-        <LinearLayout
+        <!-- Nombre del producto (ocupa el espacio restante) -->
+        <TextView
+            android:id="@+id/tv_nombre"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:orientation="vertical">
+            android:text="Pantalón"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            android:textColor="@color/dark"
+            android:maxLines="1"
+            android:ellipsize="end"
+            android:breakStrategy="simple" />
 
-            <TextView
-                android:id="@+id/tv_nombre"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="Nombre del Producto"
-                android:textSize="16sp"
-                android:textStyle="bold"
-                android:textColor="@color/dark" />
-
-            <TextView
-                android:id="@+id/tv_seccion"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="Sección"
-                android:textSize="12sp"
-                android:textColor="@color/gray" />
-        </LinearLayout>
-
+        <!-- Precio -->
         <TextView
             android:id="@+id/tv_precio"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="$0.00"
-            android:textSize="16sp"
+            android:text="$12.000,00"
+            android:textSize="15sp"
             android:textStyle="bold"
             android:textColor="@color/primary"
             android:layout_marginEnd="16dp" />
 
+        <!-- Stock (con etiqueta) -->
         <LinearLayout
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
@@ -59,9 +53,10 @@
                 android:id="@+id/tv_stock"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="0"
+                android:text="8"
                 android:textSize="18sp"
-                android:textStyle="bold" />
+                android:textStyle="bold"
+                android:textColor="@color/dark" />
 
             <TextView
                 android:layout_width="wrap_content"
@@ -70,5 +65,7 @@
                 android:textSize="10sp"
                 android:textColor="@color/gray" />
         </LinearLayout>
+
     </LinearLayout>
+
 </androidx.cardview.widget.CardView>
