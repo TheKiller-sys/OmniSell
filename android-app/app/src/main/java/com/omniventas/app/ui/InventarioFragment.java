@@ -2,11 +2,14 @@ package com.omniventas.app.ui;
 
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.text.Editable;
+import android.text.TextWatcher;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.ImageView;
+import android.widget.EditText;
+import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 import androidx.annotation.NonNull;
@@ -26,7 +29,9 @@ import com.omniventas.app.repository.OmniVentasRepository;
 import com.omniventas.app.utils.SessionManager;
 import com.omniventas.app.utils.TelegramLogger;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
@@ -36,14 +41,15 @@ public class InventarioFragment extends Fragment {
 
     private RecyclerView rvInventario;
     private TextView tvStatsProducts, tvUpdatedNow, tvInventarioVacio;
-    private ImageView btnScan;
-    private Chip chipAll, chipLowStock, chipElectronics, chipClothing;
+    private EditText etSearchInventario;
+    private LinearLayout llFiltrosCategoria;
     private SessionManager sessionManager;
     private TelegramLogger logger;
     private OmniVentasRepository repository;
     private InventarioAdapter adapter;
     private List<Producto> productos = new ArrayList<>();
     private List<Producto> filteredProducts = new ArrayList<>();
+    private String filtroActual = "all";
 
     @Nullable
     @Override
@@ -58,11 +64,8 @@ public class InventarioFragment extends Fragment {
             tvStatsProducts = view.findViewById(R.id.tv_stats_products);
             tvUpdatedNow = view.findViewById(R.id.tv_updated_now);
             tvInventarioVacio = view.findViewById(R.id.tv_inventario_vacio);
-            btnScan = view.findViewById(R.id.btn_scan);
-            chipAll = view.findViewById(R.id.chip_all);
-            chipLowStock = view.findViewById(R.id.chip_low_stock);
-            chipElectronics = view.findViewById(R.id.chip_electronics);
-            chipClothing = view.findViewById(R.id.chip_clothing);
+            etSearchInventario = view.findViewById(R.id.et_search_inventario);
+            llFiltrosCategoria = view.findViewById(R.id.ll_filtros_categoria);
 
             sessionManager = new SessionManager(getContext());
             logger = TelegramLogger.getInstance(getContext());
@@ -72,28 +75,22 @@ public class InventarioFragment extends Fragment {
             rvInventario.setLayoutManager(new GridLayoutManager(getContext(), 2));
             rvInventario.setAdapter(adapter);
 
-            btnScan.setOnClickListener(v -> 
-                Toast.makeText(getContext(), "Escáner disponible en próxima versión", Toast.LENGTH_SHORT).show()
-            );
+            // Búsqueda
+            etSearchInventario.addTextChangedListener(new TextWatcher() {
+                @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+                @Override public void onTextChanged(CharSequence s, int start, int before, int count) {}
+                @Override public void afterTextChanged(Editable s) {
+                    filterProducts(filtroActual, s.toString().trim());
+                }
+            });
 
-            chipAll.setOnClickListener(v -> filterProducts("all"));
-            chipLowStock.setOnClickListener(v -> filterProducts("low_stock"));
-            chipElectronics.setOnClickListener(v -> filterProducts("electronics"));
-            chipClothing.setOnClickListener(v -> filterProducts("clothing"));
-
-            // ✅ CORREGIDO: Cargar inventario en segundo plano
             cargarInventario();
-
             Log.d(TAG, "✅ onCreateView completado");
             return view;
 
         } catch (Exception e) {
             Log.e(TAG, "❌ Error en onCreateView: " + e.getMessage());
             e.printStackTrace();
-            
-            if (getContext() != null) {
-                Toast.makeText(getContext(), "Error: " + e.getMessage(), Toast.LENGTH_LONG).show();
-            }
             
             TextView errorView = new TextView(getContext());
             errorView.setText("Error cargando Inventario\n\n" + e.getMessage());
@@ -102,12 +99,10 @@ public class InventarioFragment extends Fragment {
         }
     }
 
-    // ✅ CORREGIDO: Cargar inventario en segundo plano con AsyncTask
     private void cargarInventario() {
         new CargarInventarioTask().execute();
     }
 
-    // ✅ AsyncTask para cargar inventario en segundo plano
     private class CargarInventarioTask extends AsyncTask<Void, Void, List<Producto>> {
         @Override
         protected List<Producto> doInBackground(Void... voids) {
@@ -126,32 +121,109 @@ public class InventarioFragment extends Fragment {
                     resultado.add(p);
                 }
                 
-                Log.d(TAG, "✅ Productos locales cargados: " + resultado.size());
                 return resultado;
             } catch (Exception e) {
-                Log.e(TAG, "❌ Error cargando productos locales: " + e.getMessage());
+                Log.e(TAG, "Error cargando productos: " + e.getMessage());
                 return new ArrayList<>();
             }
         }
 
         @Override
         protected void onPostExecute(List<Producto> result) {
-            try {
-                productos = result;
-                filteredProducts = new ArrayList<>(productos);
-                adapter.setProductos(filteredProducts);
-                updateStats();
-                tvUpdatedNow.setText("Datos locales");
+            productos = result;
+            filteredProducts = new ArrayList<>(productos);
+            adapter.setProductos(filteredProducts);
+            updateStats();
+            crearFiltrosCategoria();
+            tvUpdatedNow.setText("Datos locales");
+            
+            sincronizarDesdeServidor();
+        }
+    }
+
+    private void crearFiltrosCategoria() {
+        llFiltrosCategoria.removeAllViews();
+        
+        // Obtener categorías únicas
+        Set<String> categorias = new HashSet<>();
+        for (Producto p : productos) {
+            if (p.getSeccion() != null && !p.getSeccion().isEmpty()) {
+                categorias.add(p.getSeccion());
+            }
+        }
+
+        // Chip "Todos"
+        Chip chipAll = new Chip(getContext());
+        chipAll.setText("Todos");
+        chipAll.setChipBackgroundColorResource(R.color.primary);
+        chipAll.setTextColor(getResources().getColor(R.color.white));
+        chipAll.setOnClickListener(v -> {
+            filtroActual = "all";
+            filterProducts("all", etSearchInventario.getText().toString().trim());
+            actualizarChips();
+        });
+        llFiltrosCategoria.addView(chipAll);
+        LinearLayout.LayoutParams params = (LinearLayout.LayoutParams) chipAll.getLayoutParams();
+        params.setMarginEnd(8);
+        chipAll.setLayoutParams(params);
+
+        // Chips por categoría
+        for (String categoria : categorias) {
+            Chip chip = new Chip(getContext());
+            chip.setText(categoria);
+            chip.setChipBackgroundColorResource(R.color.light_gray);
+            chip.setTextColor(getResources().getColor(R.color.dark));
+            chip.setOnClickListener(v -> {
+                filtroActual = categoria;
+                filterProducts(categoria, etSearchInventario.getText().toString().trim());
+                actualizarChips();
+            });
+            llFiltrosCategoria.addView(chip);
+            LinearLayout.LayoutParams chipParams = (LinearLayout.LayoutParams) chip.getLayoutParams();
+            chipParams.setMarginEnd(8);
+            chip.setLayoutParams(chipParams);
+        }
+    }
+
+    private void actualizarChips() {
+        for (int i = 0; i < llFiltrosCategoria.getChildCount(); i++) {
+            View child = llFiltrosCategoria.getChildAt(i);
+            if (child instanceof Chip) {
+                Chip chip = (Chip) child;
+                String texto = chip.getText().toString();
+                boolean isSelected = filtroActual.equals("all") ? 
+                    texto.equals("Todos") : texto.equals(filtroActual);
                 
-                // Luego sincronizar desde servidor
-                sincronizarDesdeServidor();
-            } catch (Exception e) {
-                Log.e(TAG, "❌ Error actualizando UI: " + e.getMessage());
+                if (isSelected) {
+                    chip.setChipBackgroundColorResource(R.color.primary);
+                    chip.setTextColor(getResources().getColor(R.color.white));
+                } else {
+                    chip.setChipBackgroundColorResource(R.color.light_gray);
+                    chip.setTextColor(getResources().getColor(R.color.dark));
+                }
             }
         }
     }
 
-    // ✅ Sincronizar desde servidor en segundo plano
+    private void filterProducts(String categoria, String query) {
+        filteredProducts.clear();
+        
+        for (Producto p : productos) {
+            boolean matchCategoria = categoria.equals("all") || 
+                (p.getSeccion() != null && p.getSeccion().equals(categoria));
+            
+            boolean matchQuery = query.isEmpty() || 
+                p.getNombre().toLowerCase().contains(query.toLowerCase());
+            
+            if (matchCategoria && matchQuery) {
+                filteredProducts.add(p);
+            }
+        }
+        
+        adapter.setProductos(filteredProducts);
+        updateStats();
+    }
+
     private void sincronizarDesdeServidor() {
         String token = sessionManager.getToken();
         if (token == null || token.isEmpty()) return;
@@ -163,17 +235,16 @@ public class InventarioFragment extends Fragment {
                 if (response.isSuccessful() && response.body() != null && response.body().isSuccess()) {
                     productos = response.body().getProductos();
                     
-                    // ✅ Actualizar UI en el hilo principal
                     if (getActivity() != null) {
                         getActivity().runOnUiThread(() -> {
                             filteredProducts = new ArrayList<>(productos);
                             adapter.setProductos(filteredProducts);
                             updateStats();
                             tvUpdatedNow.setText("Actualizado ahora");
+                            crearFiltrosCategoria();
                         });
                     }
                     
-                    // Guardar en Room (ya usa AsyncTask internamente)
                     repository.syncProductosFromServer();
                 }
             }
@@ -186,43 +257,8 @@ public class InventarioFragment extends Fragment {
         });
     }
 
-    private void filterProducts(String filter) {
-        filteredProducts.clear();
-        for (Producto p : productos) {
-            switch (filter) {
-                case "all":
-                    filteredProducts.add(p);
-                    break;
-                case "low_stock":
-                    if (p.getStock() <= 3 && p.getStock() > 0) filteredProducts.add(p);
-                    break;
-                case "electronics":
-                    if (p.getSeccion() != null && p.getSeccion().toLowerCase().contains("electron")) {
-                        filteredProducts.add(p);
-                    }
-                    break;
-                case "clothing":
-                    if (p.getSeccion() != null && p.getSeccion().toLowerCase().contains("cloth")) {
-                        filteredProducts.add(p);
-                    }
-                    break;
-            }
-        }
-        adapter.setProductos(filteredProducts);
-        updateStats();
-        
-        chipAll.setChipBackgroundColorResource(filter.equals("all") ? R.color.primary : R.color.light_gray);
-        chipAll.setTextColor(getResources().getColor(filter.equals("all") ? R.color.white : R.color.dark));
-        chipLowStock.setChipBackgroundColorResource(filter.equals("low_stock") ? R.color.primary : R.color.light_gray);
-        chipLowStock.setTextColor(getResources().getColor(filter.equals("low_stock") ? R.color.white : R.color.dark));
-        chipElectronics.setChipBackgroundColorResource(filter.equals("electronics") ? R.color.primary : R.color.light_gray);
-        chipElectronics.setTextColor(getResources().getColor(filter.equals("electronics") ? R.color.white : R.color.dark));
-        chipClothing.setChipBackgroundColorResource(filter.equals("clothing") ? R.color.primary : R.color.light_gray);
-        chipClothing.setTextColor(getResources().getColor(filter.equals("clothing") ? R.color.white : R.color.dark));
-    }
-
     private void updateStats() {
-        tvStatsProducts.setText(filteredProducts.size() + " Productos ·");
+        tvStatsProducts.setText(filteredProducts.size() + " Productos");
         if (filteredProducts.isEmpty()) {
             tvInventarioVacio.setVisibility(View.VISIBLE);
             rvInventario.setVisibility(View.GONE);
@@ -231,4 +267,4 @@ public class InventarioFragment extends Fragment {
             rvInventario.setVisibility(View.VISIBLE);
         }
     }
-                                             }
+            }
