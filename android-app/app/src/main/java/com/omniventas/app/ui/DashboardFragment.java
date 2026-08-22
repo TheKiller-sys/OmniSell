@@ -3,13 +3,13 @@ package com.omniventas.app.ui;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.text.format.DateFormat;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.TextView;
-import android.widget.Toast;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
@@ -17,7 +17,7 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 import com.omniventas.app.R;
-import com.omniventas.app.adapters.VentaRecienteAdapter;
+import com.omniventas.app.adapters.DashboardVentaAdapter;
 import com.omniventas.app.api.ApiService;
 import com.omniventas.app.api.RetrofitClient;
 import com.omniventas.app.models.DashboardResponse;
@@ -28,6 +28,7 @@ import com.omniventas.app.utils.TelegramLogger;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.Date;
 import java.util.List;
 import java.util.Locale;
 import retrofit2.Call;
@@ -39,15 +40,15 @@ public class DashboardFragment extends Fragment {
     private static final int PAGE_SIZE = 10;
 
     private TextView tvGreeting, tvLiveRevenue, tvPendingOrders, tvConversionRate, tvConversionTrend;
-    private TextView tvPageInfo, tvSinVentas;
+    private TextView tvFechaHoy, tvPageInfo, tvSinVentas;
     private Button btnPrevPage, btnNextPage;
     private RecyclerView rvVentasDiarias;
     private SwipeRefreshLayout swipeRefresh;
     private SessionManager sessionManager;
     private TelegramLogger logger;
     private OmniVentasRepository repository;
-    private VentaRecienteAdapter ventasAdapter;
-    private List<Venta> todasLasVentas = new ArrayList<>();
+    private DashboardVentaAdapter ventasAdapter;
+    private List<Venta> ventasDelDia = new ArrayList<>();
     private List<Venta> ventasPagina = new ArrayList<>();
     private int paginaActual = 0;
     private int totalPaginas = 0;
@@ -66,6 +67,7 @@ public class DashboardFragment extends Fragment {
             // Inicializar vistas
             tvGreeting = view.findViewById(R.id.tv_greeting);
             tvLiveRevenue = view.findViewById(R.id.tv_live_revenue);
+            tvFechaHoy = view.findViewById(R.id.tv_fecha_hoy);
             tvPendingOrders = view.findViewById(R.id.tv_pending_orders);
             tvConversionRate = view.findViewById(R.id.tv_conversion_rate);
             tvConversionTrend = view.findViewById(R.id.tv_conversion_trend);
@@ -80,8 +82,12 @@ public class DashboardFragment extends Fragment {
             logger = TelegramLogger.getInstance(getContext());
             repository = new OmniVentasRepository(getContext());
 
+            // Mostrar fecha actual
+            String fechaActual = new SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).format(new Date());
+            tvFechaHoy.setText(fechaActual);
+
             // Configurar RecyclerView
-            ventasAdapter = new VentaRecienteAdapter(new ArrayList<>());
+            ventasAdapter = new DashboardVentaAdapter();
             rvVentasDiarias.setLayoutManager(new LinearLayoutManager(getContext()));
             rvVentasDiarias.setAdapter(ventasAdapter);
 
@@ -190,7 +196,7 @@ public class DashboardFragment extends Fragment {
                         DashboardResponse.DashboardData data = response.body().getDashboard();
                         Log.d(TAG, "Dashboard - Datos recibidos correctamente");
                         
-                        // Actualizar ingresos
+                        // Actualizar ingresos del día
                         if (tvLiveRevenue != null) {
                             double ingresosHoy = data.getIngresosHoy();
                             tvLiveRevenue.setText("$" + String.format("%,.0f", ingresosHoy));
@@ -211,14 +217,25 @@ public class DashboardFragment extends Fragment {
                             tvConversionTrend.setText("↑ " + String.format("%.1f%%", conversion));
                         }
 
-                        // Actualizar historial de ventas
+                        // ========================================
+                        // VENTAS DEL DÍA - FILTRAR POR FECHA ACTUAL
+                        // ========================================
                         if (data.getVentasRecientes() != null) {
-                            todasLasVentas = data.getVentasRecientes();
-                            totalPaginas = (int) Math.ceil((double) todasLasVentas.size() / PAGE_SIZE);
+                            ventasDelDia.clear();
+                            String fechaHoy = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(new Date());
+                            
+                            for (Venta v : data.getVentasRecientes()) {
+                                // Filtrar ventas que sean del día de hoy
+                                if (v.getFecha() != null && v.getFecha().contains(fechaHoy)) {
+                                    ventasDelDia.add(v);
+                                }
+                            }
+                            
+                            totalPaginas = (int) Math.ceil((double) ventasDelDia.size() / PAGE_SIZE);
                             paginaActual = 0;
                             mostrarPagina();
                             
-                            if (todasLasVentas.isEmpty()) {
+                            if (ventasDelDia.isEmpty()) {
                                 tvSinVentas.setVisibility(View.VISIBLE);
                                 rvVentasDiarias.setVisibility(View.GONE);
                             } else {
@@ -249,14 +266,14 @@ public class DashboardFragment extends Fragment {
 
     private void mostrarPagina() {
         int inicio = paginaActual * PAGE_SIZE;
-        int fin = Math.min(inicio + PAGE_SIZE, todasLasVentas.size());
+        int fin = Math.min(inicio + PAGE_SIZE, ventasDelDia.size());
         
         ventasPagina.clear();
-        if (inicio < todasLasVentas.size()) {
-            ventasPagina.addAll(todasLasVentas.subList(inicio, fin));
+        if (inicio < ventasDelDia.size()) {
+            ventasPagina.addAll(ventasDelDia.subList(inicio, fin));
         }
         
-        ventasAdapter.updateData(ventasPagina);
+        ventasAdapter.setVentas(ventasPagina);
         
         // Actualizar información de página
         tvPageInfo.setText("Página " + (paginaActual + 1) + " de " + Math.max(1, totalPaginas));
@@ -271,4 +288,4 @@ public class DashboardFragment extends Fragment {
             cargarDashboardCompleto();
         }
     }
-                                         }
+}
