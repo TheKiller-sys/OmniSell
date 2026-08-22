@@ -9,12 +9,15 @@ import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 import com.omniventas.app.R;
 import com.omniventas.app.models.Venta;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 
 public class VentaAdapter extends RecyclerView.Adapter<VentaAdapter.ViewHolder> {
     private List<Venta> ventas = new ArrayList<>();
     private boolean showSyncStatus = false;
+    private SimpleDateFormat dateFormat = new SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault());
 
     @NonNull
     @Override
@@ -27,11 +30,28 @@ public class VentaAdapter extends RecyclerView.Adapter<VentaAdapter.ViewHolder> 
     @Override
     public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
         Venta v = ventas.get(position);
-        holder.tvProducto.setText(v.getProducto());
-        holder.tvFecha.setText(v.getFecha());
+        
+        // Nombre del producto
+        holder.tvProducto.setText(v.getProducto() != null ? v.getProducto() : "Producto sin nombre");
+        
+        // Fecha
+        try {
+            if (v.getFecha() != null && !v.getFecha().isEmpty()) {
+                holder.tvFecha.setText(v.getFecha());
+            } else {
+                holder.tvFecha.setText("Fecha no disponible");
+            }
+        } catch (Exception e) {
+            holder.tvFecha.setText("Fecha no disponible");
+        }
+        
+        // Cantidad
         holder.tvCantidad.setText(v.getCantidad() + "x");
+        
+        // Total
         holder.tvTotal.setText("$" + String.format("%.2f", v.getTotal()));
         
+        // Estado de sincronización
         if (showSyncStatus && v.isPendiente()) {
             holder.ivSyncStatus.setVisibility(View.VISIBLE);
         } else {
@@ -57,6 +77,7 @@ public class VentaAdapter extends RecyclerView.Adapter<VentaAdapter.ViewHolder> 
     static class ViewHolder extends RecyclerView.ViewHolder {
         TextView tvProducto, tvFecha, tvCantidad, tvTotal;
         ImageView ivSyncStatus;
+        
         ViewHolder(@NonNull View itemView) {
             super(itemView);
             tvProducto = itemView.findViewById(R.id.tv_producto);
@@ -66,4 +87,4 @@ public class VentaAdapter extends RecyclerView.Adapter<VentaAdapter.ViewHolder> 
             ivSyncStatus = itemView.findViewById(R.id.iv_sync_status);
         }
     }
-}
+                                  }
