@@ -1,6 +1,5 @@
 package com.omniventas.app.ui;
 
-import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
@@ -8,14 +7,17 @@ import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.ProgressBar;
+import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 import com.omniventas.app.R;
+import com.omniventas.app.adapters.VentaRecienteAdapter;
 import com.omniventas.app.api.ApiService;
 import com.omniventas.app.api.RetrofitClient;
 import com.omniventas.app.models.DashboardResponse;
@@ -23,23 +25,32 @@ import com.omniventas.app.models.Venta;
 import com.omniventas.app.repository.OmniVentasRepository;
 import com.omniventas.app.utils.SessionManager;
 import com.omniventas.app.utils.TelegramLogger;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.List;
+import java.util.Locale;
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
 
 public class DashboardFragment extends Fragment {
     private static final String TAG = "DashboardFragment";
+    private static final int PAGE_SIZE = 10;
 
-    private TextView tvGreeting, tvLiveRevenue, tvDailyGoalPercent, tvDailyGoal;
-    private TextView tvTopProductName, tvTopProductRevenue, tvTopProductQuantity;
-    private TextView tvPendingOrders, tvConversionRate, tvConversionTrend;
-    private TextView tvOfflineStatus;
-    private ProgressBar progressDailyGoal;
+    private TextView tvGreeting, tvLiveRevenue, tvPendingOrders, tvConversionRate, tvConversionTrend;
+    private TextView tvPageInfo, tvSinVentas;
+    private Button btnPrevPage, btnNextPage;
+    private RecyclerView rvVentasDiarias;
     private SwipeRefreshLayout swipeRefresh;
     private SessionManager sessionManager;
     private TelegramLogger logger;
     private OmniVentasRepository repository;
+    private VentaRecienteAdapter ventasAdapter;
+    private List<Venta> todasLasVentas = new ArrayList<>();
+    private List<Venta> ventasPagina = new ArrayList<>();
+    private int paginaActual = 0;
+    private int totalPaginas = 0;
     private Handler handler = new Handler(Looper.getMainLooper());
     private Runnable actualizacionAutomatica;
 
@@ -52,67 +63,78 @@ public class DashboardFragment extends Fragment {
             View view = inflater.inflate(R.layout.fragment_dashboard, container, false);
             Log.d(TAG, "Layout inflado correctamente");
 
-            // Inicializar vistas con manejo de null
+            // Inicializar vistas
             tvGreeting = view.findViewById(R.id.tv_greeting);
             tvLiveRevenue = view.findViewById(R.id.tv_live_revenue);
-            tvDailyGoalPercent = view.findViewById(R.id.tv_daily_goal_percent);
-            tvDailyGoal = view.findViewById(R.id.tv_daily_goal);
-            progressDailyGoal = view.findViewById(R.id.progress_daily_goal);
-            tvTopProductName = view.findViewById(R.id.tv_top_product_name);
-            tvTopProductRevenue = view.findViewById(R.id.tv_top_product_revenue);
-            tvTopProductQuantity = view.findViewById(R.id.tv_top_product_quantity);
             tvPendingOrders = view.findViewById(R.id.tv_pending_orders);
             tvConversionRate = view.findViewById(R.id.tv_conversion_rate);
             tvConversionTrend = view.findViewById(R.id.tv_conversion_trend);
-            tvOfflineStatus = view.findViewById(R.id.tv_offline_status);
+            tvPageInfo = view.findViewById(R.id.tv_page_info);
+            tvSinVentas = view.findViewById(R.id.tv_sin_ventas);
+            btnPrevPage = view.findViewById(R.id.btn_prev_page);
+            btnNextPage = view.findViewById(R.id.btn_next_page);
+            rvVentasDiarias = view.findViewById(R.id.rv_ventas_diarias);
             swipeRefresh = view.findViewById(R.id.swipe_refresh);
-
-            // Verificar que los views importantes no sean null
-            if (swipeRefresh == null) {
-                Log.e(TAG, "❌ swipe_refresh es NULL - verificar layout");
-                Toast.makeText(getContext(), "Error: swipe_refresh no encontrado", Toast.LENGTH_SHORT).show();
-            }
 
             sessionManager = new SessionManager(getContext());
             logger = TelegramLogger.getInstance(getContext());
             repository = new OmniVentasRepository(getContext());
 
-            // Configurar saludo
+            // Configurar RecyclerView
+            ventasAdapter = new VentaRecienteAdapter(new ArrayList<>());
+            rvVentasDiarias.setLayoutManager(new LinearLayoutManager(getContext()));
+            rvVentasDiarias.setAdapter(ventasAdapter);
+
+            // Configurar saludo en español
             String vendorName = sessionManager.getVendorName();
-            String greeting = "Good morning";
+            String greeting = "Buenos días";
             int hour = Calendar.getInstance().get(Calendar.HOUR_OF_DAY);
-            if (hour >= 12 && hour < 18) greeting = "Good afternoon";
-            else if (hour >= 18) greeting = "Good evening";
+            if (hour >= 12 && hour < 18) greeting = "Buenas tardes";
+            else if (hour >= 18) greeting = "Buenas noches";
             
             if (tvGreeting != null) {
-                tvGreeting.setText(greeting + ", " + (vendorName != null ? vendorName : "Vendor"));
+                tvGreeting.setText(greeting + ", " + (vendorName != null ? vendorName : "Vendedor"));
             }
 
             // Configurar SwipeRefreshLayout
             if (swipeRefresh != null) {
                 swipeRefresh.setOnRefreshListener(() -> {
-                    cargarDashboard();
+                    cargarDashboardCompleto();
                     if (swipeRefresh != null) {
                         swipeRefresh.setRefreshing(false);
                     }
                 });
             }
 
-            // Actualización automática
+            // Paginación
+            btnPrevPage.setOnClickListener(v -> {
+                if (paginaActual > 0) {
+                    paginaActual--;
+                    mostrarPagina();
+                }
+            });
+
+            btnNextPage.setOnClickListener(v -> {
+                if (paginaActual < totalPaginas - 1) {
+                    paginaActual++;
+                    mostrarPagina();
+                }
+            });
+
+            // Actualización automática cada 30 segundos
             actualizacionAutomatica = new Runnable() {
                 @Override
                 public void run() {
                     if (isAdded()) {
-                        cargarDashboardLocal();
-                        handler.postDelayed(this, 15000);
+                        cargarDashboardCompleto();
+                        handler.postDelayed(this, 30000);
                     }
                 }
             };
-            handler.postDelayed(actualizacionAutomatica, 15000);
+            handler.postDelayed(actualizacionAutomatica, 30000);
 
             // Cargar datos
-            cargarDashboardLocal();
-            cargarDashboard();
+            cargarDashboardCompleto();
 
             Log.d(TAG, "✅ onCreateView completado");
             return view;
@@ -121,12 +143,6 @@ public class DashboardFragment extends Fragment {
             Log.e(TAG, "❌ Error en onCreateView: " + e.getMessage());
             e.printStackTrace();
             
-            // Mostrar mensaje de error
-            if (getContext() != null) {
-                Toast.makeText(getContext(), "Error cargando Dashboard: " + e.getMessage(), Toast.LENGTH_LONG).show();
-            }
-            
-            // Devolver un layout simple para evitar crash
             TextView errorView = new TextView(getContext());
             errorView.setText("Error cargando Dashboard\n\n" + e.getMessage());
             errorView.setPadding(20, 20, 20, 20);
@@ -140,165 +156,119 @@ public class DashboardFragment extends Fragment {
         handler.removeCallbacks(actualizacionAutomatica);
     }
 
-    // ✅ CORREGIDO: Cargar datos locales en segundo plano con AsyncTask
-    public void cargarDashboardLocal() {
-        Log.d(TAG, "cargarDashboardLocal - Cargando datos locales");
-        new CargarDatosLocalesTask().execute();
+    private void cargarDashboardCompleto() {
+        cargarDatosLocales();
+        cargarDashboardDesdeServidor();
     }
 
-    // ✅ AsyncTask para cargar datos locales en segundo plano
-    private class CargarDatosLocalesTask extends AsyncTask<Void, Void, Integer> {
-        private int ventasPendientes = 0;
-        private int totalProductos = 0;
-        private int stockBajo = 0;
-
-        @Override
-        protected Integer doInBackground(Void... voids) {
-            try {
-                ventasPendientes = repository.getVentasPendientesCount();
-                totalProductos = repository.getTotalProductos();
-                stockBajo = repository.getStockBajo();
-                Log.d(TAG, "✅ Datos locales cargados en background: pendientes=" + ventasPendientes);
-                return ventasPendientes;
-            } catch (Exception e) {
-                Log.e(TAG, "❌ Error cargando datos locales: " + e.getMessage());
-                return 0;
-            }
-        }
-
-        @Override
-        protected void onPostExecute(Integer result) {
-            try {
-                if (tvLiveRevenue != null) {
-                    tvLiveRevenue.setText("$" + String.format("%,.0f", (double) ventasPendientes * 100));
-                }
-                if (tvPendingOrders != null) {
-                    tvPendingOrders.setText(String.valueOf(ventasPendientes));
-                }
-                if (tvOfflineStatus != null) {
-                    tvOfflineStatus.setVisibility(View.VISIBLE);
-                    tvOfflineStatus.setText("📡 Modo Offline - " + ventasPendientes + " pendientes");
-                }
-                Log.d(TAG, "✅ UI actualizada con datos locales: " + ventasPendientes + " pendientes");
-            } catch (Exception e) {
-                Log.e(TAG, "❌ Error actualizando UI: " + e.getMessage());
-            }
-        }
-    }
-
-    private void cargarDashboard() {
+    private void cargarDatosLocales() {
         try {
-            String token = sessionManager.getToken();
-            if (token == null || token.isEmpty()) {
-                Log.w(TAG, "No hay token, mostrando datos locales");
-                if (tvOfflineStatus != null) {
-                    tvOfflineStatus.setVisibility(View.VISIBLE);
-                    tvOfflineStatus.setText("📡 Sin conexión - Mostrando datos locales");
-                }
-                return;
+            int pendientes = repository.getVentasPendientesCount();
+            if (tvPendingOrders != null) {
+                tvPendingOrders.setText(String.valueOf(pendientes));
             }
+        } catch (Exception e) {
+            Log.e(TAG, "Error cargando datos locales: " + e.getMessage());
+        }
+    }
 
-            Log.d(TAG, "cargarDashboard - Solicitando datos al servidor");
-            ApiService apiService = RetrofitClient.getInstance(getContext()).getApiService();
-            apiService.getDashboard("Bearer " + token).enqueue(new Callback<DashboardResponse>() {
-                @Override
-                public void onResponse(Call<DashboardResponse> call, Response<DashboardResponse> response) {
-                    Log.d(TAG, "Dashboard - onResponse recibido");
-                    try {
-                        if (response.isSuccessful() && response.body() != null && response.body().isSuccess()) {
-                            DashboardResponse.DashboardData data = response.body().getDashboard();
-                            Log.d(TAG, "Dashboard - Datos recibidos correctamente");
+    private void cargarDashboardDesdeServidor() {
+        String token = sessionManager.getToken();
+        if (token == null || token.isEmpty()) {
+            Log.w(TAG, "No hay token, mostrando datos locales");
+            return;
+        }
+
+        Log.d(TAG, "Cargando dashboard desde servidor");
+        ApiService apiService = RetrofitClient.getInstance(getContext()).getApiService();
+        apiService.getDashboard("Bearer " + token).enqueue(new Callback<DashboardResponse>() {
+            @Override
+            public void onResponse(Call<DashboardResponse> call, Response<DashboardResponse> response) {
+                Log.d(TAG, "Dashboard - onResponse recibido");
+                try {
+                    if (response.isSuccessful() && response.body() != null && response.body().isSuccess()) {
+                        DashboardResponse.DashboardData data = response.body().getDashboard();
+                        Log.d(TAG, "Dashboard - Datos recibidos correctamente");
+                        
+                        // Actualizar ingresos
+                        if (tvLiveRevenue != null) {
+                            double ingresosHoy = data.getIngresosHoy();
+                            tvLiveRevenue.setText("$" + String.format("%,.0f", ingresosHoy));
+                        }
+
+                        // Actualizar pedidos pendientes (productos bajo stock)
+                        if (tvPendingOrders != null) {
+                            tvPendingOrders.setText(String.valueOf(data.getProductosBajoStock()));
+                        }
+
+                        // Actualizar tasa de conversión
+                        if (tvConversionRate != null && tvConversionTrend != null) {
+                            double conversion = 0.0;
+                            if (data.getVentasMes() > 0) {
+                                conversion = (double) data.getVentasHoy() / data.getVentasMes() * 100;
+                            }
+                            tvConversionRate.setText(String.format("%.1f%%", conversion));
+                            tvConversionTrend.setText("↑ " + String.format("%.1f%%", conversion));
+                        }
+
+                        // Actualizar historial de ventas
+                        if (data.getVentasRecientes() != null) {
+                            todasLasVentas = data.getVentasRecientes();
+                            totalPaginas = (int) Math.ceil((double) todasLasVentas.size() / PAGE_SIZE);
+                            paginaActual = 0;
+                            mostrarPagina();
                             
-                            if (tvOfflineStatus != null) {
-                                tvOfflineStatus.setVisibility(View.GONE);
-                            }
-
-                            if (tvLiveRevenue != null) {
-                                double ingresosHoy = data.getIngresosHoy();
-                                tvLiveRevenue.setText("$" + String.format("%,.0f", ingresosHoy));
-                            }
-
-                            if (tvDailyGoalPercent != null && tvDailyGoal != null && progressDailyGoal != null) {
-                                double ingresosHoy = data.getIngresosHoy();
-                                double metaDiaria = 32000;
-                                double porcentaje = (ingresosHoy / metaDiaria) * 100;
-                                if (porcentaje > 100) porcentaje = 100;
-                                tvDailyGoalPercent.setText(String.format("%.0f%%", porcentaje));
-                                tvDailyGoal.setText("Daily Goal $" + String.format("%,.0f", metaDiaria));
-                                progressDailyGoal.setProgress((int) porcentaje);
-                            }
-
-                            if (tvTopProductName != null && tvTopProductRevenue != null && tvTopProductQuantity != null) {
-                                if (data.getVentasRecientes() != null && !data.getVentasRecientes().isEmpty()) {
-                                    Venta topVenta = data.getVentasRecientes().get(0);
-                                    tvTopProductName.setText(topVenta.getProducto());
-                                    tvTopProductRevenue.setText("$" + String.format("%,.2f", topVenta.getTotal()));
-                                    tvTopProductQuantity.setText(topVenta.getCantidad() + " sold");
-                                } else {
-                                    tvTopProductName.setText("No sales yet");
-                                    tvTopProductRevenue.setText("$0");
-                                    tvTopProductQuantity.setText("0 sold");
-                                }
-                            }
-
-                            if (tvPendingOrders != null) {
-                                tvPendingOrders.setText(String.valueOf(data.getProductosBajoStock()));
-                            }
-
-                            if (tvConversionRate != null && tvConversionTrend != null) {
-                                double conversion = 0.0;
-                                if (data.getVentasMes() > 0) {
-                                    conversion = (double) data.getVentasHoy() / data.getVentasMes() * 100;
-                                }
-                                tvConversionRate.setText(String.format("%.1f%%", conversion));
-                                tvConversionTrend.setText("↑ 0.0%");
-                            }
-                            
-                            // Sincronizar productos en segundo plano
-                            repository.syncProductosFromServer();
-                            
-                        } else {
-                            Log.e(TAG, "Dashboard - Respuesta no exitosa");
-                            if (tvOfflineStatus != null) {
-                                tvOfflineStatus.setVisibility(View.VISIBLE);
-                                tvOfflineStatus.setText("📡 Mostrando datos locales");
+                            if (todasLasVentas.isEmpty()) {
+                                tvSinVentas.setVisibility(View.VISIBLE);
+                                rvVentasDiarias.setVisibility(View.GONE);
+                            } else {
+                                tvSinVentas.setVisibility(View.GONE);
+                                rvVentasDiarias.setVisibility(View.VISIBLE);
                             }
                         }
-                    } catch (Exception e) {
-                        Log.e(TAG, "❌ Error procesando dashboard: " + e.getMessage());
-                        e.printStackTrace();
-                    }
-                }
 
-                @Override
-                public void onFailure(Call<DashboardResponse> call, Throwable t) {
-                    Log.e(TAG, "❌ Dashboard - onFailure: " + t.getMessage());
-                    if (tvOfflineStatus != null) {
-                        tvOfflineStatus.setVisibility(View.VISIBLE);
-                        tvOfflineStatus.setText("📡 Sin conexión - Mostrando datos locales");
+                        // Sincronizar productos en segundo plano
+                        repository.syncProductosFromServer();
+                        
+                    } else {
+                        Log.e(TAG, "Dashboard - Respuesta no exitosa");
                     }
-                    logger.networkError(t);
+                } catch (Exception e) {
+                    Log.e(TAG, "❌ Error procesando dashboard: " + e.getMessage());
+                    e.printStackTrace();
                 }
-            });
-        } catch (Exception e) {
-            Log.e(TAG, "❌ Error en cargarDashboard: " + e.getMessage());
-            e.printStackTrace();
+            }
+
+            @Override
+            public void onFailure(Call<DashboardResponse> call, Throwable t) {
+                Log.e(TAG, "❌ Dashboard - onFailure: " + t.getMessage());
+                logger.networkError(t);
+            }
+        });
+    }
+
+    private void mostrarPagina() {
+        int inicio = paginaActual * PAGE_SIZE;
+        int fin = Math.min(inicio + PAGE_SIZE, todasLasVentas.size());
+        
+        ventasPagina.clear();
+        if (inicio < todasLasVentas.size()) {
+            ventasPagina.addAll(todasLasVentas.subList(inicio, fin));
         }
+        
+        ventasAdapter.updateData(ventasPagina);
+        
+        // Actualizar información de página
+        tvPageInfo.setText("Página " + (paginaActual + 1) + " de " + Math.max(1, totalPaginas));
+        
+        btnPrevPage.setVisibility(paginaActual > 0 ? View.VISIBLE : View.GONE);
+        btnNextPage.setVisibility(paginaActual < totalPaginas - 1 ? View.VISIBLE : View.GONE);
     }
 
-    public void actualizarDashboard() {
-        Log.d(TAG, "actualizarDashboard - Actualizando dashboard");
-        cargarDashboard();
-    }
-
-    // ============================================================
-    // MÉTODO PARA ACTUALIZAR DESDE VentasFragment
-    // ============================================================
     public void actualizarDesdeVenta() {
         Log.d(TAG, "actualizarDesdeVenta - Actualizando dashboard desde venta");
         if (isAdded()) {
-            cargarDashboardLocal();
-            cargarDashboard();
+            cargarDashboardCompleto();
         }
     }
-}
+                                         }
