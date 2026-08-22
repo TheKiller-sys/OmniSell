@@ -6,6 +6,7 @@ import android.os.Handler;
 import android.os.Looper;
 import android.os.Vibrator;
 import android.text.Editable;
+import android.text.TextUtils;
 import android.text.TextWatcher;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -26,6 +27,8 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.google.android.material.chip.Chip;
 import com.omniventas.app.R;
 import com.omniventas.app.adapters.ProductoAdapter;
+import com.omniventas.app.api.ApiService;
+import com.omniventas.app.api.RetrofitClient;
 import com.omniventas.app.models.Producto;
 import com.omniventas.app.models.VentaRequest;
 import com.omniventas.app.models.VentaResponse;
@@ -514,4 +517,4 @@ public class VentasFragment extends Fragment {
             cargarVentasPendientes();
         }
     }
-    }
+}
