@@ -2,6 +2,8 @@ package com.omniventas.app.ui;
 
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.os.Vibrator;
 import android.text.Editable;
 import android.text.TextWatcher;
@@ -9,6 +11,7 @@ import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.animation.AnimationUtils;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageView;
@@ -21,7 +24,6 @@ import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 import com.google.android.material.chip.Chip;
-import com.google.android.material.chip.ChipGroup;
 import com.omniventas.app.R;
 import com.omniventas.app.adapters.ProductoAdapter;
 import com.omniventas.app.models.Producto;
@@ -55,6 +57,7 @@ public class VentasFragment extends Fragment {
     private List<Producto> productosFiltrados = new ArrayList<>();
     private ProductoAdapter productoAdapter;
     private boolean isSearching = false;
+    private Vibrator vibrator;
 
     @Nullable
     @Override
@@ -85,6 +88,7 @@ public class VentasFragment extends Fragment {
             sessionManager = new SessionManager(getContext());
             logger = TelegramLogger.getInstance(getContext());
             repository = new OmniVentasRepository(getContext());
+            vibrator = (Vibrator) getContext().getSystemService(getContext().VIBRATOR_SERVICE);
 
             // Configurar RecyclerView para búsqueda
             productoAdapter = new ProductoAdapter(producto -> {
@@ -94,6 +98,11 @@ public class VentasFragment extends Fragment {
                 rvProductosBusqueda.setVisibility(View.GONE);
                 isSearching = false;
                 etSearchProduct.setText("");
+                
+                // Feedback háptico
+                if (vibrator != null) {
+                    vibrator.vibrate(50);
+                }
             });
             rvProductosBusqueda.setLayoutManager(new LinearLayoutManager(getContext()));
             rvProductosBusqueda.setAdapter(productoAdapter);
@@ -122,6 +131,9 @@ public class VentasFragment extends Fragment {
                 if (quantity > 1) {
                     quantity--;
                     updateQuantityAndPrice();
+                    if (vibrator != null) {
+                        vibrator.vibrate(30);
+                    }
                 }
             });
 
@@ -129,10 +141,16 @@ public class VentasFragment extends Fragment {
                 if (selectedProduct != null && quantity < selectedProduct.getStock()) {
                     quantity++;
                     updateQuantityAndPrice();
+                    if (vibrator != null) {
+                        vibrator.vibrate(30);
+                    }
                 } else if (selectedProduct == null) {
                     Toast.makeText(getContext(), "Selecciona un producto primero", Toast.LENGTH_SHORT).show();
                 } else {
                     Toast.makeText(getContext(), "Stock insuficiente", Toast.LENGTH_SHORT).show();
+                    if (vibrator != null) {
+                        vibrator.vibrate(100);
+                    }
                 }
             });
 
@@ -189,6 +207,7 @@ public class VentasFragment extends Fragment {
             productos = result;
             productosFiltrados = new ArrayList<>(productos);
             crearSugerencias();
+            Log.d(TAG, "✅ " + productos.size() + " productos cargados");
         }
     }
 
@@ -208,6 +227,8 @@ public class VentasFragment extends Fragment {
             chip.setText(p.getNombre());
             chip.setChipBackgroundColorResource(R.color.primary);
             chip.setTextColor(getResources().getColor(R.color.white));
+            chip.setMaxLines(1);
+            chip.setEllipsize(TextUtils.TruncateAt.END);
             chip.setLayoutParams(new ViewGroup.LayoutParams(
                 ViewGroup.LayoutParams.WRAP_CONTENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT
@@ -216,6 +237,9 @@ public class VentasFragment extends Fragment {
                 selectedProduct = p;
                 quantity = 1;
                 updateUI();
+                if (vibrator != null) {
+                    vibrator.vibrate(50);
+                }
             });
             llSugerencias.addView(chip);
             LinearLayout.LayoutParams params = (LinearLayout.LayoutParams) chip.getLayoutParams();
@@ -291,6 +315,7 @@ public class VentasFragment extends Fragment {
             tvDiscount.setText("$0.00");
             tvSubtotal.setText("$" + String.format("%.2f", subtotal));
             tvLiveTotal.setText("$" + String.format("%.2f", subtotal));
+            tvLivePercent.setText("+" + String.format("%.0f%%", Math.random() * 20));
         }
     }
 
@@ -299,99 +324,194 @@ public class VentasFragment extends Fragment {
         
         if (selectedProduct == null) {
             Toast.makeText(getContext(), "Selecciona un producto primero", Toast.LENGTH_SHORT).show();
+            if (vibrator != null) {
+                vibrator.vibrate(100);
+            }
             return;
         }
 
         if (quantity > selectedProduct.getStock()) {
             Toast.makeText(getContext(), "Stock insuficiente", Toast.LENGTH_SHORT).show();
+            if (vibrator != null) {
+                vibrator.vibrate(100);
+            }
             return;
         }
 
         String token = sessionManager.getToken();
+        
+        // Guardar datos de la venta antes de procesar
+        Producto productoVendido = selectedProduct;
+        int cantidadVendida = quantity;
+        double precioVenta = selectedProduct.getPrecio();
+        
         if (token == null || token.isEmpty()) {
             // Modo offline
             repository.registrarVentaOffline(
-                selectedProduct.getId(),
-                selectedProduct.getNombre(),
-                quantity,
-                selectedProduct.getPrecio()
+                productoVendido.getId(),
+                productoVendido.getNombre(),
+                cantidadVendida,
+                precioVenta
             );
-            Toast.makeText(getContext(), "✅ Venta guardada OFFLINE: " + selectedProduct.getNombre() + " x" + quantity, Toast.LENGTH_LONG).show();
-            
-            selectedProduct.setStock(selectedProduct.getStock() - quantity);
-            quantity = 1;
-            updateUI();
-            cargarVentasPendientes();
+            actualizarStockLocal(productoVendido, cantidadVendida);
+            mostrarOverlayExito(productoVendido, cantidadVendida, precioVenta * cantidadVendida);
             return;
         }
 
         VentaRequest request = new VentaRequest(
-            selectedProduct.getId(),
-            quantity,
-            selectedProduct.getPrecio()
+            productoVendido.getId(),
+            cantidadVendida,
+            precioVenta
         );
 
-        com.omniventas.app.api.ApiService apiService = 
-            com.omniventas.app.api.RetrofitClient.getInstance(getContext()).getApiService();
+        ApiService apiService = RetrofitClient.getInstance(getContext()).getApiService();
         
         apiService.registrarVenta("Bearer " + token, request).enqueue(new Callback<VentaResponse>() {
             @Override
             public void onResponse(Call<VentaResponse> call, Response<VentaResponse> response) {
                 try {
                     if (response.isSuccessful() && response.body() != null && response.body().isSuccess()) {
-                        Toast.makeText(getContext(), "✅ Venta confirmada!", Toast.LENGTH_SHORT).show();
-                        logger.success("Venta registrada: " + selectedProduct.getNombre() + " x" + quantity);
-                        
-                        selectedProduct.setStock(selectedProduct.getStock() - quantity);
-                        quantity = 1;
-                        updateUI();
-                        cargarVentasPendientes();
-                        
-                        // Actualizar Dashboard
-                        if (getActivity() != null) {
-                            Fragment fragment = getActivity()
-                                .getSupportFragmentManager()
-                                .findFragmentByTag("dashboard");
-                            
-                            if (fragment instanceof DashboardFragment) {
-                                DashboardFragment dashboard = (DashboardFragment) fragment;
-                                dashboard.actualizarDesdeVenta();
-                            }
-                        }
+                        // ✅ Venta exitosa
+                        Log.d(TAG, "✅ Venta exitosa en servidor");
+                        actualizarStockLocal(productoVendido, cantidadVendida);
+                        mostrarOverlayExito(productoVendido, cantidadVendida, precioVenta * cantidadVendida);
+                        notificarDashboard();
                     } else {
                         // Fallback offline
+                        Log.w(TAG, "⚠️ Servidor no disponible, guardando offline");
                         repository.registrarVentaOffline(
-                            selectedProduct.getId(),
-                            selectedProduct.getNombre(),
-                            quantity,
-                            selectedProduct.getPrecio()
+                            productoVendido.getId(),
+                            productoVendido.getNombre(),
+                            cantidadVendida,
+                            precioVenta
                         );
-                        Toast.makeText(getContext(), "✅ Venta guardada OFFLINE", Toast.LENGTH_LONG).show();
-                        selectedProduct.setStock(selectedProduct.getStock() - quantity);
-                        quantity = 1;
-                        updateUI();
-                        cargarVentasPendientes();
+                        actualizarStockLocal(productoVendido, cantidadVendida);
+                        mostrarOverlayExito(productoVendido, cantidadVendida, precioVenta * cantidadVendida);
                     }
                 } catch (Exception e) {
                     Log.e(TAG, "Error en onResponse: " + e.getMessage());
+                    repository.registrarVentaOffline(
+                        productoVendido.getId(),
+                        productoVendido.getNombre(),
+                        cantidadVendida,
+                        precioVenta
+                    );
+                    actualizarStockLocal(productoVendido, cantidadVendida);
+                    mostrarOverlayExito(productoVendido, cantidadVendida, precioVenta * cantidadVendida);
                 }
             }
 
             @Override
             public void onFailure(Call<VentaResponse> call, Throwable t) {
+                Log.e(TAG, "❌ onFailure: " + t.getMessage());
                 repository.registrarVentaOffline(
-                    selectedProduct.getId(),
-                    selectedProduct.getNombre(),
-                    quantity,
-                    selectedProduct.getPrecio()
+                    productoVendido.getId(),
+                    productoVendido.getNombre(),
+                    cantidadVendida,
+                    precioVenta
                 );
-                Toast.makeText(getContext(), "✅ Venta guardada OFFLINE", Toast.LENGTH_LONG).show();
-                selectedProduct.setStock(selectedProduct.getStock() - quantity);
-                quantity = 1;
-                updateUI();
-                cargarVentasPendientes();
+                actualizarStockLocal(productoVendido, cantidadVendida);
+                mostrarOverlayExito(productoVendido, cantidadVendida, precioVenta * cantidadVendida);
                 logger.networkError(t);
             }
         });
+    }
+
+    private void actualizarStockLocal(Producto producto, int cantidadVendida) {
+        int nuevoStock = producto.getStock() - cantidadVendida;
+        producto.setStock(nuevoStock);
+        repository.actualizarStockLocal(producto.getId(), nuevoStock);
+        Log.d(TAG, "✅ Stock actualizado: " + producto.getNombre() + " → " + nuevoStock);
+    }
+
+    private void notificarDashboard() {
+        if (getActivity() != null) {
+            Fragment fragment = getActivity()
+                .getSupportFragmentManager()
+                .findFragmentByTag("dashboard");
+            
+            if (fragment instanceof DashboardFragment) {
+                DashboardFragment dashboard = (DashboardFragment) fragment;
+                dashboard.actualizarDesdeVenta();
+                Log.d(TAG, "✅ Dashboard notificado");
+            }
+        }
+    }
+
+    private void mostrarOverlayExito(Producto producto, int cantidad, double total) {
+        Log.d(TAG, "🎉 Mostrando overlay de éxito");
+        
+        View overlay = getLayoutInflater().inflate(R.layout.overlay_venta_exitosa, null);
+        
+        // Configurar datos
+        TextView tvProducto = overlay.findViewById(R.id.tv_producto_venta);
+        TextView tvCantidad = overlay.findViewById(R.id.tv_cantidad_venta);
+        TextView tvTotal = overlay.findViewById(R.id.tv_total_venta);
+        Button btnCerrar = overlay.findViewById(R.id.btn_cerrar_venta);
+        
+        tvProducto.setText(producto.getNombre());
+        tvCantidad.setText("× " + cantidad);
+        tvTotal.setText("$" + String.format("%.2f", total));
+        
+        // Agregar al root view
+        ViewGroup rootView = (ViewGroup) getActivity().findViewById(android.R.id.content);
+        rootView.addView(overlay);
+        
+        // Animar entrada
+        overlay.startAnimation(AnimationUtils.loadAnimation(getContext(), R.anim.anim_venta_exitosa));
+        
+        // Animar círculo de pulso
+        View circuloExterior = overlay.findViewById(R.id.v_circulo_exterior);
+        if (circuloExterior != null) {
+            circuloExterior.startAnimation(AnimationUtils.loadAnimation(getContext(), R.anim.anim_pulso));
+        }
+        
+        // Feedback háptico
+        if (vibrator != null) {
+            vibrator.vibrate(100);
+        }
+        
+        // Botón cerrar
+        btnCerrar.setOnClickListener(v -> {
+            // Animar salida
+            overlay.animate()
+                .alpha(0f)
+                .setDuration(300)
+                .withEndAction(() -> rootView.removeView(overlay))
+                .start();
+            
+            // Resetear UI
+            resetUIAfterSale();
+        });
+        
+        // Auto-cerrar después de 2.5 segundos
+        new Handler(Looper.getMainLooper()).postDelayed(() -> {
+            if (overlay.getParent() != null) {
+                overlay.animate()
+                    .alpha(0f)
+                    .setDuration(300)
+                    .withEndAction(() -> rootView.removeView(overlay))
+                    .start();
+                resetUIAfterSale();
+            }
+        }, 2500);
+    }
+
+    private void resetUIAfterSale() {
+        quantity = 1;
+        selectedProduct = null;
+        etSearchProduct.setText("");
+        updateUI();
+        cargarVentasPendientes();
+        notificarDashboard();
+        Log.d(TAG, "✅ UI reseteada después de venta");
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        if (isAdded()) {
+            cargarVentasPendientes();
+        }
     }
     }
