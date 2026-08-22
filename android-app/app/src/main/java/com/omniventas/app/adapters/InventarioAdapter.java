@@ -28,11 +28,20 @@ public class InventarioAdapter extends RecyclerView.Adapter<InventarioAdapter.Vi
     @Override
     public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
         Producto p = productos.get(position);
+        
+        // Nombre del producto (arriba)
         holder.tvNombre.setText(p.getNombre());
+        
+        // Sección/categoría
         holder.tvSeccion.setText(p.getSeccion() != null ? p.getSeccion() : "Sin categoría");
+        
+        // Precio (abajo izquierda)
         holder.tvPrecio.setText("$" + String.format("%.2f", p.getPrecio()));
+        
+        // Stock (abajo derecha)
         holder.tvStock.setText(String.valueOf(p.getStock()));
 
+        // Colores según stock
         if (p.getStock() == 0) {
             holder.tvStock.setTextColor(ContextCompat.getColor(holder.itemView.getContext(), R.color.danger));
             holder.cardView.setCardBackgroundColor(ContextCompat.getColor(holder.itemView.getContext(), R.color.danger_light));
@@ -63,6 +72,7 @@ public class InventarioAdapter extends RecyclerView.Adapter<InventarioAdapter.Vi
     static class ViewHolder extends RecyclerView.ViewHolder {
         TextView tvNombre, tvSeccion, tvPrecio, tvStock;
         CardView cardView;
+        
         ViewHolder(@NonNull View itemView) {
             super(itemView);
             tvNombre = itemView.findViewById(R.id.tv_nombre);
@@ -72,4 +82,4 @@ public class InventarioAdapter extends RecyclerView.Adapter<InventarioAdapter.Vi
             cardView = (CardView) itemView;
         }
     }
-}
+            }
