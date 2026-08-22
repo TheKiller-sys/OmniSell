@@ -8,14 +8,11 @@ import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 import com.omniventas.app.R;
 import com.omniventas.app.models.Venta;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Locale;
 
 public class DashboardVentaAdapter extends RecyclerView.Adapter<DashboardVentaAdapter.ViewHolder> {
     private List<Venta> ventas = new ArrayList<>();
-    private SimpleDateFormat dateFormat = new SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault());
 
     public DashboardVentaAdapter() {
         // Constructor vacío
