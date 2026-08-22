@@ -4,20 +4,18 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:id="@+id/swipe_refresh"
     android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:background="@color/background_white">
+    android:layout_height="match_parent">
 
     <ScrollView
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:background="@color/background_white"
+        android:background="@color/light_gray"
         android:fillViewport="true">
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:background="@color/background_white"
             android:padding="16dp">
 
             <!-- HEADER CENTRADO -->
@@ -51,7 +49,7 @@
                     android:layout_height="wrap_content"
                     android:text="Buenos días, Vendedor"
                     android:textSize="16sp"
-                    android:textColor="@color/dark"
+                    android:textColor="@color/gray"
                     android:fontFamily="sans-serif" />
             </LinearLayout>
 
@@ -62,7 +60,7 @@
                 android:layout_height="wrap_content"
                 android:text=""
                 android:textSize="12sp"
-                android:textColor="@color/dark"
+                android:textColor="@color/warning"
                 android:gravity="center"
                 android:padding="8dp"
                 android:background="@color/warning_light"
@@ -143,7 +141,7 @@
                     android:layout_marginEnd="6dp"
                     app:cardCornerRadius="16dp"
                     app:cardElevation="2dp"
-                    app:cardBackgroundColor="@color/card_background">
+                    app:cardBackgroundColor="@color/white">
 
                     <LinearLayout
                         android:layout_width="match_parent"
@@ -157,7 +155,7 @@
                             android:layout_height="wrap_content"
                             android:text="Pedidos Pendientes"
                             android:textSize="12sp"
-                            android:textColor="@color/dark"
+                            android:textColor="@color/gray"
                             android:fontFamily="sans-serif" />
 
                         <TextView
@@ -167,7 +165,7 @@
                             android:text="0"
                             android:textSize="32sp"
                             android:textStyle="bold"
-                            android:textColor="@color/dark"
+                            android:textColor="@color/warning"
                             android:layout_marginTop="4dp" />
 
                         <TextView
@@ -175,7 +173,7 @@
                             android:layout_height="wrap_content"
                             android:text="Pendientes"
                             android:textSize="11sp"
-                            android:textColor="@color/dark" />
+                            android:textColor="@color/gray" />
                     </LinearLayout>
                 </androidx.cardview.widget.CardView>
 
@@ -186,7 +184,7 @@
                     android:layout_marginStart="6dp"
                     app:cardCornerRadius="16dp"
                     app:cardElevation="2dp"
-                    app:cardBackgroundColor="@color/card_background">
+                    app:cardBackgroundColor="@color/white">
 
                     <LinearLayout
                         android:layout_width="match_parent"
@@ -200,7 +198,7 @@
                             android:layout_height="wrap_content"
                             android:text="Tasa de Conversión"
                             android:textSize="12sp"
-                            android:textColor="@color/dark"
+                            android:textColor="@color/gray"
                             android:fontFamily="sans-serif" />
 
                         <TextView
@@ -210,7 +208,7 @@
                             android:text="0.0%"
                             android:textSize="32sp"
                             android:textStyle="bold"
-                            android:textColor="@color/dark"
+                            android:textColor="@color/success"
                             android:layout_marginTop="4dp" />
 
                         <LinearLayout
@@ -225,14 +223,14 @@
                                 android:layout_height="wrap_content"
                                 android:text="↑ 0.0%"
                                 android:textSize="11sp"
-                                android:textColor="@color/dark" />
+                                android:textColor="@color/success" />
                         </LinearLayout>
                     </LinearLayout>
                 </androidx.cardview.widget.CardView>
             </LinearLayout>
 
             <!-- ========================================= -->
-            <!-- HISTORIAL DE VENTAS DIARIO - FONDO BLANCO -->
+            <!-- VENTAS DEL DÍA - FONDO COMPLETAMENTE BLANCO -->
             <!-- ========================================= -->
             <TextView
                 android:layout_width="wrap_content"
@@ -244,13 +242,13 @@
                 android:layout_marginBottom="12dp"
                 android:fontFamily="sans-serif" />
 
-            <!-- CONTENEDOR BLANCO PURO -->
+            <!-- CONTENEDOR BLANCO PURO - SIN CARDVIEW, SIN BORDES, SIN SOMBRAS -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
-                android:background="@color/background_white"
-                android:padding="4dp">
+                android:background="@android:color/white"
+                android:padding="0dp">
 
                 <!-- RecyclerView para ventas -->
                 <androidx.recyclerview.widget.RecyclerView
@@ -259,7 +257,8 @@
                     android:layout_height="wrap_content"
                     android:nestedScrollingEnabled="false"
                     android:divider="@null"
-                    android:background="@color/background_white" />
+                    android:background="@android:color/white"
+                    android:padding="0dp" />
 
                 <!-- Paginación -->
                 <LinearLayout
@@ -269,7 +268,7 @@
                     android:gravity="center"
                     android:layout_marginTop="8dp"
                     android:padding="8dp"
-                    android:background="@color/background_white">
+                    android:background="@android:color/white">
 
                     <Button
                         android:id="@+id/btn_prev_page"
@@ -277,7 +276,6 @@
                         android:layout_height="32dp"
                         android:text="◀"
                         android:textSize="14sp"
-                        android:textColor="@color/white"
                         android:backgroundTint="@color/primary"
                         app:cornerRadius="8dp"
                         android:paddingHorizontal="16dp"
@@ -289,7 +287,7 @@
                         android:layout_height="wrap_content"
                         android:text="Página 1"
                         android:textSize="12sp"
-                        android:textColor="@color/dark"
+                        android:textColor="@color/gray"
                         android:layout_marginHorizontal="16dp" />
 
                     <Button
@@ -298,7 +296,6 @@
                         android:layout_height="32dp"
                         android:text="▶"
                         android:textSize="14sp"
-                        android:textColor="@color/white"
                         android:backgroundTint="@color/primary"
                         app:cornerRadius="8dp"
                         android:paddingHorizontal="16dp"
@@ -312,11 +309,11 @@
                     android:layout_height="wrap_content"
                     android:text="No hay ventas registradas hoy"
                     android:textSize="14sp"
-                    android:textColor="@color/dark"
+                    android:textColor="@color/gray"
                     android:gravity="center"
                     android:padding="24dp"
                     android:visibility="gone"
-                    android:background="@color/background_white" />
+                    android:background="@android:color/white" />
             </LinearLayout>
 
         </LinearLayout>
