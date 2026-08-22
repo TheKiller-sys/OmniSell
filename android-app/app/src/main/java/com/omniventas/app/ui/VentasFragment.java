@@ -61,6 +61,7 @@ public class VentasFragment extends Fragment {
     private ProductoAdapter productoAdapter;
     private boolean isSearching = false;
     private Vibrator vibrator;
+    private ViewGroup rootView;
 
     @Nullable
     @Override
@@ -70,6 +71,9 @@ public class VentasFragment extends Fragment {
         try {
             View view = inflater.inflate(R.layout.fragment_ventas, container, false);
             Log.d(TAG, "Layout inflado correctamente");
+
+            // Guardar rootView para overlay
+            rootView = (ViewGroup) getActivity().findViewById(android.R.id.content);
 
             // Inicializar vistas
             etSearchProduct = view.findViewById(R.id.et_search_product);
@@ -350,6 +354,7 @@ public class VentasFragment extends Fragment {
         
         if (token == null || token.isEmpty()) {
             // Modo offline
+            Log.d(TAG, "📴 Modo OFFLINE - Guardando venta");
             repository.registrarVentaOffline(
                 productoVendido.getId(),
                 productoVendido.getNombre(),
@@ -373,6 +378,8 @@ public class VentasFragment extends Fragment {
             @Override
             public void onResponse(Call<VentaResponse> call, Response<VentaResponse> response) {
                 try {
+                    Log.d(TAG, "📥 Respuesta recibida - Código: " + response.code());
+                    
                     if (response.isSuccessful() && response.body() != null && response.body().isSuccess()) {
                         // ✅ Venta exitosa
                         Log.d(TAG, "✅ Venta exitosa en servidor");
@@ -441,63 +448,83 @@ public class VentasFragment extends Fragment {
         }
     }
 
+    // 🔥 CORREGIDO: Método overlay con verificación de rootView
     private void mostrarOverlayExito(Producto producto, int cantidad, double total) {
         Log.d(TAG, "🎉 Mostrando overlay de éxito");
         
-        View overlay = getLayoutInflater().inflate(R.layout.overlay_venta_exitosa, null);
-        
-        // Configurar datos
-        TextView tvProducto = overlay.findViewById(R.id.tv_producto_venta);
-        TextView tvCantidad = overlay.findViewById(R.id.tv_cantidad_venta);
-        TextView tvTotal = overlay.findViewById(R.id.tv_total_venta);
-        Button btnCerrar = overlay.findViewById(R.id.btn_cerrar_venta);
-        
-        tvProducto.setText(producto.getNombre());
-        tvCantidad.setText("× " + cantidad);
-        tvTotal.setText("$" + String.format("%.2f", total));
-        
-        // Agregar al root view
-        ViewGroup rootView = (ViewGroup) getActivity().findViewById(android.R.id.content);
-        rootView.addView(overlay);
-        
-        // Animar entrada
-        overlay.startAnimation(AnimationUtils.loadAnimation(getContext(), R.anim.anim_venta_exitosa));
-        
-        // Animar círculo de pulso
-        View circuloExterior = overlay.findViewById(R.id.v_circulo_exterior);
-        if (circuloExterior != null) {
-            circuloExterior.startAnimation(AnimationUtils.loadAnimation(getContext(), R.anim.anim_pulso));
-        }
-        
-        // Feedback háptico
-        if (vibrator != null) {
-            vibrator.vibrate(100);
-        }
-        
-        // Botón cerrar
-        btnCerrar.setOnClickListener(v -> {
-            // Animar salida
-            overlay.animate()
-                .alpha(0f)
-                .setDuration(300)
-                .withEndAction(() -> rootView.removeView(overlay))
-                .start();
+        try {
+            if (rootView == null) {
+                rootView = (ViewGroup) getActivity().findViewById(android.R.id.content);
+            }
             
-            // Resetear UI
-            resetUIAfterSale();
-        });
-        
-        // Auto-cerrar después de 2.5 segundos
-        new Handler(Looper.getMainLooper()).postDelayed(() -> {
-            if (overlay.getParent() != null) {
+            if (rootView == null) {
+                Log.e(TAG, "❌ rootView es null, no se puede mostrar overlay");
+                // Fallback: mostrar Toast
+                Toast.makeText(getContext(), "✅ Venta: " + producto.getNombre() + " x" + cantidad + " - $" + String.format("%.2f", total), Toast.LENGTH_LONG).show();
+                return;
+            }
+            
+            View overlay = getLayoutInflater().inflate(R.layout.overlay_venta_exitosa, null);
+            
+            // Configurar datos
+            TextView tvProducto = overlay.findViewById(R.id.tv_producto_venta);
+            TextView tvCantidad = overlay.findViewById(R.id.tv_cantidad_venta);
+            TextView tvTotal = overlay.findViewById(R.id.tv_total_venta);
+            Button btnCerrar = overlay.findViewById(R.id.btn_cerrar_venta);
+            
+            tvProducto.setText(producto.getNombre());
+            tvCantidad.setText("× " + cantidad);
+            tvTotal.setText("$" + String.format("%.2f", total));
+            
+            // Agregar al root view
+            rootView.addView(overlay);
+            
+            // Animar entrada
+            overlay.startAnimation(AnimationUtils.loadAnimation(getContext(), R.anim.anim_venta_exitosa));
+            
+            // Animar círculo de pulso
+            View circuloExterior = overlay.findViewById(R.id.v_circulo_exterior);
+            if (circuloExterior != null) {
+                circuloExterior.startAnimation(AnimationUtils.loadAnimation(getContext(), R.anim.anim_pulso));
+            }
+            
+            // Feedback háptico
+            if (vibrator != null) {
+                vibrator.vibrate(100);
+            }
+            
+            // Botón cerrar
+            btnCerrar.setOnClickListener(v -> {
+                // Animar salida
                 overlay.animate()
                     .alpha(0f)
                     .setDuration(300)
                     .withEndAction(() -> rootView.removeView(overlay))
                     .start();
+                
+                // Resetear UI
                 resetUIAfterSale();
-            }
-        }, 2500);
+            });
+            
+            // Auto-cerrar después de 2.5 segundos
+            new Handler(Looper.getMainLooper()).postDelayed(() -> {
+                if (overlay.getParent() != null) {
+                    overlay.animate()
+                        .alpha(0f)
+                        .setDuration(300)
+                        .withEndAction(() -> rootView.removeView(overlay))
+                        .start();
+                    resetUIAfterSale();
+                }
+            }, 2500);
+            
+        } catch (Exception e) {
+            Log.e(TAG, "❌ Error mostrando overlay: " + e.getMessage());
+            e.printStackTrace();
+            // Fallback: mostrar Toast
+            Toast.makeText(getContext(), "✅ Venta: " + producto.getNombre() + " x" + cantidad + " - $" + String.format("%.2f", total), Toast.LENGTH_LONG).show();
+            resetUIAfterSale();
+        }
     }
 
     private void resetUIAfterSale() {
