@@ -9,6 +9,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.TextView;
+import android.widget.Toast;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
@@ -16,7 +17,7 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 import com.omniventas.app.R;
-import com.omniventas.app.adapters.DashboardVentaAdapter;
+import com.omniventas.app.adapters.VentaRecienteAdapter;
 import com.omniventas.app.api.ApiService;
 import com.omniventas.app.api.RetrofitClient;
 import com.omniventas.app.models.DashboardResponse;
@@ -24,14 +25,11 @@ import com.omniventas.app.models.Venta;
 import com.omniventas.app.repository.OmniVentasRepository;
 import com.omniventas.app.utils.SessionManager;
 import com.omniventas.app.utils.TelegramLogger;
-import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
-import java.util.Date;
 import java.util.List;
 import java.util.Locale;
-import java.util.TimeZone;
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
@@ -40,7 +38,7 @@ public class DashboardFragment extends Fragment {
     private static final String TAG = "DashboardFragment";
     private static final int PAGE_SIZE = 10;
 
-    private TextView tvGreeting, tvLiveRevenue, tvFechaHoy, tvPendingOrders, tvConversionRate, tvConversionTrend;
+    private TextView tvGreeting, tvLiveRevenue, tvPendingOrders, tvConversionRate, tvConversionTrend;
     private TextView tvPageInfo, tvSinVentas;
     private Button btnPrevPage, btnNextPage;
     private RecyclerView rvVentasDiarias;
@@ -48,8 +46,8 @@ public class DashboardFragment extends Fragment {
     private SessionManager sessionManager;
     private TelegramLogger logger;
     private OmniVentasRepository repository;
-    private DashboardVentaAdapter ventasAdapter;
-    private List<Venta> ventasDelDia = new ArrayList<>();
+    private VentaRecienteAdapter ventasAdapter;
+    private List<Venta> todasLasVentas = new ArrayList<>();
     private List<Venta> ventasPagina = new ArrayList<>();
     private int paginaActual = 0;
     private int totalPaginas = 0;
@@ -68,7 +66,6 @@ public class DashboardFragment extends Fragment {
             // Inicializar vistas
             tvGreeting = view.findViewById(R.id.tv_greeting);
             tvLiveRevenue = view.findViewById(R.id.tv_live_revenue);
-            tvFechaHoy = view.findViewById(R.id.tv_fecha_hoy);
             tvPendingOrders = view.findViewById(R.id.tv_pending_orders);
             tvConversionRate = view.findViewById(R.id.tv_conversion_rate);
             tvConversionTrend = view.findViewById(R.id.tv_conversion_trend);
@@ -83,14 +80,8 @@ public class DashboardFragment extends Fragment {
             logger = TelegramLogger.getInstance(getContext());
             repository = new OmniVentasRepository(getContext());
 
-            // Mostrar fecha actual en "En Vivo"
-            String fechaActual = new SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).format(new Date());
-            if (tvFechaHoy != null) {
-                tvFechaHoy.setText(fechaActual);
-            }
-
             // Configurar RecyclerView
-            ventasAdapter = new DashboardVentaAdapter();
+            ventasAdapter = new VentaRecienteAdapter(new ArrayList<>());
             rvVentasDiarias.setLayoutManager(new LinearLayoutManager(getContext()));
             rvVentasDiarias.setAdapter(ventasAdapter);
 
@@ -165,6 +156,14 @@ public class DashboardFragment extends Fragment {
         handler.removeCallbacks(actualizacionAutomatica);
     }
 
+    // 🔥 MÉTODO PÚBLICO PARA ACTUALIZAR DESDE VENTAS
+    public void actualizarDesdeVenta() {
+        Log.d(TAG, "actualizarDesdeVenta - Actualizando dashboard");
+        if (isAdded()) {
+            cargarDashboardCompleto();
+        }
+    }
+
     private void cargarDashboardCompleto() {
         cargarDatosLocales();
         cargarDashboardDesdeServidor();
@@ -175,6 +174,25 @@ public class DashboardFragment extends Fragment {
             int pendientes = repository.getVentasPendientesCount();
             if (tvPendingOrders != null) {
                 tvPendingOrders.setText(String.valueOf(pendientes));
+            }
+            
+            // Cargar ventas locales recientes si hay datos del servidor
+            List<VentaEntity> ventasLocal = repository.getVentasSincronizadas();
+            if (!ventasLocal.isEmpty() && todasLasVentas.isEmpty()) {
+                // Convertir ventas locales a formato Venta
+                List<Venta> ventasConvertidas = new ArrayList<>();
+                for (VentaEntity entity : ventasLocal) {
+                    Venta v = new Venta();
+                    v.setProducto(entity.getProductoNombre());
+                    v.setCantidad(entity.getCantidad());
+                    v.setTotal(entity.getTotal());
+                    v.setFecha(new SimpleDateFormat("dd/MM/yyyy HH:mm").format(new Date(entity.getFecha())));
+                    ventasConvertidas.add(v);
+                }
+                todasLasVentas = ventasConvertidas;
+                totalPaginas = (int) Math.ceil((double) todasLasVentas.size() / PAGE_SIZE);
+                paginaActual = 0;
+                mostrarPagina();
             }
         } catch (Exception e) {
             Log.e(TAG, "Error cargando datos locales: " + e.getMessage());
@@ -199,52 +217,10 @@ public class DashboardFragment extends Fragment {
                         DashboardResponse.DashboardData data = response.body().getDashboard();
                         Log.d(TAG, "Dashboard - Datos recibidos correctamente");
                         
-                        // ========================================
-                        // FILTRAR VENTAS DEL DÍA DE HOY
-                        // ========================================
-                        List<Venta> todasLasVentas = data.getVentasRecientes();
-                        List<Venta> ventasDeHoy = new ArrayList<>();
-                        double totalIngresosHoy = 0.0;
-                        
-                        // Obtener fecha de hoy en formato para comparar
-                        String fechaHoyStr = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(new Date());
-                        
-                        if (todasLasVentas != null) {
-                            for (Venta v : todasLasVentas) {
-                                String fechaVenta = v.getFecha();
-                                if (fechaVenta != null && fechaVenta.contains(fechaHoyStr)) {
-                                    ventasDeHoy.add(v);
-                                    totalIngresosHoy += v.getTotal();
-                                }
-                            }
-                        }
-                        
-                        Log.d(TAG, "📊 Ventas de hoy: " + ventasDeHoy.size() + " - Total: $" + totalIngresosHoy);
-                        
-                        // ========================================
-                        // ACTUALIZAR "EN VIVO" CON VENTAS DEL DÍA
-                        // ========================================
+                        // Actualizar ingresos
                         if (tvLiveRevenue != null) {
-                            tvLiveRevenue.setText("$" + String.format("%,.0f", totalIngresosHoy));
-                        }
-
-                        // ========================================
-                        // ACTUALIZAR "VENTAS DEL DÍA"
-                        // ========================================
-                        ventasDelDia.clear();
-                        ventasDelDia.addAll(ventasDeHoy);
-                        
-                        totalPaginas = (int) Math.ceil((double) ventasDelDia.size() / PAGE_SIZE);
-                        if (totalPaginas == 0) totalPaginas = 1;
-                        paginaActual = 0;
-                        mostrarPagina();
-                        
-                        if (ventasDelDia.isEmpty()) {
-                            tvSinVentas.setVisibility(View.VISIBLE);
-                            rvVentasDiarias.setVisibility(View.GONE);
-                        } else {
-                            tvSinVentas.setVisibility(View.GONE);
-                            rvVentasDiarias.setVisibility(View.VISIBLE);
+                            double ingresosHoy = data.getIngresosHoy();
+                            tvLiveRevenue.setText("$" + String.format("%,.0f", ingresosHoy));
                         }
 
                         // Actualizar pedidos pendientes (productos bajo stock)
@@ -256,10 +232,26 @@ public class DashboardFragment extends Fragment {
                         if (tvConversionRate != null && tvConversionTrend != null) {
                             double conversion = 0.0;
                             if (data.getVentasMes() > 0) {
-                                conversion = (double) ventasDeHoy.size() / data.getVentasMes() * 100;
+                                conversion = (double) data.getVentasHoy() / data.getVentasMes() * 100;
                             }
                             tvConversionRate.setText(String.format("%.1f%%", conversion));
                             tvConversionTrend.setText("↑ " + String.format("%.1f%%", conversion));
+                        }
+
+                        // Actualizar historial de ventas
+                        if (data.getVentasRecientes() != null) {
+                            todasLasVentas = data.getVentasRecientes();
+                            totalPaginas = (int) Math.ceil((double) todasLasVentas.size() / PAGE_SIZE);
+                            paginaActual = 0;
+                            mostrarPagina();
+                            
+                            if (todasLasVentas.isEmpty()) {
+                                tvSinVentas.setVisibility(View.VISIBLE);
+                                rvVentasDiarias.setVisibility(View.GONE);
+                            } else {
+                                tvSinVentas.setVisibility(View.GONE);
+                                rvVentasDiarias.setVisibility(View.VISIBLE);
+                            }
                         }
 
                         // Sincronizar productos en segundo plano
@@ -278,20 +270,29 @@ public class DashboardFragment extends Fragment {
             public void onFailure(Call<DashboardResponse> call, Throwable t) {
                 Log.e(TAG, "❌ Dashboard - onFailure: " + t.getMessage());
                 logger.networkError(t);
+                
+                // Si hay ventas locales, mostrarlas como fallback
+                if (getActivity() != null) {
+                    getActivity().runOnUiThread(() -> {
+                        if (!todasLasVentas.isEmpty()) {
+                            mostrarPagina();
+                        }
+                    });
+                }
             }
         });
     }
 
     private void mostrarPagina() {
         int inicio = paginaActual * PAGE_SIZE;
-        int fin = Math.min(inicio + PAGE_SIZE, ventasDelDia.size());
+        int fin = Math.min(inicio + PAGE_SIZE, todasLasVentas.size());
         
         ventasPagina.clear();
-        if (inicio < ventasDelDia.size()) {
-            ventasPagina.addAll(ventasDelDia.subList(inicio, fin));
+        if (inicio < todasLasVentas.size()) {
+            ventasPagina.addAll(todasLasVentas.subList(inicio, fin));
         }
         
-        ventasAdapter.setVentas(ventasPagina);
+        ventasAdapter.updateData(ventasPagina);
         
         // Actualizar información de página
         tvPageInfo.setText("Página " + (paginaActual + 1) + " de " + Math.max(1, totalPaginas));
@@ -299,11 +300,4 @@ public class DashboardFragment extends Fragment {
         btnPrevPage.setVisibility(paginaActual > 0 ? View.VISIBLE : View.GONE);
         btnNextPage.setVisibility(paginaActual < totalPaginas - 1 ? View.VISIBLE : View.GONE);
     }
-
-    public void actualizarDesdeVenta() {
-        Log.d(TAG, "actualizarDesdeVenta - Actualizando dashboard desde venta");
-        if (isAdded()) {
-            cargarDashboardCompleto();
-        }
     }
-}
