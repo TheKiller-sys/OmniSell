@@ -20,6 +20,7 @@ import com.omniventas.app.R;
 import com.omniventas.app.adapters.VentaRecienteAdapter;
 import com.omniventas.app.api.ApiService;
 import com.omniventas.app.api.RetrofitClient;
+import com.omniventas.app.local.VentaEntity;
 import com.omniventas.app.models.DashboardResponse;
 import com.omniventas.app.models.Venta;
 import com.omniventas.app.repository.OmniVentasRepository;
@@ -28,6 +29,7 @@ import com.omniventas.app.utils.TelegramLogger;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.Date;
 import java.util.List;
 import java.util.Locale;
 import retrofit2.Call;
@@ -300,4 +302,4 @@ public class DashboardFragment extends Fragment {
         btnPrevPage.setVisibility(paginaActual > 0 ? View.VISIBLE : View.GONE);
         btnNextPage.setVisibility(paginaActual < totalPaginas - 1 ? View.VISIBLE : View.GONE);
     }
-    }
+}
