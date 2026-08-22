@@ -11,53 +11,46 @@
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:padding="16dp"
-        android:gravity="center_vertical">
+        android:orientation="vertical"
+        android:padding="16dp">
 
-        <!-- Contenedor izquierdo: Nombre y sección -->
-        <LinearLayout
-            android:layout_width="0dp"
+        <!-- Nombre del producto (arriba) -->
+        <TextView
+            android:id="@+id/tv_nombre"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:orientation="vertical">
+            android:text="Nombre Producto"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            android:textColor="@color/dark"
+            android:maxLines="1"
+            android:ellipsize="end"
+            android:fontFamily="sans-serif-medium"
+            android:layout_marginBottom="4dp" />
 
-            <!-- Nombre del producto (arriba, sin dividir) -->
-            <TextView
-                android:id="@+id/tv_nombre"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="Nombre Producto"
-                android:textSize="16sp"
-                android:textStyle="bold"
-                android:textColor="@color/dark"
-                android:maxLines="1"
-                android:ellipsize="end"
-                android:fontFamily="sans-serif-medium" />
-
-            <!-- Sección/categoría -->
-            <TextView
-                android:id="@+id/tv_seccion"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="Categoría"
-                android:textSize="12sp"
-                android:textColor="@color/gray"
-                android:layout_marginTop="2dp" />
-        </LinearLayout>
-
-        <!-- Contenedor derecho: Precio y Stock -->
-        <LinearLayout
-            android:layout_width="wrap_content"
+        <!-- Sección/categoría -->
+        <TextView
+            android:id="@+id/tv_seccion"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:gravity="end">
+            android:text="Categoría"
+            android:textSize="12sp"
+            android:textColor="@color/gray"
+            android:layout_marginBottom="8dp" />
+
+        <!-- Precio y Stock en horizontal (debajo del nombre) -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical">
 
             <!-- Precio -->
             <TextView
                 android:id="@+id/tv_precio"
-                android:layout_width="wrap_content"
+                android:layout_width="0dp"
                 android:layout_height="wrap_content"
+                android:layout_weight="1"
                 android:text="$0.00"
                 android:textSize="16sp"
                 android:textStyle="bold"
@@ -69,8 +62,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:orientation="horizontal"
-                android:gravity="center_vertical"
-                android:layout_marginTop="4dp">
+                android:gravity="center_vertical">
 
                 <TextView
                     android:id="@+id/tv_stock"
