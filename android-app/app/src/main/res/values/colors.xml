@@ -28,6 +28,10 @@
     <color name="gray_light">#E5E7EB</color>
     <color name="light_gray">#F3F4F6</color>
     
+    <!-- ✅ NUEVO: Blanco puro para fondos -->
+    <color name="background_white">#FFFFFF</color>
+    <color name="card_background">#FFFFFF</color>
+    
     <!-- Blanco y transparencias -->
     <color name="white">#FFFFFF</color>
     <color name="white_alpha_20">#33FFFFFF</color>
