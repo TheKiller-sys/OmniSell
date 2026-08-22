@@ -12,32 +12,32 @@
         android:orientation="vertical"
         android:padding="16dp">
 
-        <!-- Header -->
+        <!-- HEADER CENTRADO -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:gravity="center_vertical"
+            android:orientation="vertical"
+            android:gravity="center_horizontal"
             android:layout_marginBottom="20dp">
 
             <TextView
-                android:layout_width="0dp"
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_weight="1"
                 android:text="@string/usuario_titulo"
-                android:textSize="24sp"
+                android:textSize="28sp"
                 android:textStyle="bold"
-                android:textColor="@color/dark" />
+                android:textColor="@color/dark"
+                android:fontFamily="sans-serif"
+                android:letterSpacing="0.5" />
 
-            <ImageView
-                android:layout_width="40dp"
-                android:layout_height="40dp"
-                android:src="@drawable/ic_settings"
-                android:padding="8dp"
-                android:background="?attr/selectableItemBackgroundBorderless" />
+            <View
+                android:layout_width="60dp"
+                android:layout_height="3dp"
+                android:background="@color/primary"
+                android:layout_marginTop="6dp" />
         </LinearLayout>
 
-        <!-- Tarjeta de Perfil -->
+        <!-- Tarjeta de Perfil MEJORADA -->
         <com.google.android.material.card.MaterialCardView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -101,7 +101,7 @@
                     android:id="@+id/tv_vendor_category"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Electrónica"
+                    android:text="Sin categoría"
                     android:textColor="@color/white_alpha_80"
                     android:textSize="14sp"
                     android:layout_marginTop="8dp" />
