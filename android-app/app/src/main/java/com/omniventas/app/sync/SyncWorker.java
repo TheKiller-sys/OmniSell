@@ -1,7 +1,6 @@
 package com.omniventas.app.sync;
 
 import android.content.Context;
-import android.os.AsyncTask;
 import android.util.Log;
 import androidx.annotation.NonNull;
 import androidx.work.Worker;
@@ -18,6 +17,8 @@ import com.omniventas.app.utils.SessionManager;
 import com.omniventas.app.utils.TelegramLogger;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import retrofit2.Call;
 import retrofit2.Response;
 
@@ -26,12 +27,14 @@ public class SyncWorker extends Worker {
     private SessionManager sessionManager;
     private AppDatabase database;
     private TelegramLogger logger;
+    private ExecutorService executor;
 
     public SyncWorker(@NonNull Context context, @NonNull WorkerParameters params) {
         super(context, params);
         sessionManager = new SessionManager(context);
         database = AppDatabase.getInstance(context);
         logger = TelegramLogger.getInstance(context);
+        executor = Executors.newSingleThreadExecutor();
     }
 
     @NonNull
@@ -65,40 +68,33 @@ public class SyncWorker extends Worker {
             
             if (response.isSuccessful() && response.body() != null && response.body().isSuccess()) {
                 List<Producto> productos = response.body().getProductos();
-                new InsertProductosTask().execute(productos);
+                
+                executor.execute(() -> {
+                    try {
+                        List<ProductoEntity> entities = new ArrayList<>();
+                        
+                        for (Producto p : productos) {
+                            ProductoEntity entity = new ProductoEntity();
+                            entity.setId(p.getId());
+                            entity.setNombre(p.getNombre());
+                            entity.setSeccion(p.getSeccion());
+                            entity.setPrecio(p.getPrecio());
+                            entity.setStock(p.getStock());
+                            entity.setDescripcion(p.getDescripcion() != null ? p.getDescripcion() : "");
+                            entity.setLastSync(System.currentTimeMillis());
+                            entity.setDeleted(false);
+                            entities.add(entity);
+                        }
+                        
+                        database.productoDao().insertAll(entities);
+                        Log.d(TAG, "✅ Productos sincronizados: " + entities.size());
+                    } catch (Exception e) {
+                        Log.e(TAG, "❌ Error guardando productos en SyncWorker: " + e.getMessage());
+                    }
+                });
             }
         } catch (Exception e) {
             Log.e(TAG, "❌ Error sincronizando productos: " + e.getMessage());
-        }
-    }
-
-    // ✅ AsyncTask para insertar productos en segundo plano
-    private class InsertProductosTask extends AsyncTask<List<Producto>, Void, Void> {
-        @Override
-        protected Void doInBackground(List<Producto>... params) {
-            try {
-                List<Producto> productos = params[0];
-                List<ProductoEntity> entities = new ArrayList<>();
-                
-                for (Producto p : productos) {
-                    ProductoEntity entity = new ProductoEntity();
-                    entity.setId(p.getId());
-                    entity.setNombre(p.getNombre());
-                    entity.setSeccion(p.getSeccion());
-                    entity.setPrecio(p.getPrecio());
-                    entity.setStock(p.getStock());
-                    entity.setDescripcion(p.getDescripcion() != null ? p.getDescripcion() : "");
-                    entity.setLastSync(System.currentTimeMillis());
-                    entity.setDeleted(false);
-                    entities.add(entity);
-                }
-                
-                database.productoDao().insertAll(entities);
-                Log.d(TAG, "✅ Productos sincronizados: " + entities.size());
-            } catch (Exception e) {
-                Log.e(TAG, "❌ Error guardando productos en SyncWorker: " + e.getMessage());
-            }
-            return null;
         }
     }
 
@@ -132,66 +128,50 @@ public class SyncWorker extends Worker {
                 Response<VentaResponse> response = call.execute();
 
                 if (response.isSuccessful() && response.body() != null && response.body().isSuccess()) {
-                    new MarcarSincronizadaTask().execute(venta);
-                    Log.d(TAG, "✅ Venta sincronizada: " + venta.getProductoNombre());
-                    logger.success("Venta sincronizada offline: " + venta.getProductoNombre());
+                    executor.execute(() -> {
+                        try {
+                            database.ventaDao().marcarSincronizada(venta.getId());
+                            Log.d(TAG, "✅ Venta sincronizada: " + venta.getProductoNombre());
+                            logger.success("Venta sincronizada offline: " + venta.getProductoNombre());
+                        } catch (Exception e) {
+                            Log.e(TAG, "❌ Error marcando venta como sincronizada: " + e.getMessage());
+                        }
+                    });
                 } else {
                     String errorMsg = "Error al sincronizar venta";
                     if (response.errorBody() != null) {
                         errorMsg = response.errorBody().string();
                     }
-                    new SetErrorTask().execute(venta.getId(), errorMsg);
-                    Log.e(TAG, "❌ Error sincronizando venta: " + errorMsg);
+                    final String finalError = errorMsg;
+                    executor.execute(() -> {
+                        try {
+                            database.ventaDao().setError(venta.getId(), finalError);
+                            Log.e(TAG, "❌ Error sincronizando venta: " + finalError);
+                        } catch (Exception e) {
+                            Log.e(TAG, "❌ Error guardando error: " + e.getMessage());
+                        }
+                    });
                 }
             } catch (Exception e) {
                 Log.e(TAG, "❌ Error enviando venta: " + e.getMessage());
-                new SetErrorTask().execute(venta.getId(), e.getMessage());
+                final String error = e.getMessage();
+                executor.execute(() -> {
+                    try {
+                        database.ventaDao().setError(venta.getId(), error);
+                    } catch (Exception e2) {
+                        Log.e(TAG, "❌ Error guardando error: " + e2.getMessage());
+                    }
+                });
             }
         }
 
-        new DeleteSincronizadasTask().execute();
-    }
-
-    // ✅ AsyncTask para marcar venta como sincronizada
-    private class MarcarSincronizadaTask extends AsyncTask<VentaEntity, Void, Void> {
-        @Override
-        protected Void doInBackground(VentaEntity... params) {
-            try {
-                VentaEntity venta = params[0];
-                database.ventaDao().marcarSincronizada(venta.getId());
-            } catch (Exception e) {
-                Log.e(TAG, "❌ Error marcando venta como sincronizada: " + e.getMessage());
-            }
-            return null;
-        }
-    }
-
-    // ✅ AsyncTask para guardar error
-    private class SetErrorTask extends AsyncTask<Object, Void, Void> {
-        @Override
-        protected Void doInBackground(Object... params) {
-            try {
-                long id = (long) params[0];
-                String error = (String) params[1];
-                database.ventaDao().setError(id, error);
-            } catch (Exception e) {
-                Log.e(TAG, "❌ Error guardando error: " + e.getMessage());
-            }
-            return null;
-        }
-    }
-
-    // ✅ AsyncTask para eliminar ventas sincronizadas
-    private class DeleteSincronizadasTask extends AsyncTask<Void, Void, Void> {
-        @Override
-        protected Void doInBackground(Void... voids) {
+        executor.execute(() -> {
             try {
                 database.ventaDao().deleteSincronizadas();
                 Log.d(TAG, "✅ Ventas sincronizadas eliminadas");
             } catch (Exception e) {
                 Log.e(TAG, "❌ Error eliminando ventas sincronizadas: " + e.getMessage());
             }
-            return null;
-        }
+        });
     }
-}
+    }
