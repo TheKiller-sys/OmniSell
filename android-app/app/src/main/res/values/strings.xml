@@ -98,20 +98,4 @@
     <string name="ventas">Ventas</string>
     <string name="inventario">Inventario</string>
     <string name="usuario">Usuario</string>
-
-    <!-- Agregar al final de strings.xml -->
-    <string name="ventas_buscar">Buscar producto...</string>
-    <string name="ventas_sugerencias">Sugerencias populares</string>
-    <string name="ventas_seleccionar">Selecciona un producto</string>
-    <string name="ventas_precio_unitario">Precio Unitario</string>
-    <string name="ventas_cantidad">Cantidad</string>
-    <string name="ventas_descuento">Descuento</string>
-    <string name="ventas_subtotal">Subtotal</string>
-    <string name="ventas_confirmar">Confirmar Venta</string>
-    <string name="dashboard_titulo">Panel de Control</string>
-    <string name="dashboard_pedidos_pendientes">Pedidos Pendientes</string>
-    <string name="dashboard_tasa_conversion">Tasa de Conversión</string>
-    <string name="ventas_total_vivo">TOTAL EN VIVO</string>
-    <string name="inventario_titulo">Inventario</string>
-    <string name="usuario_titulo">Perfil de Vendedor</string>
 </resources>
