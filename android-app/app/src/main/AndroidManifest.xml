@@ -29,12 +29,12 @@
         android:requestLegacyExternalStorage="true"
         tools:targetApi="31">
 
-        <!-- Pantalla de Login -->
+        <!-- Pantalla de Login - CAMBIAR windowSoftInputMode -->
         <activity
             android:name=".LoginActivity"
             android:exported="true"
             android:screenOrientation="portrait"
-            android:windowSoftInputMode="adjustResize"
+            android:windowSoftInputMode="adjustPan|stateVisible"
             android:theme="@style/Theme.OmniVentas.Login">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
