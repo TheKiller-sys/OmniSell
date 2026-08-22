@@ -24,7 +24,6 @@ public class DashboardVentaAdapter extends RecyclerView.Adapter<DashboardVentaAd
     public ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
         View view = LayoutInflater.from(parent.getContext())
             .inflate(R.layout.item_dashboard_venta, parent, false);
-        // FORZAR FONDO BLANCO
         view.setBackgroundColor(Color.WHITE);
         return new ViewHolder(view);
     }
@@ -33,9 +32,7 @@ public class DashboardVentaAdapter extends RecyclerView.Adapter<DashboardVentaAd
     public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
         Venta v = ventas.get(position);
         
-        // FORZAR FONDO BLANCO EN CADA ITEM
         holder.itemView.setBackgroundColor(Color.WHITE);
-        
         holder.tvPosicion.setText("#" + (position + 1));
         holder.tvProducto.setText(v.getProducto() != null ? v.getProducto() : "Producto");
         holder.tvCantidad.setText("×" + v.getCantidad());
@@ -70,4 +67,4 @@ public class DashboardVentaAdapter extends RecyclerView.Adapter<DashboardVentaAd
             tvFecha = itemView.findViewById(R.id.tv_fecha);
         }
     }
-                                                   }
+    }
