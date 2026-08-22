@@ -9,13 +9,14 @@
     <ScrollView
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:background="@color/light_gray"
+        android:background="@android:color/white"
         android:fillViewport="true">
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
+            android:background="@android:color/white"
             android:padding="16dp">
 
             <!-- HEADER CENTRADO -->
@@ -49,7 +50,7 @@
                     android:layout_height="wrap_content"
                     android:text="Buenos días, Vendedor"
                     android:textSize="16sp"
-                    android:textColor="@color/gray"
+                    android:textColor="@color/dark"
                     android:fontFamily="sans-serif" />
             </LinearLayout>
 
@@ -60,7 +61,7 @@
                 android:layout_height="wrap_content"
                 android:text=""
                 android:textSize="12sp"
-                android:textColor="@color/warning"
+                android:textColor="@color/dark"
                 android:gravity="center"
                 android:padding="8dp"
                 android:background="@color/warning_light"
@@ -155,7 +156,7 @@
                             android:layout_height="wrap_content"
                             android:text="Pedidos Pendientes"
                             android:textSize="12sp"
-                            android:textColor="@color/gray"
+                            android:textColor="@color/dark"
                             android:fontFamily="sans-serif" />
 
                         <TextView
@@ -165,7 +166,7 @@
                             android:text="0"
                             android:textSize="32sp"
                             android:textStyle="bold"
-                            android:textColor="@color/warning"
+                            android:textColor="@color/dark"
                             android:layout_marginTop="4dp" />
 
                         <TextView
@@ -173,7 +174,7 @@
                             android:layout_height="wrap_content"
                             android:text="Pendientes"
                             android:textSize="11sp"
-                            android:textColor="@color/gray" />
+                            android:textColor="@color/dark" />
                     </LinearLayout>
                 </androidx.cardview.widget.CardView>
 
@@ -198,7 +199,7 @@
                             android:layout_height="wrap_content"
                             android:text="Tasa de Conversión"
                             android:textSize="12sp"
-                            android:textColor="@color/gray"
+                            android:textColor="@color/dark"
                             android:fontFamily="sans-serif" />
 
                         <TextView
@@ -208,7 +209,7 @@
                             android:text="0.0%"
                             android:textSize="32sp"
                             android:textStyle="bold"
-                            android:textColor="@color/success"
+                            android:textColor="@color/dark"
                             android:layout_marginTop="4dp" />
 
                         <LinearLayout
@@ -223,7 +224,7 @@
                                 android:layout_height="wrap_content"
                                 android:text="↑ 0.0%"
                                 android:textSize="11sp"
-                                android:textColor="@color/success" />
+                                android:textColor="@color/dark" />
                         </LinearLayout>
                     </LinearLayout>
                 </androidx.cardview.widget.CardView>
@@ -242,7 +243,7 @@
                 android:layout_marginBottom="12dp"
                 android:fontFamily="sans-serif" />
 
-            <!-- CONTENEDOR BLANCO PURO (SIN CARDVIEW) -->
+            <!-- CONTENEDOR BLANCO PURO -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -275,6 +276,7 @@
                         android:layout_height="32dp"
                         android:text="◀"
                         android:textSize="14sp"
+                        android:textColor="@color/white"
                         android:backgroundTint="@color/primary"
                         app:cornerRadius="8dp"
                         android:paddingHorizontal="16dp"
@@ -286,7 +288,7 @@
                         android:layout_height="wrap_content"
                         android:text="Página 1"
                         android:textSize="12sp"
-                        android:textColor="@color/gray"
+                        android:textColor="@color/dark"
                         android:layout_marginHorizontal="16dp" />
 
                     <Button
@@ -295,6 +297,7 @@
                         android:layout_height="32dp"
                         android:text="▶"
                         android:textSize="14sp"
+                        android:textColor="@color/white"
                         android:backgroundTint="@color/primary"
                         app:cornerRadius="8dp"
                         android:paddingHorizontal="16dp"
@@ -308,7 +311,7 @@
                     android:layout_height="wrap_content"
                     android:text="No hay ventas registradas hoy"
                     android:textSize="14sp"
-                    android:textColor="@color/gray"
+                    android:textColor="@color/dark"
                     android:gravity="center"
                     android:padding="24dp"
                     android:visibility="gone"
