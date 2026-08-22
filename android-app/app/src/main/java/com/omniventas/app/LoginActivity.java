@@ -66,9 +66,11 @@ public class LoginActivity extends AppCompatActivity {
             progressBar = findViewById(R.id.progressBar);
             tvError = findViewById(R.id.tv_error);
 
-            // Limpiar campo
+            // ✅ CORREGIDO: Forzar que el EditText pueda borrar
             if (etVendorId != null) {
                 etVendorId.setText("");
+                etVendorId.setSelectAllOnFocus(true);
+                etVendorId.requestFocus();
             }
 
             // Animación de entrada
@@ -126,7 +128,6 @@ public class LoginActivity extends AppCompatActivity {
         setLoading(true);
         ocultarError();
 
-        // 🔥 OBTENER LA URL CORRECTA DESDE RETROFITCLIENT
         String apiUrl = RetrofitClient.getApiUrl();
         Log.d(TAG, "🔗 URL de API: " + apiUrl);
 
@@ -134,7 +135,6 @@ public class LoginActivity extends AppCompatActivity {
         VendorLoginRequest request = new VendorLoginRequest(vendorId);
         
         Log.d(TAG, "📤 Enviando petición de login...");
-        Log.d(TAG, "📤 Vendor ID: " + vendorId);
 
         apiService.loginVendor(request).enqueue(new Callback<LoginResponse>() {
             @Override
@@ -143,10 +143,8 @@ public class LoginActivity extends AppCompatActivity {
                 setLoading(false);
                 
                 try {
-                    // 🔥 LOG DETALLADO DEL ERROR
                     if (!response.isSuccessful()) {
                         Log.e(TAG, "❌ Código de error: " + response.code());
-                        Log.e(TAG, "❌ Mensaje de error: " + response.message());
                         if (response.errorBody() != null) {
                             String errorBody = response.errorBody().string();
                             Log.e(TAG, "❌ Cuerpo de error: " + errorBody);
@@ -156,7 +154,6 @@ public class LoginActivity extends AppCompatActivity {
                     if (response.isSuccessful() && response.body() != null) {
                         LoginResponse loginResponse = response.body();
                         Log.d(TAG, "✅ Login - success: " + loginResponse.isSuccess());
-                        Log.d(TAG, "✅ Login - message: " + loginResponse.getMessage());
                         
                         if (loginResponse.isSuccess()) {
                             String token = loginResponse.getToken();
@@ -191,10 +188,9 @@ public class LoginActivity extends AppCompatActivity {
                             logger.warning("Login fallido: " + msg);
                         }
                     } else {
-                        // 🔥 MANEJO DEL ERROR 404
                         String errorMsg = "Error del servidor";
                         if (response.code() == 404) {
-                            errorMsg = "Error 404: El servidor no encontrado. Verifica tu conexión.";
+                            errorMsg = "Error 404: Servidor no encontrado";
                             logger.error("Error 404 - URL incorrecta: " + RetrofitClient.getApiUrl());
                         } else if (response.code() == 500) {
                             errorMsg = "Error 500: Error interno del servidor";
@@ -208,7 +204,7 @@ public class LoginActivity extends AppCompatActivity {
                     }
                 } catch (Exception e) {
                     Log.e(TAG, "❌ Error procesando login: " + e.getMessage(), e);
-                    mostrarError("Error al procesar la respuesta: " + e.getMessage());
+                    mostrarError("Error al procesar la respuesta");
                     logger.error("Error en login: " + e.getMessage());
                 }
             }
