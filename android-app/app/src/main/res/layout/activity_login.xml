@@ -13,7 +13,7 @@
         android:gravity="center"
         android:padding="24dp"
         android:background="@color/white"
-        android:minHeight="match_parent">
+        android:minHeight="600dp">
 
         <!-- Logo -->
         <ImageView
